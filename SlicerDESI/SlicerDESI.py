@@ -1087,7 +1087,7 @@ class SlicerDESIWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		"""
 		logging.debug("Reloading SlicerDESI")
 		packageName='SlicerDESILib'
-		submoduleNames=['Logic', 'Utils', 'CNN', 'Dataset', 'CNNUtils']
+		submoduleNames=['Logic', 'Utils']
 		import imp
 		f, filename, description = imp.find_module(packageName)
 		package = imp.load_module(packageName, f, filename, description)
