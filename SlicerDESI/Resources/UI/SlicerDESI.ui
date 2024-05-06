@@ -32,7 +32,7 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>2</number>
+   <number>1</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
@@ -359,61 +359,7 @@ p, li { white-space: pre-wrap; }
     <string>Visualization</string>
    </attribute>
    <layout class="QFormLayout" name="formLayout_2">
-    <item row="0" column="0">
-     <widget class="QLabel" name="label_11">
-      <property name="font">
-       <font>
-        <pointsize>10</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="text">
-       <string>Pixel spectrum</string>
-      </property>
-     </widget>
-    </item>
-    <item row="0" column="1">
-     <spacer name="horizontalSpacer_7">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>40</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="1" column="1">
-     <widget class="QPushButton" name="spectrumPlot">
-      <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
-color: rgb(255, 255, 255);</string>
-      </property>
-      <property name="text">
-       <string>Spectrum plot</string>
-      </property>
-     </widget>
-    </item>
-    <item row="2" column="0" colspan="2">
-     <spacer name="verticalSpacer_18">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Fixed</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>40</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="3" column="0">
+    <item row="2" column="0">
      <widget class="QLabel" name="label_12">
       <property name="font">
        <font>
@@ -427,7 +373,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="3" column="1">
+    <item row="2" column="1">
      <spacer name="horizontalSpacer">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -440,27 +386,27 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="4" column="0">
+    <item row="3" column="0">
      <widget class="QLabel" name="singleIonMzLabel">
       <property name="text">
        <string>Ion Image</string>
       </property>
      </widget>
     </item>
-    <item row="4" column="1">
+    <item row="3" column="1">
      <widget class="QComboBox" name="singleIonMzList"/>
     </item>
-    <item row="5" column="0">
+    <item row="4" column="0">
      <widget class="QLabel" name="singleIonHeatmapLabel">
       <property name="text">
        <string>Heatmap</string>
       </property>
      </widget>
     </item>
-    <item row="5" column="1">
+    <item row="4" column="1">
      <widget class="QComboBox" name="singleIonHeatmapList"/>
     </item>
-    <item row="6" column="1">
+    <item row="5" column="1">
      <widget class="QPushButton" name="singleIonButton">
       <property name="styleSheet">
        <string notr="true">background-color: #1769aa;
@@ -471,7 +417,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="7" column="0" colspan="2">
+    <item row="6" column="0" colspan="2">
      <spacer name="verticalSpacer_19">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -487,7 +433,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="8" column="0">
+    <item row="7" column="0">
      <widget class="QLabel" name="label_13">
       <property name="font">
        <font>
@@ -501,7 +447,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="8" column="1">
+    <item row="7" column="1">
      <spacer name="horizontalSpacer_2">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -514,7 +460,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="9" column="0">
+    <item row="8" column="0">
      <widget class="QLabel" name="redImageLabel">
       <property name="font">
        <font>
@@ -532,10 +478,7 @@ color: rgb(255, 0, 0);</string>
       </property>
      </widget>
     </item>
-    <item row="9" column="1">
-     <widget class="QComboBox" name="mzlist_2"/>
-    </item>
-    <item row="10" column="0">
+    <item row="9" column="0">
      <widget class="QLabel" name="greenImageLabel">
       <property name="font">
        <font>
@@ -554,10 +497,10 @@ color: rgb(255, 0, 0);</string>
       </property>
      </widget>
     </item>
-    <item row="10" column="1">
+    <item row="9" column="1">
      <widget class="QComboBox" name="mzlist_3"/>
     </item>
-    <item row="11" column="0">
+    <item row="10" column="0">
      <widget class="QLabel" name="blueImageLabel">
       <property name="font">
        <font>
@@ -574,10 +517,10 @@ color: rgb(255, 0, 0);</string>
       </property>
      </widget>
     </item>
-    <item row="11" column="1">
+    <item row="10" column="1">
      <widget class="QComboBox" name="mzlist_4"/>
     </item>
-    <item row="12" column="0">
+    <item row="11" column="0">
      <widget class="QLabel" name="yellowImageLabel">
       <property name="font">
        <font>
@@ -595,10 +538,10 @@ color: rgb(255, 0, 0);</string>
       </property>
      </widget>
     </item>
-    <item row="12" column="1">
+    <item row="11" column="1">
      <widget class="QComboBox" name="mzlist_7"/>
     </item>
-    <item row="13" column="0">
+    <item row="12" column="0">
      <widget class="QLabel" name="magentaImageLabel">
       <property name="font">
        <font>
@@ -616,10 +559,10 @@ color: rgb(255, 0, 0);</string>
       </property>
      </widget>
     </item>
-    <item row="13" column="1">
+    <item row="12" column="1">
      <widget class="QComboBox" name="mzlist_5"/>
     </item>
-    <item row="14" column="0">
+    <item row="13" column="0">
      <widget class="QLabel" name="cyanImageLabel">
       <property name="font">
        <font>
@@ -636,10 +579,10 @@ color: rgb(255, 0, 0);</string>
       </property>
      </widget>
     </item>
-    <item row="14" column="1">
+    <item row="13" column="1">
      <widget class="QComboBox" name="mzlist_6"/>
     </item>
-    <item row="15" column="0">
+    <item row="14" column="0">
      <widget class="QLabel" name="whiteImageLabel">
       <property name="font">
        <font>
@@ -656,10 +599,10 @@ color: rgb(255, 0, 0);</string>
       </property>
      </widget>
     </item>
-    <item row="15" column="1">
+    <item row="14" column="1">
      <widget class="QComboBox" name="mzlist"/>
     </item>
-    <item row="16" column="1">
+    <item row="15" column="1">
      <widget class="QPushButton" name="multiIonButton">
       <property name="styleSheet">
        <string notr="true">background-color: #1769aa;
@@ -670,7 +613,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="17" column="0" colspan="2">
+    <item row="16" column="0" colspan="2">
      <spacer name="verticalSpacer_24">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -686,7 +629,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="18" column="0">
+    <item row="17" column="0">
      <widget class="QLabel" name="label_15">
       <property name="font">
        <font>
@@ -700,7 +643,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="18" column="1">
+    <item row="17" column="1">
      <spacer name="horizontalSpacer_3">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -713,7 +656,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="19" column="1">
+    <item row="18" column="1">
      <widget class="QPushButton" name="PCA_button">
       <property name="styleSheet">
        <string notr="true">background-color: #1769aa;
@@ -724,7 +667,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="20" column="1">
+    <item row="19" column="1">
      <widget class="QPushButton" name="partialPCA">
       <property name="styleSheet">
        <string notr="true">background-color: #1769aa;
@@ -735,14 +678,57 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="21" column="1">
+    <item row="20" column="1">
      <widget class="QCheckBox" name="pcaExtendCheckbox">
       <property name="text">
        <string>Extend the local contrast to whole slide</string>
       </property>
      </widget>
     </item>
-    <item row="22" column="0" colspan="2">
+    <item row="21" column="0" colspan="2">
+     <spacer name="verticalSpacer_28">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="22" column="0">
+     <widget class="QLabel" name="label_11">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Pixel spectrum</string>
+      </property>
+     </widget>
+    </item>
+    <item row="22" column="1">
+     <spacer name="horizontalSpacer_7">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="24" column="0" colspan="2">
      <spacer name="verticalSpacer">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -755,7 +741,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="23" column="0" colspan="2">
+    <item row="25" column="0" colspan="2">
      <spacer name="verticalSpacer_2">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -768,7 +754,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="24" column="0" colspan="2">
+    <item row="26" column="0" colspan="2">
      <spacer name="verticalSpacer_12">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -780,6 +766,20 @@ color: rgb(255, 255, 255);</string>
        </size>
       </property>
      </spacer>
+    </item>
+    <item row="8" column="1">
+     <widget class="QComboBox" name="mzlist_2"/>
+    </item>
+    <item row="23" column="1">
+     <widget class="QPushButton" name="spectrumPlot">
+      <property name="styleSheet">
+       <string notr="true">background-color: #1769aa;
+color: rgb(255, 255, 255);</string>
+      </property>
+      <property name="text">
+       <string>Spectrum plot</string>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
