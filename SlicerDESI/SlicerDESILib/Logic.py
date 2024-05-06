@@ -9,7 +9,6 @@ import logging
 import vtk, qt, ctk, slicer
 from vtk.util import numpy_support
 
-# Does all of the imports
 try:
 		import matplotlib
 		import matplotlib.pyplot as plt
@@ -54,30 +53,6 @@ except ModuleNotFoundError:
 		slicer.util.pip_install("pandas")
 		import pandas as pd
 
-# try:
-# 		import torch
-# except ModuleNotFoundError:
-# 		import pip
-
-# 		slicer.util.pip_install("torch")
-# 		import torch
-
-# try:
-# 		import logging
-# except ModuleNotFoundError:
-# 		import pip
-
-# 		slicer.util.pip_install("logging")
-# 		import logging
-		
-# try:
-# 		import torchmetrics
-# except ModuleNotFoundError:
-# 		import pip
-
-# 		slicer.util.pip_install("torchmetrics")
-# 		import torchmetrics
-  
 try:
 		from tqdm import tqdm
 except ModuleNotFoundError:
@@ -91,9 +66,7 @@ import numpy as np
 import pdb
 
 from SlicerDESILib.Utils import *
-# from SlicerDESILib.CNN import CNN
-# from SlicerDESILib.Dataset import CustomDataset
-# from SlicerDESILib.CNNUtils import train, test
+
 
 from slicer.ScriptedLoadableModule import *
 
@@ -331,26 +304,11 @@ class SlicerDESILogic(ScriptedLoadableModuleLogic):
 			cbar = plt.colorbar(ticks=np.arange(len(class2num.classes_))+1)
 			cbar.ax.set_yticklabels(class2num.classes_)
 
-			# jet_colors = cm.get_cmap('jet')(np.linspace(0, 1, 251))
-			# black_colors = np.zeros((5, 4))
-			# black_colors[:, 3] = 1
-			# cmap_custom = cm.colors.ListedColormap( np.vstack((black_colors, jet_colors)) )
-			# plt.figure(figsize=[6,6])
-			# plt.imshow(roi_reconstruct_num.T, cmap=cmap_custom, 
-			# 		   interpolation=None, vmin=0, vmax=len(class2num.classes_))
-			# plt.axis('off')
-			# cbar = plt.colorbar(ticks=np.arange(len(class2num.classes_))+1)
-			# cbar.ax.set_yticklabels(class2num.classes_)
 
 			save_folder, save_suffix = image_save_info
 
-			# print(save_folder)
-			# print(labels_single[0,0])
-			# print(save_suffix)
 
 			save_name = os.path.join(save_folder,str(labels_single[0,0])+save_suffix)
-			# plt.savefig(f"{'/'.join(self.csvFile.split('/')[:-1])}/{save_name}.png", bbox_inches='tight', dpi=300)
-			#plt.show()
 			plt.savefig(save_name, bbox_inches='tight', dpi=300)
 			plt.close()
 
@@ -526,11 +484,6 @@ class SlicerDESILogic(ScriptedLoadableModuleLogic):
 			preds_img = np.where(mask_array==1, preds_img, np.nan)
 			cmap_custom.set_bad(color='black',alpha=0)
 
-		# plt.imshow(preds_img, cmap=cmap_custom, vmin=-0.5, vmax=n_colors-0.5)
-		# plt.axis('off')
-		# cbar = plt.colorbar(ticks=np.arange(n_colors))
-		# h = cbar.ax.set_yticklabels(self.Dclass_order)
-
 		fig, ax = plt.subplots()
 		cax = ax.imshow(preds_img, cmap=cmap_custom, vmin=-0.5, vmax=n_colors-0.5) 
 		ax.axis('off')
@@ -552,7 +505,6 @@ class SlicerDESILogic(ScriptedLoadableModuleLogic):
 			elif lda_image.shape[2]>=3:
 				lda_image = lda_image[:,:,:3]
 			
-
 			# if dep_mask != None:
 			# 	lda_image = lda_image * mask_array
 
@@ -928,32 +880,7 @@ class SlicerDESILogic(ScriptedLoadableModuleLogic):
 			img = slicer.util.arrayFromSegmentBinaryLabelmap(segmentationNode, segIDs[i])
 			img = 255 * img.transpose(1,2,0)
 			cv2.imwrite(savepath[:-4] + '_'+ segNames[i] + '.png',img)
-	# def segmentationSave(self, savepath):
-	# 	row = ['Class','X','Y']
-	# 	row += [self.mz[i] for i in range(len(self.mz))]
 
-	#  # actual data rows
-	# 	lm = slicer.mrmlScene.GetFirstNodeByName("Segmentation")
-	# 	segments = lm.GetSegmentation()
-		
-	# 	names, i = [], 0
-	# 	segment_id = segments.GetNthSegmentID(i)
-
-	# 	while segment_id:
-	# 		names += [segment_id]
-	# 		segment_id = lm.GetSegmentation().GetNthSegmentID(i + 1)
-	# 		i += 1
-				
-	# 	count = 1
-	# 	for (i, name) in enumerate(names):
-	# 		a = slicer.util.arrayFromSegmentBinaryLabelmap(lm, name)
-	# 		#################################
-	# 		# changed = a.transpose(1,2,0)
-	# 		changed = 255 * a.transpose(1,2,0)
-	# 		#################################
-	# 		# cv2.imwrite(self.saveFolder+ self.slideName + '_'+ name + '.png',changed)
-	# 		cv2.imwrite(savepath[:-4] + '_'+ name + '.png',changed)
-	# 		count = count + 1
 
 	# set volume dimensions, fill with image requested, get rid of existing overlays
 	def visualizationRunHelper(self,overlay,arraySize,visualization_type='multi', heatmap='Gray'):
@@ -1089,165 +1016,6 @@ class SlicerDESILogic(ScriptedLoadableModuleLogic):
 
 		return X_train_balanced, y_train_balanced, track_info_train_balanced
 
-
-	def setCNNHyperparameters(self, parameters):
-		self.CNNHyperparameters = parameters
-
-	def runCNN(self, classnames, X_train, X_val, X_test, y_train, y_val, y_test):
-		"""
-		Trains a CNN, saves the model weights, and plots the training curves.
-		
-		Args:
-				classnames:
-				X_train: 
-				X_test: 
-				y_train:
-				y_test:
-
-		Returns:
-				train_predictions: Predictions on the training set.
-				test_predictions: Predictions on the test set.
-
-		Author:
-				Ayesha Syeda
-		"""
-				
-		# Hyperparameters
-		batch_size = self.CNNHyperparameters['batch_size']
-		epochs = 200
-		learning_rate = self.CNNHyperparameters['lr']
-		actual_epochs_ran = epochs
-		
-		# Define early stopping parameters
-		patience = 5  # Number of epochs to wait for improvement
-		best_loss = float('inf')
-		early_stopping_counter = 0
-		model_saved = False
-		
-		dir_checkpoint = '/'.join(self.modellingFile.split('/')[1:-1])
-		
-		# Keep track of performance values for each set
-		train_losses, train_aurocs, train_accs = [], [], []
-		test_losses, test_aurocs, test_accs = [], [], []
-		val_losses, val_aurocs, val_accs = [], [], []
-		
-		# Imports
-		import torch
-		from sklearn.preprocessing import LabelEncoder
-		
-		# Use GPU if available
-		device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-		use_cuda = torch.cuda.is_available()
-		
-		# Create label mapping
-		label_encoder = LabelEncoder()
-		label_encoder.fit(classnames)
-		y_train_numeric = label_encoder.transform(y_train)
-		y_val_numeric = label_encoder.transform(y_val)
-		y_test_numeric = label_encoder.transform(y_test)
-		
-		# Create datasets and use to create dataloaders
-		train_dataset = CustomDataset(X_train, y_train_numeric)
-		val_dataset = CustomDataset(X_val, y_val_numeric)
-		test_dataset = CustomDataset(X_test, y_test_numeric)
-		trainloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-		valloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
-		testloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-		
-		# Create loss weights
-		weights = torch.Tensor([np.count_nonzero(y_train_numeric == i) for i in range(len(classnames))])
-		weights = 1/weights
-		weights = weights / weights.sum()
-		weights = torch.FloatTensor(weights).to(device)
-		
-		# Initialize model and log model info
-		print(f'Building model...')
-		model = CNN(len(classnames), len(X_train[0])).to(device)
-		optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-		print(f'''Starting training:\nEpochs:        {epochs}\nBatch size:    {batch_size}\nLearning rate: {learning_rate}\nDevice:        {device.type}''')
-		
-		# Train the model!
-		start_epoch = 0
-		for epoch in range(start_epoch, epochs):
-			train_loss, train_auroc, train_acc = train(epoch, trainloader, model, optimizer, device, len(classnames),weights)
-			test_loss, test_auroc, test_acc = test(testloader, model, device, len(classnames), weights)
-			val_loss, val_auroc, val_acc = test(valloader, model, device, len(classnames), weights)
-			
-			# Store each value in its corresponding list
-			train_losses.append(train_loss)
-			train_aurocs.append(train_auroc)
-			train_accs.append(train_acc)
-			test_losses.append(test_loss)
-			test_aurocs.append(test_auroc)
-			test_accs.append(test_acc)
-			val_losses.append(val_loss)
-			val_aurocs.append(val_auroc)
-			val_accs.append(val_acc)
-			
-			# Log to console
-			print(f'Train Loss: {train_loss}, Train AUROC: {train_auroc}, Train Accuracy: {train_acc}\nVal Loss: {val_loss}, Val AUROC: {val_auroc}, Val Accuracy: {val_acc}\nTest Loss: {test_loss}, Test AUROC: {test_auroc}, Test Accuracy: {test_acc}')
-			
-			if val_loss < best_loss:
-				best_loss = val_loss
-				early_stopping_counter = 0
-				torch.save(model.state_dict(), f'{dir_checkpoint}/CNN_model.pt')  # Save the best model
-				model_saved = True
-			else:
-				early_stopping_counter += 1
-				
-			# Check if early stopping criteria are met
-			if early_stopping_counter >= patience:
-				print(f"Early stopping triggered at epoch {epoch}")
-				actual_epochs_ran = epoch
-				break
-		
-		if model_saved:
-			model = CNN(len(classnames), len(X_train[0])).to(device)
-			model.load_state_dict(torch.load(f'{dir_checkpoint}/CNN_model.pt'))
-		
-		else:
-			#from pathlib import Path
-			#dir_checkpoint = '/'.join(self.modellingFile.split('/')[1:-1])
-			#Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
-			torch.save(model.state_dict(), f'{dir_checkpoint}/CNN_model.pt')
-		
-		# Plot training graphs
-		eps = [i for i in range(actual_epochs_ran+1)]
-		saveTrainingPlot(train_losses, eps, 'Train Loss', dir_checkpoint)
-		saveTrainingPlot(train_aurocs, eps, 'Train AUROC', dir_checkpoint)
-		saveTrainingPlot(train_accs, eps, 'Train Accuracy', dir_checkpoint)
-		saveTrainingPlot(test_losses, eps, 'Test Loss', dir_checkpoint)
-		saveTrainingPlot(test_aurocs, eps, 'Test AUROC', dir_checkpoint)
-		saveTrainingPlot(test_accs, eps, 'Test Accuracy', dir_checkpoint)
-		saveTrainingPlot(val_losses, eps, 'Val Loss', dir_checkpoint)
-		saveTrainingPlot(val_aurocs, eps, 'Val AUROC', dir_checkpoint)
-		saveTrainingPlot(val_accs, eps, 'Val Accuracy', dir_checkpoint)
-		
-		# Return train/test preds (and map to original labels!)
-		with torch.no_grad(): 
-			
-			# Get test predictions
-			x_dim = torch.unsqueeze(torch.Tensor(X_test), dim=1).float()
-			test_logits = model(x_dim)
-			test_probs = torch.softmax(test_logits, dim=1)
-			test_preds_numeric = torch.Tensor([int(torch.argmax(prob)) for prob in test_probs]).to(device).type(torch.int)
-			test_preds = label_encoder.inverse_transform(test_preds_numeric)
-			
-			# Get train predictions
-			x_dim = torch.unsqueeze(torch.Tensor(X_train), dim=1).float()
-			train_logits = model(x_dim)
-			train_probs = torch.softmax(train_logits, dim=1)
-			train_preds_numeric = torch.Tensor([int(torch.argmax(prob)) for prob in train_probs]).to(device).type(torch.int)
-			train_preds = label_encoder.inverse_transform(train_preds_numeric)
-			
-			# Get train predictions
-			x_dim = torch.unsqueeze(torch.Tensor(X_val), dim=1).float()
-			val_logits = model(x_dim)
-			val_probs = torch.softmax(val_logits, dim=1)
-			val_preds_numeric = torch.Tensor([int(torch.argmax(prob)) for prob in val_probs]).to(device).type(torch.int)
-			val_preds = label_encoder.inverse_transform(val_preds_numeric)
-
-		return train_preds, test_preds, val_preds
 	
 	def runLDA(self, X_train, X_test, y_train, y_test):
 		
@@ -1407,13 +1175,6 @@ class SlicerDESILogic(ScriptedLoadableModuleLogic):
 		
 		y_train_preds, y_train_prob, y_test_preds, y_test_prob, class_order, models = MODEL(X_train, X_test,y_train, y_test)
 
-
-		# if self.model_type == 'CNN':
-		# 	classnames = list(set(y))
-		# 	train_preds, test_preds, val_preds = self.runCNN(classnames,
-		# 													X_train, X_val, X_test,
-		# 													y_train, y_val, y_test)
-		
 		# Get data information to relay to the user
 		filename = self.modellingFile.split('/')[-1]
 		confirmation_string = f'Model successfully trained\n'
@@ -1426,13 +1187,7 @@ class SlicerDESILogic(ScriptedLoadableModuleLogic):
 		perf_string = get_performance_info(y_train, y_train_preds, y_train_prob, 
 			 								y_test, y_test_preds, y_test_prob,
 											class_order, self.split)
-		# acc_string = get_acc_string(X, y,
-		# 							y_train, train_preds, 
-		# 							y_test, test_preds, 
-		# 							self.model_type, filename,
-		# 							self.CNNHyperparameters,
-		# 							y_val if self.model_type == 'CNN' else y_test, 
-		# 							val_preds if self.model_type == 'CNN' else test_preds)
+
 		all_string = confirmation_string + fold_string + "\n\n" + perf_string
 
 		# save the model
@@ -1583,36 +1338,7 @@ class SlicerDESILogic(ScriptedLoadableModuleLogic):
 		YellowNode.SetOrientation("Axial")
 		slicer.util.resetSliceViews()
 
-
-	# def LDA_plot(self, model, X_train, y_train):
-	# 	import matplotlib.pyplot as plt
-	# 	from matplotlib.colors import ListedColormap
-	# 	import numpy as np
-		
-	# 	from matplotlib.axes._axes import _log as matplotlib_axes_logger
-
-	# 	matplotlib_axes_logger.setLevel('ERROR')
-
-	# 	data_plot = model.transform(X_train)
-
-	# 	plt.figure()
-
-	# 	for i, j in enumerate(np.unique(y_train)):
-	# 			plt.scatter(data_plot[y_train == j, 0], data_plot[y_train == j, 1],
-	# 									c = ListedColormap(('red', 'green', 'blue','black','cyan','magenta','yellow'))(i), label = j)
-
-	# 	#add legend to plot
-	# 	plt.legend(loc='best', shadow=False, scatterpoints=1)
-		
-	# 	# Add x and y axis
-	# 	plt.xlabel('Linear discriminant 1')
-	# 	plt.ylabel('Linear discriminant 2')
-
-	# 	#display LDA plot
-	# 	plt.savefig(self.modellingFile + 'scatter.jpeg')
-	# 	self.saveFolder = self.modellingFile + 'scatter.jpeg'
   
-	# uploads the modelling file and saves the file names into the class directory 
 	def CsvLoad(self, filename):
 		self.csv_processing = pd.read_csv(filename)
 		self.csvFile = filename
@@ -1742,16 +1468,6 @@ class SlicerDESILogic(ScriptedLoadableModuleLogic):
 
 		return True
 
-	# def loadModellingTextFile(self, path):
-	# 	[peaks, mz, dim_y, dim_x] = self.DESI_txt2numpy(path)
-	# 	peaks_3D = peaks.reshape((dim_y,dim_x,-1),order='C')
-	# 	name = path.split('/')[-1]
-	# 	infostr = f'Slide successfully loaded \n'
-	# 	infostr += f'File name:                 {name} \n'
-	# 	infostr += f'Image dimensions:    {peaks_3D.shape[0]}x{peaks_3D.shape[1]} \n'
-	# 	infostr += f'm/z per pixel:            {peaks_3D.shape[2]} \n'
-	# 	infostr += f'Data size:                 {peaks_3D.shape}'
-	# 	return infostr
 	def loadPipeline(self, fileName):
 		## load model/mz_ref
 		with open(fileName,"rb") as f:
@@ -1992,48 +1708,6 @@ class SlicerDESILogic(ScriptedLoadableModuleLogic):
 		return retstr
 
 
-
-	# def partial_pca_visulization(self, peaks, mask):
-	# 	"""
-	# 	create a PCA representation only using the pixels specified in segmentation mask
-	# 	inputs:
-	# 			peaks - 2D numpy array of DESI spectra with size [N_spectra x N_ions]
-	# 			mask - 2D numpy array of segmentation mask [dim_y x dim_x] 
-	# 	output:
-	# 			pca_mask_image - 3D numpy array of the partial PCA representation [dim_y x dim_x x 3] 
-	# 	example:
-	# 			[peaks, mz, dim_y, dim_x] = DESI_txt2numpy(file)
-	# 			roi_image = pltimage.imread(roi_file)
-	# 			segmentation_mask = roi_image.sum(axis=2)>0
-	# 			pca_mask_image = partial_pca_visulization(peaks, segmentation_mask)
-	# 			plt.imshow(pca_mask_image)
-	# 			plt.show()
-	# 	author: @moon
-	# 	"""
-	# 	dim_y, dim_x = mask.shape
-	# 	print(dim_y, dim_x)
-
-	# 	peaks_image = peaks.reshape((dim_y,dim_x,-1),order='C')
-
-	# 	X,Y = np.meshgrid( np.arange(dim_x), np.arange(dim_y) )
-	# 	mask_x = X[mask][...,np.newaxis]
-	# 	mask_y = Y[mask][...,np.newaxis]
-
-	# 	mask_peaks = peaks_image[mask]
-	# 	mask_tic = mask_peaks.sum(axis=1, keepdims=True)
-	# 	mask_peaks = mask_peaks/mask_tic
-
-	# 	pcaM = PCA(n_components=3)
-	# 	pca_mask_data = pcaM.fit_transform(ion_minmax_normalize(mask_peaks))
-	# 	pca_mask_data = ion_minmax_normalize(pca_mask_data)
-
-	# 	pca_mask_image = np.zeros([dim_y,dim_x,3])
-	# 	for i in range(len(mask_x)):
-	# 			pca_mask_image[mask_y[i], mask_x[i], :] = pca_mask_data[i]
-		
-	# 	return pca_mask_image 
-
-
 	# generates and displays the pca image
 	def partial_pca_display(self, start_pos, end_pos, extend=False):
 		
@@ -2108,8 +1782,6 @@ class SlicerDESILogic(ScriptedLoadableModuleLogic):
 		return True
 	
 
-
-
 	def roi_lda_display(self, mask, extend=False):
 		
 		dim_y, dim_x = self.dim_y,self.dim_x
@@ -2172,74 +1844,6 @@ class SlicerDESILogic(ScriptedLoadableModuleLogic):
 		return coloredArray
 
 
-
-	# def roi_lda_display(self, mask, extend=False):
-		
-	# 	dim_y, dim_x = self.dim_y,self.dim_x
-
-	# 	local_peaks_ind = mask>0
-	# 	local_peaks_ind = local_peaks_ind.reshape((dim_y*dim_x,),order='C')
-
-	# 	local_labels = mask.reshape((dim_y*dim_x,),order='C')
-	# 	local_labels = local_labels[local_peaks_ind]
-
-	# 	local_peaks = self.peaks_norm[local_peaks_ind]
-	# 	local_pca = PCA(n_components=0.99)
-	# 	local_scaler = MinMaxScaler()
-	# 	local_peaks_pca = local_pca.fit_transform( local_scaler.fit_transform( local_peaks ) )
-	# 	local_lda = LDA()
-	# 	local_peaks_lda = local_lda.fit_transform(local_peaks_pca, local_labels)
-	# 	# post_scaler = MinMaxScaler()
-	# 	# post_scaler.fit(local_peaks_lda)
-
-	# 	if extend:
-	# 		# local_peaks_pca = local_pca.transform( local_scaler.transform( self.peaks_norm ) )
-	# 		# local_peaks_lda = local_lda.transform(local_peaks_pca)
-	# 		# local_peaks_lda = post_scaler.transform( local_peaks_lda )
-	# 		# local_peaks_lda = np.clip(local_peaks_lda, 0,1)
-	# 		# local_lda_image = local_peaks_lda.reshape((dim_y,dim_x,-1),order='C')
-	# 		local_peaks_pca = local_pca.transform( local_scaler.transform( self.peaks_norm ) )
-	# 		local_peaks_lda = local_lda.predict(local_peaks_pca)
-	# 		local_lda_image = local_peaks_lda.reshape((1,dim_y,dim_x),order='C')
-	# 	else:
-	# 		# local_peaks_lda = post_scaler.transform( local_peaks_lda )
-	# 		# local_peaks_lda = np.clip(local_peaks_lda, 0,1)
-	# 		# # local_pca_image = self.peaks_pca.copy()
-	# 		# local_lda_image = np.zeros((dim_y*dim_x,local_peaks_lda.shape[1]))
-	# 		# local_lda_image[local_peaks_ind] = local_peaks_lda
-	# 		# local_lda_image = local_lda_image.reshape((dim_y,dim_x,-1),order='C')
-	# 		local_peaks_lda = local_lda.predict(local_peaks_pca)
-	# 		local_lda_image = np.zeros((dim_y*dim_x,))
-	# 		local_lda_image[local_peaks_ind] = local_peaks_lda
-	# 		local_lda_image = local_lda_image.reshape((1,dim_y,dim_x),order='C')
-
-	# 	local_lda_image = local_lda_image.astype("int")
-	# 	local_lda_image = np.transpose(local_lda_image)
-
-	# 	print(local_lda_image.shape, local_lda_image.dtype)
-	# 	# labelMapNode = self.numpyArrayToSlicerLabelMap(local_lda_image, self.slideName+"_roi_lda")
-	# 	ijkToRASMatrix = np.array([[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])  # Your IJK to RAS matrix
-	# 	labelMapNode = self.numpyArrayToSlicerLabelMap(local_lda_image, "MyLabelMap", ijkToRASMatrix)
-
-	# 	segmentationNode = slicer.util.getNodesByClass('vtkMRMLSegmentationNode')[0]
-	# 	customColorTableNode = self.createCustomColorTable(segmentationNode)
-	# 	self.applyColormapToLabelMap(labelMapNode, customColorTableNode)
-
-	# 	# Set the layout to 'Red Slice Only'
-	# 	layoutManager = slicer.app.layoutManager()
-	# 	layoutManager.setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
-
-	# 	# Get the red slice view's slice logic and set the label map node
-	# 	redSliceWidget = layoutManager.sliceWidget('Red')
-	# 	redSliceLogic = redSliceWidget.sliceLogic()
-	# 	redSliceLogic.GetSliceCompositeNode().SetLabelVolumeID(labelMapNode.GetID())
-
-	# 	# Ensure the display node of the label map node is visible
-	# 	displayNode = labelMapNode.GetDisplayNode()
-	# 	if displayNode:
-	# 		displayNode.SetVisibility(1)
-
-
 	def numpyArrayToSlicerLabelMap(self, numpyArray, nodeName, ijkToRASMatrix):
 		# Ensure the array is in Fortran order (column-major order)
 		if not numpyArray.flags['F_CONTIGUOUS']:
@@ -2270,25 +1874,7 @@ class SlicerDESILogic(ScriptedLoadableModuleLogic):
 
 		return labelMapVolumeNode
 
-	# def numpyArrayToSlicerLabelMap(self, numpyArray, nodeName):
-	# 	# print("numpyArray:", numpyArray, "nodeName:", nodeName)
-	# 	# Convert numpy array to VTK array
-	# 	vtkArray = numpy_support.numpy_to_vtk(num_array=numpyArray.flatten(), deep=True, array_type=vtk.VTK_INT)
 
-	# 	# Create a vtkImageData object and set the VTK array as its scalars
-	# 	imageData = vtk.vtkImageData()
-	# 	imageData.SetDimensions(numpyArray.shape)
-	# 	imageData.GetPointData().SetScalars(vtkArray)
-
-	# 	# Create a new label map volume node
-	# 	labelMapVolumeNode = slicer.vtkMRMLLabelMapVolumeNode()
-	# 	labelMapVolumeNode.SetName(nodeName)
-	# 	labelMapVolumeNode.SetAndObserveImageData(imageData)
-
-	# 	# Add the label map volume node to the Slicer scene
-	# 	slicer.mrmlScene.AddNode(labelMapVolumeNode)
-
-	# 	return labelMapVolumeNode
 
 	def createCustomColorTable(self, segmentationNode):
 		# Create a new color table

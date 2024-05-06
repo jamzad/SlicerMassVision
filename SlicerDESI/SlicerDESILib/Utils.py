@@ -40,35 +40,6 @@ def get_performance_info(y_train, y_train_preds, y_train_prob,
 		performance_string += get_performance_str(y_test, y_test_preds, y_test_prob, class_order)
 	return performance_string
 	
-# def get_acc_string(all_data, all_labels, train_labels, train_pred, test_labels, 
-# 				   test_pred, model_type, filename, hparams, val_labels, val_preds):
-	
-# 	classnames = list(set(all_labels))
-# 	classnames.sort()
-	
-# 	acc_string = f'Successfully trained {model_type} model on {filename}:\n\n'
-# 	acc_string += 'DATA DISTRIBUTION\n'
-# 	acc_string += ' - Train Data:\n'
-# 	acc_string += get_information_str(train_labels, classnames)
-# 	acc_string += '\n - Test Data:\n'
-# 	acc_string += get_information_str(test_labels, classnames)
-# 	# if val_labels!=None:
-# 	# 	acc_string += '\n - Val Data:\n'
-# 	# 	acc_string += get_information_str(val_labels, classnames)
-# 	acc_string += '\n\n'
-# 	acc_string += 'CLASSIFICATION PERFORMANCE\n'
-# 	acc_string += ' - Train Performance:\n'
-# 	acc_string += get_performance_str(train_labels, train_pred, classnames)
-# 	acc_string += ' - Test Performance:\n'
-# 	acc_string += get_performance_str(test_labels, test_pred, classnames)
-# 	# if val_labels!=None:
-# 	# 	acc_string += ' - Val Performance:\n'
-# 	# 	acc_string += get_performance_str(val_labels, val_preds, classnames, cancerClass)
-# 	# if hparams!=None:
-# 	# 	acc_string += '\n\n MODEL HYPERPARAMETERS\n'
-# 	# 	for (parameter, value) in hparams.items(): acc_string += f'{parameter}: {value}\n'
-# 	# 	acc_string += '\n'			
-# 	return acc_string
 
 def get_information_str(y, classnames):
 	info_str = ''
