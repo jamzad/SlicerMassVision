@@ -133,7 +133,14 @@ class SlicerDESIWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			self.ui.REIMSFileLoad.hide()
 			self.ui.REIMSInformation.hide()
 
-
+		# import push botton mechanism
+		self.ui.textFileLoad.hide()
+		self.ui.loadHisto.hide()
+		self.ui.csvLoad.hide()
+		self.ui.modellingFile.hide()
+		self.ui.deployImport.hide()
+		self.ui.deployModelImport.hide()
+		
 		# Data Import
 		self.ui.clearReloadPush.connect("clicked(bool)", self.onClearReload)
 		self.ui.loadScenePush.connect("clicked(bool)", self.onLoadScene)
@@ -259,14 +266,17 @@ class SlicerDESIWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 	def onTextFileSelect(self):
 		file_info = self.logic.textFileSelect()
-		if file_info:
-			self.ui.filenameTextBrowser.setText(f'{file_info[0]}{file_info[1]}')
-			#self.ui.filenameTextBrowser.setText(file_info[1])
+		if file_info!=('',''):
+			# self.ui.filenameTextBrowser.setText(f'{file_info[0]}{file_info[1]}')
+			self.ui.ImportlineEdit.setText(f'{file_info[0]}{file_info[1]}')
+			self.ui.ImportlineEdit.setToolTip(f'{file_info[0]}{file_info[1]}')
+			self.onTextFileLoad()
 
 	def onTextFileLoad(self):
 		# on the text file load runs the text file load and shows the confirmation button
 
-		file_load = self.logic.textFileLoad(self.ui.filenameTextBrowser.toPlainText())
+		# file_load = self.logic.textFileLoad(self.ui.filenameTextBrowser.toPlainText())
+		file_load = self.logic.textFileLoad(self.ui.ImportlineEdit.text)
 		if file_load:
 			tic_normalized = self.logic.normalize()
 			info = self.logic.getDataInformation() if tic_normalized else 'Error in TIC Normalization'
@@ -282,18 +292,20 @@ class SlicerDESIWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		# histoPath = self.logic.fileSelect()
 		histoPath = self.logic.HistofileSelect()
 		if histoPath:
-			self.ui.histoTextBrowser.setText(histoPath)
+			self.ui.HistoLineEdit.setText(histoPath)
+			self.ui.HistoLineEdit.setToolTip(histoPath)
+			self.onloadHisto()
+			
 
 	def onloadHisto(self):
 		# when load histopathology is selected runs load histopathology
-		self.logic.loadHistopathology(self.ui.histoTextBrowser.toPlainText())
+		self.logic.loadHistopathology(self.ui.HistoLineEdit.text)
 
 
 	def onREIMSSelect(self):
 		file_info = self.logic.REIMSSelect()
 		if file_info:
 			self.ui.filenameREIMSBrowser.setText(f'{file_info[0]}{file_info[1]}')
-			#self.ui.filenameTextBrowser.setText(file_info[1])
 
 	def onREIMSLoad(self):
 		# on the text file load runs the text file load and shows the confirmation button
@@ -490,7 +502,9 @@ class SlicerDESIWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
   
 	def onCSVconnect(self):
 		fileExplorer = qt.QFileDialog()
-		defaultSave = self.ui.filenameTextBrowser.toPlainText()[:-4]+'_dataset'
+		# defaultSave = self.ui.filenameTextBrowser.toPlainText()[:-4]+'_dataset'
+		defaultSave = self.ui.ImportlineEdit.text[:-4]+'_dataset'
+		
 		savepath = fileExplorer.getSaveFileName(None, "Save aligned dataset", defaultSave, "CSV Files (*.csv);;All Files (*)")
 		
 		retstr = self.logic.csvGeneration(savepath)
@@ -500,7 +514,8 @@ class SlicerDESIWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 	def onSaveScene(self):
 		print('saving the project...')
 		fileExplorer = qt.QFileDialog()
-		defaultSave = self.ui.filenameTextBrowser.toPlainText()[:-4]+'_project'
+		# defaultSave = self.ui.filenameTextBrowser.toPlainText()[:-4]+'_project'
+		defaultSave = self.ui.ImportlineEdit.text[:-4]+'_project'
 		savepath = fileExplorer.getSaveFileName(None, "Save Project", defaultSave, "MSI Project Files (*.mrb);;All Files (*)")
 		print(savepath)
 		slicer.util.saveScene(savepath)
@@ -595,10 +610,12 @@ class SlicerDESIWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		csvFilename = fileExplorer.getOpenFileName(None, "Open CSV dataset", "", "CSV Files (*.csv);;All Files (*)")
 		self.csvForProcess = csvFilename
 		if csvFilename:
-			self.ui.csvTextBrowser.setText(csvFilename)
+			self.ui.PostProcessinglineEdit.setText(csvFilename)
+			self.ui.PostProcessinglineEdit.setToolTip(csvFilename)
+			self.onCsvLoad()
 
 	def onCsvLoad(self):
-		csv_info = self.logic.CsvLoad(self.ui.csvTextBrowser.toPlainText())
+		csv_info = self.logic.CsvLoad(self.ui.PostProcessinglineEdit.text)
 		if csv_info:
 			self.ui.csvInfo.setText(csv_info)
 			self.ui.refIoncomboBox.clear()
@@ -692,11 +709,13 @@ class SlicerDESIWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		fileExplorer = qt.QFileDialog()
 		csvFilename = fileExplorer.getOpenFileName(None, "Open CSV dataset", "", "CSV Files (*.csv);;All Files (*)")
 		if csvFilename:
-			self.ui.csvName.setText(csvFilename)
+			self.ui.ModellineEdit.setText(csvFilename)
+			self.ui.ModellineEdit.setToolTip(csvFilename)
+			self.onModellingLoad()
 
 	def onModellingLoad(self):
 		# loads the file for modelling and does confirmation pop up 
-		dataset_info = self.logic.modellingFileLoad(self.ui.csvName.toPlainText())
+		dataset_info = self.logic.modellingFileLoad(self.ui.ModellineEdit.text)
 		if not dataset_info:
 			dataset_info = 'Error in file load. Please check the console error and try again.'
 		else:
@@ -823,12 +842,14 @@ class SlicerDESIWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 	### Model deployment tab
 	def onDeploySelect(self):
 		file_loc = self.logic.textFileSelect()
-		if file_loc:
-			self.ui.deployLoc.setText(f'{file_loc[0]}{file_loc[1]}')
+		if file_loc!=('',''):
+			self.ui.deployLoclineEdit.setText(f'{file_loc[0]}{file_loc[1]}')
+			self.ui.deployLoclineEdit.setToolTip(f'{file_loc[0]}{file_loc[1]}')
+			self.onDeployLoad()
    
 	def onDeployLoad(self):
 		# on the text file load runs the text file load and shows the confirmation button
-		self.logic.textFileLoad(self.ui.deployLoc.toPlainText())
+		self.logic.textFileLoad(self.ui.deployLoclineEdit.text)
 		info = self.logic.getDataInformation()
 		self.ui.deployInfo.setText(info)
 		## make the visualization options available for this slide
@@ -842,10 +863,12 @@ class SlicerDESIWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		pklFilename = fileExplorer.getOpenFileName(None, "Open model pipeline", "", "Pickle Files (*.pkl);;All Files (*)")
 		self.pklFilename = pklFilename
 		if pklFilename:
-			self.ui.deployModelLoc.setText(pklFilename)
+			self.ui.deployModellineEdit.setText(pklFilename)
+			self.ui.deployModellineEdit.setToolTip(pklFilename)
+			self.onDeployModelLoad()
 
 	def onDeployModelLoad(self):
-		pipelineInfo = self.logic.loadPipeline(self.ui.deployModelLoc.toPlainText())
+		pipelineInfo = self.logic.loadPipeline(self.ui.deployModellineEdit.text)
 		self.ui.deployModelInfo.setText(pipelineInfo)
 		self.ui.depComboboxIon.clear()
 		for mz in self.logic.DmzRef:

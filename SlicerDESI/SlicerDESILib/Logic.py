@@ -1412,7 +1412,7 @@ class SlicerDESILogic(ScriptedLoadableModuleLogic):
 		fileExplorer = qt.QFileDialog()
 		# filePaths = fileExplorer.getOpenFileNames(None, "Open DESI text file", "", "Text Files (*.txt);;All Files (*)")
 		# data_path_temp = filePaths[0]
-		filePaths = fileExplorer.getOpenFileName(None, "Open DESI text file", "", "Text Files (*.txt);;All Files (*)")
+		filePaths = fileExplorer.getOpenFileName(None, "Import MSI data", "", "DESI Text Files (*.txt);;Structured CSV Files (*.csv);;All Files (*)")
 		data_path_temp = filePaths
 		slide_name = data_path_temp.split('/')[-1]
 		lengthy = len(slide_name)
