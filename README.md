@@ -20,4 +20,4 @@ SlicerDESI is a module developed in 3D Slicer platform for end-to-end analysis o
 
 ## Citation
 Please use the following citations if you are using SlicerDESI
-TBA
+* TBA
