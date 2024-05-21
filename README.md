@@ -1,6 +1,6 @@
 # SlicerDESI
 <p align="center">
-  <img src="https://github.com/jamzad/SlicerDESI/blob/main/SlicerDESI.png" alt="logo" width="40%"/>
+  <img src="https://github.com/jamzad/SlicerDESI/blob/main/SlicerDESI.png" alt="logo" width="35%"/>
 </p>
 
 
