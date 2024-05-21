@@ -18,6 +18,10 @@ SlicerDESI is a module developed in 3D Slicer platform for end-to-end analysis o
 * Model training: data stratification, data balancing, model selection
 * Whole-slide deployment: global deployment, masked deployment
 
+## Documentations
+To access user manual, documentations, and tutorials please use the following link
+
+TBA
 ## Citation
 Please use the following citations if you are using SlicerDESI
 * TBA
