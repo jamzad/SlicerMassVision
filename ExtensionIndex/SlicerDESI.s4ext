@@ -1,28 +1,44 @@
-# Extension metadata
+#
+# First token of each non-comment line is the keyword and the rest of the line
+# (including spaces) is the value.
+# - the value can be blank
+#
 
-# Name of the extension
-extensionname = SlicerDESI
+# This is source code manager
+scm git
+scmurl https://github.com/jamzad/SlicerDESI.git
+scmrevision 2395ae7
 
-# Scm repository path
-scm = git
+# list dependencies
+# - These should be names of other modules that have .s4ext files
+# - The dependencies will be built first
+depends NA
 
-# Scm repository URL
-scmurl = https://github.com/jamzad/SlicerDESI.git
+# Inner build directory (default is ".")
+build_subdirectory .
 
-# Scm repository branch/tag
-scmrevision = main
+# homepage
+homepage https://github.com/jamzad/SlicerDESI
 
-# Homepage
-homepage = https://github.com/jamzad/SlicerDESI
+# Firstname1 Lastname1 ([SubOrg1, ]Org1), Firstname2 Lastname2 ([SubOrg2, ]Org2)
+# For example: Jane Roe (Superware), John Doe (Lab1, Nowhere), Joe Bloggs (Noware)
+contributors Amoon Jamzad, Jade Warren, Ayesha Syeda (Med-i Lab, Queen's University)
 
-# Description
-description = SlicerDESI is a module developed in 3D Slicer platform for end-to-end analysis of Mass Spectrometry Imaging (MSI) data, particularly Desorption ElectroSpray Ionization (DESI) modality. The functionalities include data exploration via various targeted and non-targeted visualization, co-localization to spatial labels (histopathology annotations), dataset generation with spatial- and spectral-guidance, multi-slide data aggregation via feature alignment, denoising via spatial aggregation, machine learning model training, and whole-slide model deployment.
+# Match category in the xml description of the module (where it shows up in Modules menu)
+category Mass Spectrometry
 
-# Category
-category = Mass Spectrometry
+# url to icon (png, size 128x128 pixels)
+iconurl https://github.com/jamzad/SlicerDESI/blob/main/SlicerDESI.png
 
-# Contributers
-contributors = Amoon Jamzad, Jade Warren, Ayesha Syeda (Med-i Lab, Queen's University)
+# Give people an idea what to expect from this code
+#  - Is it just a test or something you stand behind?
+status 
 
-# License
-license = Apache License Version 2.0
+# One line stating what the module does
+description SlicerDESI is a module developed in 3D Slicer platform for end-to-end analysis of Mass Spectrometry Imaging (MSI) data, particularly Desorption ElectroSpray Ionization (DESI). The functionalities include data exploration via various targeted and non-targeted visualization, co-localization to spatial labels (histopathology annotations), dataset generation with spatial- and spectral-guidance, multi-slide data aggregation via feature alignment, denoising via spatial aggregation, machine learning model training, and whole-slide model deployment.
+
+# Space separated list of urls
+screenshoturls https://github.com/jamzad/SlicerDESI/blob/main/Screenshot.png
+
+# 0 or 1: Define if the extension should be enabled after its installation.
+enabled 1
