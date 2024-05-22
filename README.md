@@ -23,7 +23,8 @@ The functionalities include data exploration via various targeted and non-target
 ## Documentations
 To access user manual, documentations, and tutorials please use the following link
 
-TBA
+https://slicerdesi.readthedocs.io/en/latest/index.html
+
 ## Citation
 Please use the following citations if you are using SlicerDESI
 * TBA
