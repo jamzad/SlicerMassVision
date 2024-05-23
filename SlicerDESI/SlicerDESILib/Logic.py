@@ -171,6 +171,28 @@ class SlicerDESILogic(ScriptedLoadableModuleLogic):
 		stopTime = time.time()
 		logging.info(f'Processing completed in {stopTime-startTime:.2f} seconds')
 
+	
+	def MSI_csv2numpy(self, csv_file):
+		df = pd.read_csv(csv_file)
+		peak_start_col = 2
+		mz = np.array(df.columns[peak_start_col:], dtype='float')
+		peaks = df[df.columns[peak_start_col:]].values
+		loc =  df[df.columns[0:peak_start_col]].values
+		dim_y = int(df.columns[0])
+		dim_x = int(df.columns[1])
+
+		# handle misorders and missing values
+		flat_ind = list(loc[:,0]*dim_x+loc[:,1])
+		full_len = dim_y*dim_x
+
+		ind_pad = set(range(full_len))-set(flat_ind)
+
+		flat_ind.extend(list(ind_pad))
+		peaks = np.pad(peaks, ((0,len(ind_pad)),(0,0)), 'empty')
+		peaks = peaks[np.argsort(flat_ind)]
+
+		return peaks, mz, dim_y, dim_x
+
 	# takes in the desi text function and organized the information
 	# into the peaks, mz values, xdimensions, ydimensions
 	def DESI_txt2numpy(self, desi_text):
@@ -1494,16 +1516,17 @@ class SlicerDESILogic(ScriptedLoadableModuleLogic):
 
 	# Reads in the text file and converts it to a numpy array and saves
 	def textFileLoad(self, name):
-		# convert to file to a numpy array and save as a matlab file
-		[peaks, mz, dim_y, dim_x] = self.DESI_txt2numpy(name)
-		#sio.savemat(data_path+slide_name[:-4]+'.mat', dict(peaks=peaks, mz=mz, dim_y=dim_y, dim_x=dim_x))
+
 		slide_name = name.split('/')[-1]
 		data_path = name[:len(name)-len(slide_name)]
-		## individual independent slide analysis, saves the name as a matlab file
-		# slide_name = slide_name[:-4] + '.mat'
-		#file = os.path.join(data_path,slide_name)
-		#data = sio.loadmat(file)
-				
+
+		if slide_name[-3:].lower() == 'txt':
+			[peaks, mz, dim_y, dim_x] = self.DESI_txt2numpy(name)
+		elif slide_name[-3:].lower() == 'csv':
+			[peaks, mz, dim_y, dim_x] = self.MSI_csv2numpy(name)
+		else:
+			pass
+		
 		self.peaks = peaks
 		self.mz = mz
 		self.dim_y = dim_y
