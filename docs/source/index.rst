@@ -1,14 +1,12 @@
 SlicerDESI
 ===================================
 
-**SlicerDESI** is an extension developed for 3D Slicer that is responsible for the analysis of mass spectrometry data. It performs robust data exploration, visualisation, histopathology correspondence (preprocessing and tissue registration), builds predictive models and visualises results, all in one environment.
+**SlicerDESI** is a module developed in 3D Slicer platform for end-to-end analysis of Mass Spectrometry Imaging (MSI) data, particularly Desorption ElectroSpray Ionization (DESI) modality. The functionalities include data exploration via various targeted and non-targeted visualization, co-localization to spatial labels (histopathology annotations), dataset generation with spatial- and spectral-guidance, multi-slide data aggregation via feature alignment, denoising via spatial aggregation, machine learning model training, and whole-slide model deployment.
 
 .. image:: https://raw.githubusercontent.com/jamzad/SlicerDESI/main/SlicerDESI.png
    :width: 300
    :align: center
 
-
-SlicerDESI has its documentation hosted on Read the Docs.
 
 Contents
 --------
