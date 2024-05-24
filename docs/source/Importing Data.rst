@@ -10,16 +10,18 @@ Import DESI Data
 #. Click 'Import'. If the file is loaded successfully, a confirmation message will appear, stating "Slide successfully loaded." Additional details about the imported file will also be provided. 
 #. The geneerated TIC image will be displayed in the viewer. To adjust the image's contrast, click the .. icon in the Slicer toolbar at the top of the screen. You can adjust the image's contrast by left-click-and-drag on the image or by selecting a region.  
 
-.. image:: https://github.com/jadewarren/ViPRE2.0-clone/assets/132283032/b013c620-3578-45e5-bc68-216390d40754
+.. image:: https://raw.githubusercontent.com/jamzad/SlicerDESI/main/docs/source/Images/ImportMSIFile.png
     :width: 600
+    :align: center
 
 Load Pathology Image
 ---------
 #. To load a pathology image, click 'Select', a file dialog box will appear, allowing you to upload the desired image. 
 #. Click 'Load'. After the image is uploaded, it will be displayed in viewer within the module's interface.
 
-.. image:: https://github.com/jadewarren/ViPRE2.0-clone/assets/132283032/5593113b-f9e4-4a2b-b025-0f638c91c066
+.. image:: https://raw.githubusercontent.com/jamzad/SlicerDESI/main/docs/source/Images/LoadPathology.png
     :width: 600
+    :align: center
 
 Import REIMS CSV data
 -------
