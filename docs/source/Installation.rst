@@ -22,7 +22,7 @@ Installation
 
 #. Open 3D Slicer. In the task bar go to 'Edit' -> 'Application Settings'.
 #. From the menu on the left, select Modules.
-#. To the right of additional module paths select the arrow. |ico1|
+#. To the right of additional module paths select the arrow. 
 #. Select 'Add'.
 #. Select the file folder where you have saved SlicerDESI, for example: "c:\Users\Jade\Desktop\SlicerDESI" |ico2|
 #. At the bottom of the window select 'Okay'.
@@ -30,7 +30,7 @@ Installation
 #. Re-open 3D Slicer, beside 'Modules' in the toolbar, select the magnifying glass icon.
 #. Search for SlicerDESI and switch to the module.  
 
-.. image :: https://github.com/jadewarren/ViPRE2.0-clone/assets/132283032/6c4dcccc-f707-43bc-b17b-54bea9237b2c
+.. image :: https://raw.githubusercontent.com/jamzad/SlicerDESI/main/docs/source/Images/ModuleFinder.png
     :width: 600
 
 .. |ico1| image :: https://github.com/jadewarren/ViPRE2.0-clone/assets/132283032/d3a301ad-5080-4460-a7c4-2665d33e98b3
@@ -40,8 +40,8 @@ Installation
 .. |ModulesIcon| image:: https://raw.githubusercontent.com/jamzad/SlicerDESI/main/docs/source/Images/ModulesIcon.png
    :width: 80
 
-1. Open 3D Slicer.
-2. In the 'Modules' section of the toolbar, click the magnifying glass |ModulesIcon| and find 'Extension Wizard'. Open the module.
-
 
 Once the module is open, the 3D Slicer scene will look like this: 
+
+.. image :: https://raw.githubusercontent.com/jamzad/SlicerDESI/main/docs/source/Images/ModuleFinder.png
+    :width: 600
