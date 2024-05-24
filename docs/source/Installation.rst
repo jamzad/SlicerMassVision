@@ -30,7 +30,7 @@ Installation
 #. Re-open 3D Slicer, beside 'Modules' in the toolbar, select the magnifying glass icon.
 #. Search for SlicerDESI and switch to the module.  
 
-.. image :: https://raw.githubusercontent.com/jamzad/SlicerDESI/main/docs/source/Images/ModuleFinder.png
+.. image:: https://raw.githubusercontent.com/jamzad/SlicerDESI/main/docs/source/Images/ModuleFinder.png
     :width: 600
 
 .. |ico1| image :: https://github.com/jadewarren/ViPRE2.0-clone/assets/132283032/d3a301ad-5080-4460-a7c4-2665d33e98b3
@@ -43,5 +43,5 @@ Installation
 
 Once the module is open, the 3D Slicer scene will look like this: 
 
-.. image :: https://raw.githubusercontent.com/jamzad/SlicerDESI/main/docs/source/Images/ModuleFinder.png
+.. image:: https://raw.githubusercontent.com/jamzad/SlicerDESI/main/docs/source/Images/SlicerDESIHome.png
     :width: 600
