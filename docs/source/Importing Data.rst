@@ -12,7 +12,6 @@ Import DESI Data
 
 .. image:: https://raw.githubusercontent.com/jamzad/SlicerDESI/main/docs/source/Images/ImportMSIFile.png
     :width: 600
-    :align: center
 
 Load Pathology Image
 ---------
@@ -21,11 +20,10 @@ Load Pathology Image
 
 .. image:: https://raw.githubusercontent.com/jamzad/SlicerDESI/main/docs/source/Images/LoadPathology.png
     :width: 600
-    :align: center
 
 Import REIMS CSV data
 -------
-#. [Inset instructions]
+#. [Insert instructions]
 
 
 Loading an Existing Project
