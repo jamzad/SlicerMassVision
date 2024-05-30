@@ -21,9 +21,8 @@ The functionalities include data exploration via various targeted and non-target
 * Whole-slide deployment: global deployment, masked deployment
 
 ## Documentations
-To access user manual, documentations, and tutorials please use the following link
+Click [here](https://slicerdesi.readthedocs.io/) to access user manual, documentations, and tutorials
 
-https://slicerdesi.readthedocs.io/
 
 ## Citation
 Please use the following citations if you are using SlicerDESI
