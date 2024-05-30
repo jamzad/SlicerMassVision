@@ -4,5 +4,5 @@
   "build_subdirectory": ".",
   "category": "Mass Spectrometry",
   "scm_revision": "main",
-  "scm_url": "https://github.com/jamzad/SlicerDESI"
+  "scm_url": "https://github.com/jamzad/SlicerMasspectAI"
 }

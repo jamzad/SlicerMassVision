@@ -4,4 +4,4 @@ API
 .. autosummary::
    :toctree: generated
 
-   SlicerDESI
+   MasspectAI

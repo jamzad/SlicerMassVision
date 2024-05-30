@@ -2,7 +2,7 @@
 
 # -- Project information
 
-project = 'SlicerDESI'
+project = 'MasspectAI'
 copyright = '2024'
 author = 'Amoon Jamzad'
 
