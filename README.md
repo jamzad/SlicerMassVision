@@ -1,6 +1,6 @@
 # MasspectAI
 <p align="center">
-  <img src="https://github.com/jamzad/SlicerDESI/blob/main/SlicerDESI.png" alt="logo" width="35%"/>
+  <img src="https://raw.githubusercontent.com/jamzad/SlicerMasspectAI/main/SlicerDESI.png" alt="logo" width="35%"/>
 </p>
 
 
