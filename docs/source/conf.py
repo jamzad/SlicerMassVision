@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath('.'))
 
 # -- Project information
 
-project = 'MasspectAI'
+project = 'MassVision'
 copyright = '2024'
 author = 'Amoon Jamzad'
 

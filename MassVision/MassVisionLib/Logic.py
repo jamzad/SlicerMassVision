@@ -65,7 +65,7 @@ import numpy as np
 
 import pdb
 
-from MasspectAILib.Utils import *
+from MassVisionLib.Utils import *
 
 
 from slicer.ScriptedLoadableModule import *
@@ -87,7 +87,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import pickle
 
-class MasspectAILogic(ScriptedLoadableModuleLogic):
+class MassVisionLogic(ScriptedLoadableModuleLogic):
 	"""This class should implement all the actual
 	computation done by your module.  The interface
 	should be such that other python code can import

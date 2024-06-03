@@ -1,6 +1,6 @@
 
 """
-MasspectAI
+MassVision
 
 """
 
@@ -10,10 +10,10 @@ from slicer.ScriptedLoadableModule import *
 from slicer.util import VTKObservationMixin
 
 import os, unittest, logging, json
-from MasspectAILib.Logic import * 
+from MassVisionLib.Logic import * 
 from datetime import datetime
 
-class MasspectAI(ScriptedLoadableModule):
+class MassVision(ScriptedLoadableModule):
 	"""
 	Uses ScriptedLoadableModule base class, available at:
 	https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
@@ -22,15 +22,15 @@ class MasspectAI(ScriptedLoadableModule):
 	def __init__(self, parent):
 		ScriptedLoadableModule.__init__(self, parent)
 
-		self.parent.title = "MasspectAI"  
-		self.parent.categories = ["Mass Spectrometry"]
+		self.parent.title = "MassVision"  
+		self.parent.categories = ["Spectral Imaging"]
 		self.parent.dependencies = []
 		self.parent.contributors = ["Amoon Jamzad, Jade Warren, Ayesha Syeda (Queen's University)"] 
 		self.parent.helpText = """
-		MasspectAI is an extension developed for 3D Slicer that is responsible for the analysis of mass spectrometry data. 
+		MassVision is an extension developed for 3D Slicer that is responsible for the analysis of mass spectrometry data. 
   		It performs robust data exploration, visualisation, and histopathology correspondence (preprocessing and tissue registration), 
 		builds predictive models and visualises results, all in one environment.
-		Please cite the following publication: TBA MasspectAI"""
+		Please cite the following publication: TBA MassVision"""
 		self.parent.acknowledgementText = """
 
 		"""
@@ -44,7 +44,7 @@ class MasspectAI(ScriptedLoadableModule):
 		tabWidget = self.ui.tabWidget
 
 
-class MasspectAITest(ScriptedLoadableModuleTest):
+class MassVisionTest(ScriptedLoadableModuleTest):
 	"""
 	This is the test case for your scripted module.
 	Uses ScriptedLoadableModuleTest base class, available at:
@@ -60,9 +60,9 @@ class MasspectAITest(ScriptedLoadableModuleTest):
 		"""Run as few or as many tests as needed here.
 		"""
 		self.setUp()
-		self.test_MasspectAI1()
+		self.test_MassVision1()
 
-	def test_MasspectAI1(self):
+	def test_MassVision1(self):
 		""" Ideally you should have several levels of tests.  At the lowest level
 		tests should exercise the functionality of the logic with different inputs
 		(both valid and invalid).  At higher levels your tests should emulate the
@@ -76,11 +76,11 @@ class MasspectAITest(ScriptedLoadableModuleTest):
 
 		self.delayDisplay("Starting the test")
 
-		logic = MasspectAILogic()
+		logic = MassVisionLogic()
 
 		self.delayDisplay('Test passed')
 
-class MasspectAIWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
+class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 	"""
  	Uses ScriptedLoadableModuleWidget base class, available at:
 	https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
@@ -105,7 +105,7 @@ class MasspectAIWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		ScriptedLoadableModuleWidget.setup(self)
 
 		# Load widget from .ui file (created by Qt Designer).
-		uiWidget = slicer.util.loadUI(self.resourcePath('UI/MasspectAI.ui'))
+		uiWidget = slicer.util.loadUI(self.resourcePath('UI/MassVision.ui'))
 		self.layout.addWidget(uiWidget)
 		self.ui = slicer.util.childWidgetVariables(uiWidget)
 
@@ -117,7 +117,7 @@ class MasspectAIWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		# Create logic class. Logic implements all computations that should be possible to run
 		# in batch mode, without a graphical user interface.
 		self.cases_config = {}
-		self.logic = MasspectAILogic()
+		self.logic = MassVisionLogic()
 
 		# set the first tab as the default loading tab
 		self.ui.tabWidget.setCurrentIndex(0)
@@ -253,7 +253,7 @@ class MasspectAIWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		# Check the user's choice
 		if choice == qt.QMessageBox.Yes:
 			slicer.mrmlScene.Clear()
-			slicer.util.reloadScriptedModule('MasspectAI')
+			slicer.util.reloadScriptedModule('MassVision')
 			print('MODULE RELOADED')
 
 
@@ -1107,8 +1107,8 @@ class MasspectAIWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		into files requires a custom function. Code is taken from:
 		https://discourse.slicer.org/t/python-scripted-module-development-reload-feature-for-multiple-files/6363/4 
 		"""
-		logging.debug("Reloading MasspectAI")
-		packageName='MasspectAILib'
+		logging.debug("Reloading MassVision")
+		packageName='MassVisionLib'
 		submoduleNames=['Logic', 'Utils']
 		import imp
 		f, filename, description = imp.find_module(packageName)
