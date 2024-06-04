@@ -9,7 +9,7 @@ Import MSI Data
 #. After the data is loaded, the geneerated TIC image will be displayed in the viewer. To adjust the image's contrast, click the |WinLevIcon| icon in the Slicer toolbar at the top of the screen. You can adjust the image's contrast by left-click-and-drag on the image or by selecting a region.  
 
 .. |WinLevIcon| image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/AdjustWindowLevel.png
-   :width: 80
+   :height: 30
 
 .. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/ImportMSIFile.png
     :width: 600
