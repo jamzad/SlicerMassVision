@@ -23,5 +23,3 @@ When you are done adjusting training settings, click ‘Train model’ at the bo
 
 You will be taken to the **Performance Report** tab. If your selected model produces a visulization output (such as LDA scatterplot), it will be displayed in the viewer. Information about training, data distribution and performance will be reported for your observance.  
 
-.. image:: https://github.com/jadewarren/ViPRE2.0-clone/assets/132283032/5b7c013d-6364-48ad-a2db-8ea33df5e39f
-    :width: 600
