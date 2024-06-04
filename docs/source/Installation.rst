@@ -38,7 +38,7 @@ Re-open 3D Slicer, beside 'Modules' in the toolbar, select the magnifying glass 
     :width: 600
 
 .. |ModulesIcon| image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/ModulesIcon.png
-   :width: 80
+   :height: 30
 
 
 Once the module is open, the 3D Slicer scene will look like this: 
