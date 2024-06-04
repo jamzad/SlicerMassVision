@@ -37,11 +37,11 @@ Re-open 3D Slicer, beside 'Modules' in the toolbar, select the magnifying glass 
 .. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/ModuleFinder.png
     :width: 600
 
-.. |ModulesIcon| image:: https://raw.githubusercontent.com/jamzad/MassVision/main/docs/source/Images/ModulesIcon.png
+.. |ModulesIcon| image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/ModulesIcon.png
    :width: 80
 
 
 Once the module is open, the 3D Slicer scene will look like this: 
 
-.. image:: https://raw.githubusercontent.com/jamzad/MassVision/main/docs/source/Images/MassVisionHome.png
+.. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/MassVisionHome.png
     :width: 600
