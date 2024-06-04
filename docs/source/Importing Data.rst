@@ -16,7 +16,7 @@ Import MSI Data
 
 Load Pathology Image
 ---------
-#. To load a pathology image, click 'Select file...' under pathology image. A file dialog box will appear, allowing you to upload the desired image. 
+To load a pathology image, click 'Select file...' under pathology image. A file dialog box will appear, allowing you to upload the desired image. 
 
 .. image:: https://raw.githubusercontent.com/jamzad/SlicerDESI/main/docs/source/Images/LoadPathology.png
     :width: 600
