@@ -4,7 +4,7 @@ Installation
 .. note::
     MassVision is hosted in 3D Slicer image computation platform. If you are new to 3D Slicer, we recommend that you begin by referencing some of the available resources on the `3D Slicer Documentation <https://www.slicer.org/wiki/Documentation/4.10/Training>`_ page. Ensure that you have the latest version of 3D Slicer installed. You can download the most recent version of 3D Slicer `here <https://download.slicer.org>`_.
 
-.. image:: https://raw.githubusercontent.com/jamzad/MassVision/main/docs/source/Images/SlicerLogo.png
+.. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/SlicerLogo.png
       :width: 150
       :align: center
 
@@ -28,16 +28,14 @@ Installation
 #. At the bottom of the window select 'Okay'.
 #. 3D Slicer will restart.
 
-.. image:: https://raw.githubusercontent.com/jamzad/MassVision/main/docs/source/Images/AddingModulePath.png
+.. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/AddingModulePath.png
     :width: 600
 
-#. Re-open 3D Slicer, beside 'Modules' in the toolbar, select the magnifying glass icon: |ModulesIcon| and search for MassVision and switch to the module.  
+Re-open 3D Slicer, beside 'Modules' in the toolbar, select the magnifying glass icon: |ModulesIcon| and search for MassVision and switch to the module.  
 
 
-.. image:: https://raw.githubusercontent.com/jamzad/MassVision/main/docs/source/Images/ModuleFinder.png
+.. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/ModuleFinder.png
     :width: 600
-
-.. |ico1| image :: https://github.com/jadewarren/ViPRE2.0-clone/assets/132283032/d3a301ad-5080-4460-a7c4-2665d33e98b3
 
 .. |ModulesIcon| image:: https://raw.githubusercontent.com/jamzad/MassVision/main/docs/source/Images/ModulesIcon.png
    :width: 80
