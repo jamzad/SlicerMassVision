@@ -12,14 +12,13 @@ Co-localization
        :width: 600
 
 #. Set desired parameters for the landmark registration. For the purpose of this this tutorial, select ‘Affine Registration’ for the ‘Registration Type’, and ‘Similarity’ for the ‘Linear Regression Registration Mode’.
-
-.. note::
-For more information about what each registration parameter means please visit: `<https://www.slicer.org/wiki/Documentation/Nightly/Modules/LandmarkRegistration>`_
-
 #. Click 'Add Landmark' and add a fiducial landmark to the PCA image.  
 #. After selecting a landmark on the PCA image, a corresponding dot will appear on the histopathology image in the anticipated corresponding location. Drag the dot on the pathology image to the correct location. If necessary, re-fit the images with the grid icon.
 #. Continue this process for 3-4 landmarks to ensure proper alignment and registration of the images. 
 #. Upon completion, navigate to the green viewer at the bottom of the display select the maximize view button to see the histopathology/PCA overlay in the entire viewer.
+
+.. note::
+   For more information about what each registration parameter means please visit: `<https://www.slicer.org/wiki/Documentation/Nightly/Modules/LandmarkRegistration>`_
 
 
 ROI Selection
