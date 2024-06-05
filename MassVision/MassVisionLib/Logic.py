@@ -829,7 +829,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		writer = csv.writer(f)
 		
 		# header row
-		row = ['Slide','Class','X','Y']
+		row = ['Slide','Class','Y','X']
 		row += [self.mz[i] for i in range(len(self.mz))]
 		writer.writerow(row)
 

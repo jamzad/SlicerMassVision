@@ -341,6 +341,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		min_x = 0 if bounds[1] > 0 else math.ceil(-bounds[1])
 		max_y = min(self.logic.dim_y, math.ceil(abs(bounds[2])))
 		min_y = 0 if bounds[3] > 0 else math.ceil(-bounds[3])
+
+		print(f'partial PCA region: ({min_y}, {max_y}) ({min_x}, {max_x})')
 		# logic processes pca in the ROI
 		self.logic.partial_pca_display((min_y, min_x), (max_y, max_x), 
 								 extend=self.ui.pcaExtendCheckbox.isChecked())
