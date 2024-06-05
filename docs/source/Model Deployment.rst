@@ -1,14 +1,12 @@
-Model Deploymenet 
+Model Deployment 
 ########
 
-To deploy a saved pkl file on DESI data (text file).
+To deploy a saved pkl file on whole slide MSI data.
 
-To select the DESI slide, click on 'Select' under 'Import MSI data'. A dialog box will appear allowing you to brow your saved DESI text files. Open your desired file, and click 'Import'. The file's details will appear in hte dialog box below. 
+To select the MSI slide, click on 'Select file...' under 'Import MSI slide'. A dialog box will appear allowing you to browse and load your file. The details of the file will appear in the dialog box below along with the TIC visualization, similar to the Data Import tab.. 
 
-To deploy the trained model, click on 'Select' under 'Import Model Pipeline' and select the saved pickle file. Click 'Import' to load, the model's information will be displayed in the dialog box below.
+To deploy the trained model, click on 'Select file...' under 'Import Model Pipeline' and select the saved pickle file. Click 'Import' to load. The details of the model will appear in the dialog box below
 
-Pre-porcessing
-
-Select the check box beside TIC normalization to [insert]. If you would like to aggregate pixels [insert]. 
+In 'Pre-processing' section, you can add the option for normalization (TIC or ion-based) or add aggregation option, which will be applied to spectra before going into the model.
 
 Click on 'Deploy Model' at the bottom of the tab. 

@@ -7,7 +7,7 @@ Model Training
 
 Data Distribution
 -------
-To view the data distribution in latent space, click 'Plot PCA latent space'. The The plotted slide distribtuion and class distribution will appear in the viewer. The generated image will aslo be saved to the location of the CSV file that you are working with. 
+To view the data distribution in latent space, click 'Plot PCA latent space'. The The plotted slide distribution and class distribution will appear in the viewer. The generated image will also be saved to the location of the CSV file that you are working with. 
 
 Model Training
 -------
@@ -19,7 +19,7 @@ If you choose a custom split, allocate files to training or testing in the popup
 When you are done adjusting training settings, click ‘Train model’ at the bottom of the window. 
 
 .. note:: 
-    To save the model as a pkl file to be used later on in deploymenet, click the box next 'Export pipeline for deployment' before training. The pipeline will be saved in the directory of     the CSV file you are working with, unless specified otherwise. 
+    To save the model as a pkl file to be used later on in deployment, click the box next 'Export pipeline for deployment' before training. The pipeline will be saved in the directory of the CSV file you are working with, unless specified otherwise. 
 
-You will be taken to the **Performance Report** tab. If your selected model produces a visulization output (such as LDA scatterplot), it will be displayed in the viewer. Information about training, data distribution and performance will be reported for your observance.  
+You will be taken to the **Performance Report** tab. If your selected model produces a visualization output (such as LDA scatterplot), it will be displayed in the viewer. Information about training, data distribution and performance will be reported for your observance.  
 

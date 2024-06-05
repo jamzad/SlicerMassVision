@@ -15,9 +15,9 @@ Contents
 
    Installation
    Importing Data
-   Visulization
+   Visualization
    Generating a Dataset
-   Multi-Slide Alignment
+   Multi-slide Alignment
    Dataset Post-processing
    Model Training
    Model Deployment

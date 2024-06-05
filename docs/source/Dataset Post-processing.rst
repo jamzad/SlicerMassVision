@@ -7,7 +7,7 @@ Dataset Post-processing
 
 Normalization 
 ---------
-To perform normalization on the dataset, check the box beside ‘Normalization’. Total Ion Current (TIC) normalization is automaticcaly applied. If you would like to normalize to a choose reference ion, select 'Refernce Ion' and specify a m/z value from the drop down menu. 
+To perform normalization on the dataset, check the box beside ‘Normalization’. Total Ion Current (TIC) normalization is automatically applied. If you would like to normalize to a choose reference ion, select 'Reference Ion' and specify a m/z value from the drop down menu. 
 
 Spectrum Filling
 ----------

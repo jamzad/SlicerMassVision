@@ -21,14 +21,20 @@ Installation
 #. Search for "MassVision" and switch to the module.  
 
 
-.. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/ModuleFinder.png
-    :width: 600
+    .. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/ModuleFinder.png
+        :width: 600
 
-.. |ModulesIcon| image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/ModulesIcon.png
-                    :height: 30
+    .. |ModulesIcon| image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/ModulesIcon.png
+                        :height: 30
 
 
-Once the module is open, the 3D Slicer scene will look like this: 
+#. Once the module is open, the 3D Slicer scene will look like this: 
 
 .. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/MassVisionHome.png
     :width: 600
+
+Toy data
+******
+The toy data to test some of the functionality of the module can be downloaded from `here <https://www.dropbox.com/scl/fo/lq51ojt2cdnvaobn4vism/AO9o0aCMEOg41dsy9FNA2Pc?rlkey=dzwyhoocpc6nct4ocwbx59z43&st=qiyyw93k&dl=0>`_
+The data is part partial DESI slide and pathology annotation of the following study:
+Kaufmann, M.; Iaboni, N.; Jamzad, A.; Hurlbut, D.; Ren, K.Y.M.; Rudan, J.F.; Mousavi, P.; Fichtinger, G.; Varma, S.; Caycedo-Marulanda, A.; et al. Metabolically Active Zones Involving Fatty Acid Elongation Delineated by DESI-MSI Correlate with Pathological and Prognostic Features of Colorectal Cancer. Metabolites 2023, 13, 508. https://doi.org/10.3390/metabo13040508
