@@ -4,8 +4,6 @@ Model Training
 #. Upload the processed CSV file by clicking ‘Select’ and importing it from your local storage. Once the file is chosen, the file path will be displayed. 
 #. Click ‘Import’. If the file is successfully loaded, a message ‘Dataset successfully loaded’ will appear along with information about the file. 
 
-.. image:: https://github.com/jadewarren/ViPRE2.0-clone/assets/132283032/daa61960-fb00-4e88-ba65-9f14352dbb34
-    :width: 600
 
 Data Distribution
 -------
@@ -25,5 +23,3 @@ When you are done adjusting training settings, click ‘Train model’ at the bo
 
 You will be taken to the **Performance Report** tab. If your selected model produces a visulization output (such as LDA scatterplot), it will be displayed in the viewer. Information about training, data distribution and performance will be reported for your observance.  
 
-.. image:: https://github.com/jadewarren/ViPRE2.0-clone/assets/132283032/5b7c013d-6364-48ad-a2db-8ea33df5e39f
-    :width: 600

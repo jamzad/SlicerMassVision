@@ -4,8 +4,6 @@ Dataset Post-processing
 #. A file dialog box will appear, allowing you to browse and select the desired CSV file from your local storage. Once you have chosen the file, its path will be displayed on the screen, indicating that the file has been successfully selected. 
 #. Click ‘Import’. If the file was loaded successfully, a confirmation message will be displayed, stating "Dataset successfully loaded". 
 
-.. image:: https://github.com/jadewarren/ViPRE2.0-clone/assets/132283032/60633c05-6df0-452e-ab83-32fcc68fe33a
-    :width: 600
 
 Normalization 
 ---------
