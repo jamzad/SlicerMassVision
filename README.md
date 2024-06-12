@@ -9,7 +9,7 @@ MassVision is a software solution developed in 3D Slicer platform for end-to-end
 The functionalities include data exploration via various targeted and non-targeted visualization, co-localization to spatial labels (histopathology annotations), dataset generation with spatial- and spectral-guidance, multi-slide data aggregation via feature alignment, denoising via spatial aggregation, machine learning model training, and whole-slide model deployment. 
 
 
-<img src="https://github.com/jamzad/SlicerMasspectAI/blob/main/Screenshot.png" alt="screenshot" width="100%"/>
+<img src="https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/Screenshot.png" alt="screenshot" width="100%"/>
 
 ## Features
 * Data format: DESI TXT images, structured CSV MSI
