@@ -8,8 +8,8 @@ set(EXTENSION_HOMEPAGE "https://github.com/jamzad/SlicerMassVision")
 set(EXTENSION_CATEGORY "Spectral Imaging")
 set(EXTENSION_CONTRIBUTORS "Amoon Jamzad, Jade Warren, Ayesha Syeda (Med-i Lab, Queen's University)")
 set(EXTENSION_DESCRIPTION "MassVision is a module developed in 3D Slicer platform for end-to-end analysis of Mass Spectrometry Imaging (MSI) data, particularly Desorption ElectroSpray Ionization (DESI). The functionalities include data exploration via various targeted and non-targeted visualization, co-localization to spatial labels (histopathology annotations), dataset generation with spatial- and spectral-guidance, multi-slide data aggregation via feature alignment, denoising via spatial aggregation, machine learning model training, and whole-slide model deployment.")
-set(EXTENSION_ICONURL "https://github.com/jamzad/SlicerMassVision/blob/main/MassVision.png")
-set(EXTENSION_SCREENSHOTURLS "https://github.com/jamzad/SlicerMassVision/blob/main/Screenshot.png")
+set(EXTENSION_ICONURL "https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/MassVision.png")
+set(EXTENSION_SCREENSHOTURLS "https://github.com/jamzad/SlicerMasspectAI/blob/main/Screenshot.png")
 set(EXTENSION_DEPENDS "NA") 
 
 #-----------------------------------------------------------------------------
