@@ -907,7 +907,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			state = True
 		else:
 			state = False
-		self.ui.depVisLabel.setEnabled(state)
 		self.ui.depGoVisButton.setEnabled(state)
 		self.ui.depVisSelLabel.setEnabled(state)
 		self.ui.depVisListCombo.setEnabled(state)

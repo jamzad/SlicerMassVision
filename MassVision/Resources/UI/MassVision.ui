@@ -2568,23 +2568,13 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="18" column="0">
-     <widget class="QLabel" name="depVisLabel">
-      <property name="enabled">
-       <bool>false</bool>
-      </property>
-      <property name="text">
-       <string>              create visualization</string>
-      </property>
-     </widget>
-    </item>
     <item row="18" column="1">
      <widget class="QPushButton" name="depGoVisButton">
       <property name="enabled">
        <bool>false</bool>
       </property>
       <property name="text">
-       <string>Visualization tab...</string>
+       <string>Create visualization...</string>
       </property>
      </widget>
     </item>
