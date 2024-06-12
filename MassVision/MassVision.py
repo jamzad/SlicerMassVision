@@ -25,11 +25,12 @@ class MassVision(ScriptedLoadableModule):
 		self.parent.title = "MassVision"  
 		self.parent.categories = ["Spectral Imaging"]
 		self.parent.dependencies = []
-		self.parent.contributors = ["Amoon Jamzad, Jade Warren, Ayesha Syeda (Queen's University)"] 
+		self.parent.contributors = ["Med-i Lab, Queen's University (Amoon Jamzad, Jade Warren, Ayesha Syeda)"] 
 		self.parent.helpText = """
-		MassVision is an extension developed for 3D Slicer that is responsible for the analysis of mass spectrometry data. 
-  		It performs robust data exploration, visualisation, and histopathology correspondence (preprocessing and tissue registration), 
-		builds predictive models and visualises results, all in one environment.
+		MassVision is a software solution developed in 3D Slicer platform for end-to-end analysis of Mass Spectrometry Imaging (MSI) data, particularly Desorption ElectroSpray Ionization (DESI) modality. 
+		
+		The functionalities include data exploration via various targeted and non-targeted visualization, co-localization to spatial labels (histopathology annotations), dataset generation with spatial- and spectral-guidance, multi-slide data aggregation via feature alignment, denoising via spatial aggregation, machine learning model training, and whole-slide model deployment.
+		
 		Please cite the following publication: TBA MassVision"""
 		self.parent.acknowledgementText = """
 
