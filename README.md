@@ -1,6 +1,6 @@
 # MassVis*ion*
 <p align="center">
-  <img src="https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/MassVision.png" alt="logo" width="35%"/>
+  <img src="https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/MassVision.png" alt="logo" width="40%"/>
 </p>
 
 
