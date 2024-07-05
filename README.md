@@ -1,10 +1,10 @@
 # MassVis*ion*
 <p align="center">
-  <img src="https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/MassVision.png" alt="logo" width="35%"/>
+  <img src="https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/MassVision.png" alt="logo" width="40%"/>
 </p>
 
 
-MassVision is a software solution developed in 3D Slicer platform for end-to-end analysis of Mass Spectrometry Imaging (MSI) data, particularly Desorption ElectroSpray Ionization (DESI) modality. 
+MassVis*ion* is a software solution developed in 3D Slicer platform for end-to-end analysis of Mass Spectrometry Imaging (MSI) data, particularly Desorption ElectroSpray Ionization (DESI) modality. 
 
 The functionalities include data exploration via various targeted and non-targeted visualization, co-localization to spatial labels (histopathology annotations), dataset generation with spatial- and spectral-guidance, multi-slide data aggregation via feature alignment, denoising via spatial aggregation, machine learning model training, and whole-slide model deployment. 
 
@@ -25,5 +25,5 @@ Click [here](https://slicerdesi.readthedocs.io/) to access user manual, document
 
 
 ## Citation
-Please use the following citations if you are using SlicerDESI
+Please use the following citations if you are using MassVis*ion*
 * TBA 
