@@ -8,10 +8,10 @@ from operator import truediv
 import vtk, qt, ctk, slicer
 from slicer.ScriptedLoadableModule import *
 from slicer.util import VTKObservationMixin
-
-import os, unittest, logging, json
+# import os, unittest, logging, json
+import logging
 from MassVisionLib.Logic import * 
-from datetime import datetime
+
 
 class MassVision(ScriptedLoadableModule):
 	"""
@@ -329,7 +329,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		return True
 	
 	def onPartialPCAButton(self):
-		import math
 		# get all ROIs
 		all_rois = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsROINode")
 		# select the last ROI created
@@ -338,18 +337,17 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		bounds = np.zeros((6,1))
 		roi.GetBounds(bounds)
 		# error checking to ensure it is within image bounds
-		max_x = min(self.logic.dim_x, math.ceil(abs(bounds[0])))
-		min_x = 0 if bounds[1] > 0 else math.ceil(-bounds[1])
-		max_y = min(self.logic.dim_y, math.ceil(abs(bounds[2])))
-		min_y = 0 if bounds[3] > 0 else math.ceil(-bounds[3])
+		max_x = min(self.logic.dim_x, np.ceil(abs(bounds[0])))
+		min_x = 0 if bounds[1] > 0 else np.ceil(-bounds[1])
+		max_y = min(self.logic.dim_y, np.ceil(abs(bounds[2])))
+		min_y = 0 if bounds[3] > 0 else np.ceil(-bounds[3])
 
 		print(f'partial PCA region: ({min_y}, {max_y}) ({min_x}, {max_x})')
 		# logic processes pca in the ROI
-		self.logic.partial_pca_display((min_y, min_x), (max_y, max_x), 
+		self.logic.partial_pca_display((int(min_y), int(min_x)), (int(max_y), int(max_x)), 
 								 extend=self.ui.pcaExtendCheckbox.isChecked())
 
 	def onROIContrast(self):
-		import math
 		# get all ROIs
 		segmentationNode = slicer.mrmlScene.GetFirstNodeByClass('vtkMRMLSegmentationNode')
 		segments = segmentationNode.GetSegmentation()
@@ -372,7 +370,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
 	def onROIContrastLDA(self):
-		import math
 		# get all ROIs
 		segmentationNode = slicer.mrmlScene.GetFirstNodeByClass('vtkMRMLSegmentationNode')
 		segments = segmentationNode.GetSegmentation()

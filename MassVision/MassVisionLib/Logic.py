@@ -1,91 +1,71 @@
-from cProfile import label
-from lib2to3.refactor import get_fixers_from_package
+# from cProfile import label
+# from lib2to3.refactor import get_fixers_from_package
 from math import pi
 import os
 import SimpleITK as sitk
-from pyexpat import model
-import unittest
+# from pyexpat import model
+# import unittest
 import logging
 import vtk, qt, ctk, slicer
 from vtk.util import numpy_support
 
 try:
-		import matplotlib
-		import matplotlib.pyplot as plt
-		import matplotlib.cm as cm
+	import matplotlib
 except ModuleNotFoundError:
-		import pip
+	slicer.util.pip_install("matplotlib")
+	import matplotlib
 
-		slicer.util.pip_install("matplotlib")
-		import matplotlib
-		import matplotlib.pyplot as plt
-		import matplotlib.cm as cm
-
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 ## fix Mac crash
 matplotlib.use('Agg')
 
+# try:
+# 		import cv2
+# except ModuleNotFoundError:
+# 		slicer.util.pip_install("opencv-python")
+# 		import cv2
 try:
-		import cv2
-except ModuleNotFoundError:
-		import pip
-
-		slicer.util.pip_install("opencv-python")
-		import cv2
-
-
-try:
-		import sklearn
-		from sklearn.decomposition import PCA
-		from sklearn.preprocessing import LabelEncoder
-except ModuleNotFoundError:
-		import pip
-
-		slicer.util.pip_install("scikit-learn")
-		import sklearn
-		from sklearn.decomposition import PCA
-		from sklearn.preprocessing import LabelEncoder
+	from PIL import Image as PILImage
+except:
+	slicer.util.pip_install("pillow")
+	from PIL import Image as PILImage
 
 try:
-		import pandas as pd
+	from sklearn.decomposition import PCA
 except ModuleNotFoundError:
-		import pip
-
-		slicer.util.pip_install("pandas")
-		import pandas as pd
-
-try:
-		from tqdm import tqdm
-except ModuleNotFoundError:
-		import pip
-
-		slicer.util.pip_install("tqdm")
-		from tqdm import tqdm
-		
-import numpy as np
-
-import pdb
-
-from MassVisionLib.Utils import *
-
-
-from slicer.ScriptedLoadableModule import *
+	slicer.util.pip_install("scikit-learn")
+	from sklearn.decomposition import PCA
 
 from sklearn.model_selection import train_test_split
-from sklearn.impute import SimpleImputer
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, OneHotEncoder, LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import LinearSVC
 from sklearn.cross_decomposition import PLSRegression, PLSCanonical
-from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from sklearn.utils import resample
+
+try:
+	import pandas as pd
+except ModuleNotFoundError:
+	slicer.util.pip_install("pandas")
+	import pandas as pd
+
+try:
+	from tqdm import tqdm
+except ModuleNotFoundError:
+	slicer.util.pip_install("tqdm")
+	from tqdm import tqdm
+		
+import numpy as np
+
+from slicer.ScriptedLoadableModule import *
 from scipy.special import softmax, expit
-
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-
 import pickle
+
+from MassVisionLib.Utils import *
+
 
 class MassVisionLogic(ScriptedLoadableModuleLogic):
 	"""This class should implement all the actual
@@ -900,8 +880,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		segNames = [segmentation.GetSegment(segID).GetName() for segID in segIDs]
 		for i in range(len(segIDs)):
 			img = slicer.util.arrayFromSegmentBinaryLabelmap(segmentationNode, segIDs[i])
-			img = 255 * img.transpose(1,2,0)
-			cv2.imwrite(savepath[:-4] + '_'+ segNames[i] + '.png',img)
+			# img = 255 * img.transpose(1,2,0)
+			# cv2.imwrite(savepath[:-4] + '_'+ segNames[i] + '.png',img)
+			img = PILImage.fromarray(np.uint8(img[0]*255)) 
+			img.save(savepath[:-4] + '_'+ segNames[i] + '.png')
 
 
 	# set volume dimensions, fill with image requested, get rid of existing overlays

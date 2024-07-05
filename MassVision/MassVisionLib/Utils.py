@@ -1,14 +1,11 @@
 from sklearn.metrics import confusion_matrix, balanced_accuracy_score, accuracy_score, roc_auc_score, recall_score
-import pdb
 import numpy as np
-import time
-import os
-import sys
 import matplotlib.pyplot as plt
 
 '''
     Utils for model training.
     Author: Ayesha Syeda
+	Updated by: Amoon Jamzad
 '''
 
 def saveTrainingPlot(y, x, title, dir_checkpoint):
