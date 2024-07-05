@@ -878,11 +878,18 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		segmentation = segmentationNode.GetSegmentation()
 		segIDs = segmentation.GetSegmentIDs()
 		segNames = [segmentation.GetSegment(segID).GetName() for segID in segIDs]
+		segColors = [segmentation.GetSegment(segID).GetColor() for segID in segIDs]
 		for i in range(len(segIDs)):
-			img = slicer.util.arrayFromSegmentBinaryLabelmap(segmentationNode, segIDs[i])
-			# img = 255 * img.transpose(1,2,0)
-			# cv2.imwrite(savepath[:-4] + '_'+ segNames[i] + '.png',img)
-			img = PILImage.fromarray(np.uint8(img[0]*255)) 
+			img = slicer.util.arrayFromSegmentBinaryLabelmap(segmentationNode, segIDs[i])[0]
+			segColor = segColors[i]
+
+			color_img = np.zeros( (img.shape[0], img.shape[1], 3) )
+			for ii in range(3):
+				color_img[:,:,ii] = img * 255 * segColor[ii]
+			color_img = PILImage.fromarray( np.uint8(color_img) )
+			color_img.save(savepath[:-4] + '_'+ segNames[i] + '_c.png')
+			
+			img = PILImage.fromarray( np.uint8(img * 255) ) 
 			img.save(savepath[:-4] + '_'+ segNames[i] + '.png')
 
 
