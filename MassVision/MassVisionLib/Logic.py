@@ -61,6 +61,7 @@ import numpy as np
 
 from slicer.ScriptedLoadableModule import *
 from scipy.special import softmax, expit
+from scipy.signal import find_peaks
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import pickle
 
@@ -704,17 +705,31 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		for i in range(N):
 			fnode_name = fnode_names[i]
 			fnode_loc = fnode_locs[i]
+			spec = self.peaks_3D[fnode_loc[0],fnode_loc[1],:]
+
 			plt.subplot(N,1,i+1)
-			markerline, stemlines, baseline = plt.stem(self.mz, self.peaks_3D[fnode_loc[0],fnode_loc[1],:], linefmt='C'+str(i), markerfmt=" ", basefmt='C'+str(i))
-			plt.setp(stemlines, linewidth=2)
+			markerline, stemlines, baseline = plt.stem(self.mz, spec, linefmt='C'+str(i), markerfmt=" ", basefmt='C'+str(i))
+			plt.setp(stemlines, linewidth=1)
 			plt.legend( ['{} located at {}, {}'.format(fnode_name,fnode_loc[0],fnode_loc[1])] )
 			plt.xlim([self.mz.min(), self.mz.max()])
 			plt.ylim(bottom=0)
-			if (i+1)==N:
-				plt.xticks(np.arange(self.mz.min(),self.mz.max(),50))
-			else:
-				plt.xticks(np.arange(self.mz.min(),self.mz.max(),50), labels=[])
-			plt.grid(True, 'both', linestyle='--')
+			# if (i+1)==N:
+			# 	plt.xticks(np.arange(self.mz.min(),self.mz.max(),50))
+			# else:
+			# 	plt.xticks(np.arange(self.mz.min(),self.mz.max(),50), labels=[])
+			# plt.grid(True, 'both', linestyle='--')
+			if (i+1)!=N:
+				ax = plt.gca()
+				ax.set_xticklabels([])
+
+			pp, properties = find_peaks(spec, height=0)
+			n_prominent_peaks = 5
+			prominent_peaks_indices = np.argsort(properties['peak_heights'])[-n_prominent_peaks:]
+			prominent_peaks = pp[prominent_peaks_indices]
+
+			for peak in prominent_peaks:
+				plt.annotate(f'{self.mz[peak]}', (self.mz[peak], spec[peak]), rotation=0, ha='left',
+						 	textcoords="offset points", xytext=(1,-4), fontsize=6)
 
 		plt.xlabel('mass to chatge ratio')
 		plt.ylabel('intensity')
@@ -1552,8 +1567,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		AUTHOR:
 		@Moon
 		"""
-		# Import
-		from scipy.signal import find_peaks
+\
 
 		## list the csv files
 		for file in files: 
