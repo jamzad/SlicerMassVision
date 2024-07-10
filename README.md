@@ -1,8 +1,8 @@
 # MassVis*ion*
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/MassVision.png" alt="logo" width="40%"/>
 </p>
-
 
 MassVis*ion* is a software solution developed in 3D Slicer platform for end-to-end analysis of Mass Spectrometry Imaging (MSI) data, particularly Desorption ElectroSpray Ionization (DESI) modality. 
 
@@ -19,6 +19,11 @@ The functionalities include data exploration via various targeted and non-target
 * Preprocessing: normalization (TIC, single-ion), subband selection, spatial pixel aggregation
 * Model training: data stratification, data balancing, model selection
 * Whole-slide deployment: global deployment, masked deployment
+
+## Demonstration
+* Global vs local contrast [demo](https://www.dropbox.com/scl/fi/tiwy6mm8pompeeprexf0l/visualization.gif?rlkey=tqtly8rqeymvxkhmdf9hf4039&st=anz46hn1&raw=1)
+* Spatial colocalization [demo](https://www.dropbox.com/scl/fi/cumbv2xfwfgixyxdhuqxz/registration.gif?rlkey=cvi87xl1jz5l9y1vn2te4ktru&st=6fxm9mkb&raw=1)
+* ROI selection with pathology guide [demo](https://www.dropbox.com/scl/fi/03ff1aci9qgbgr735k9up/roiselection.gif?rlkey=7sb5fvcdh12g2ra7jnr3x2n2f&st=wqfd5fht&raw=1)
 
 ## Documentations
 Click [here](https://slicerdesi.readthedocs.io/) to access user manual, documentations, and tutorials
