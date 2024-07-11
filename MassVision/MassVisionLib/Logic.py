@@ -1567,7 +1567,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		AUTHOR:
 		@Moon
 		"""
-\
 
 		## list the csv files
 		for file in files: 
