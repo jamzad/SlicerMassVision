@@ -13,7 +13,7 @@ The functionalities include data exploration via various targeted and non-target
 
 ## Features
 * Data format: DESI TXT images, structured CSV MSI
-* Visualization: targeted (single-ion heatmap, multi-ion colormap), untargeted (global PCA, regional PCA, pixel spectrum)
+* Visualization: targeted (single-ion heatmap, multi-ion colormap), untargeted (global PCA, regional PCA), pixel spectrum
 * Dataset generation: spatial colocalization to pathological annotation, labelled ROI extraction
 * Multi-slide peak alignment and dataset merge
 * Preprocessing: normalization (TIC, single-ion), subband selection, spatial pixel aggregation
