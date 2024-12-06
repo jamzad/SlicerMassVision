@@ -713,6 +713,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			plt.legend( ['{} located at {}, {}'.format(fnode_name,fnode_loc[0],fnode_loc[1])] )
 			plt.xlim([self.mz.min(), self.mz.max()])
 			plt.ylim(bottom=0)
+
+			# format y tick for scientific style
+			ax = plt.gca()
+			ax.ticklabel_format(axis='y', style='scientific', scilimits=[0,0], useMathText=True)
+			
 			# if (i+1)==N:
 			# 	plt.xticks(np.arange(self.mz.min(),self.mz.max(),50))
 			# else:
@@ -723,13 +728,13 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 				ax.set_xticklabels([])
 
 			pp, properties = find_peaks(spec, height=0)
-			n_prominent_peaks = 5
+			n_prominent_peaks = 4
 			prominent_peaks_indices = np.argsort(properties['peak_heights'])[-n_prominent_peaks:]
 			prominent_peaks = pp[prominent_peaks_indices]
 
 			for peak in prominent_peaks:
 				plt.annotate(f'{self.mz[peak]}', (self.mz[peak], spec[peak]), rotation=0, ha='left',
-						 	textcoords="offset points", xytext=(1,-4), fontsize=6)
+						 	textcoords="offset points", xytext=(1,-4), fontsize=8)
 
 		plt.xlabel('mass to chatge ratio')
 		plt.ylabel('intensity')
