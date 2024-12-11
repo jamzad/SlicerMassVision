@@ -26,10 +26,10 @@ The functionalities include data exploration via various targeted and non-target
 * ROI selection with pathology guide for dataset generation [demo](https://www.dropbox.com/scl/fi/03ff1aci9qgbgr735k9up/roiselection.gif?rlkey=7sb5fvcdh12g2ra7jnr3x2n2f&st=wqfd5fht&raw=1)
 
 ## Installation
-Visit [here](https://slicerdesi.readthedocs.io/en/latest/Installation.html) for a complete installation guide from Extentision Manager within 3D Slicer
+Visit [here](https://SlicerMassVision.readthedocs.io/en/latest/Installation.html) for a complete installation guide from Extentision Manager within 3D Slicer
 
 ## Documentations
-Visit [here](https://slicerdesi.readthedocs.io/) to access user guide, tutorials, and other documentations.
+Visit [here](https://SlicerMassVision.readthedocs.io/en/latest/) to access user guide, tutorials, and other documentations.
 
 
 ## Citation
