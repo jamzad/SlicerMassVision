@@ -1,0 +1,2 @@
+- docs/**/*    # Triggers builds for all changes in docs/
+- .readthedocs.yml # Triggers builds if .readthedocs.yml is modified
