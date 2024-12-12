@@ -16,9 +16,9 @@ Contents
    Getting Started 
    Importing Data
    Visualization
-   Generating a Dataset
+   Dataset Curation
    Multi-slide Alignment
-   Dataset Post-processing
+   Dataset Preprocessing
    Model Training
    Results
    Model Deployment
