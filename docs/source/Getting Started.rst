@@ -17,6 +17,11 @@ Installing MassVision
         :width: 250
 
 #. Search for "MassVision" in the top right box and install the extension.
+
+    .. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/MassVisionInstall.png
+        :width: 200
+        :align: center
+
 #. The 3D Slicer should be restarted to complete the installation.
 
 Opening MassVision
