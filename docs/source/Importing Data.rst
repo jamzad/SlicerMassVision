@@ -15,7 +15,7 @@ Import MSI Data
     :width: 600
 
 CSV File Structure
----------
+#######
 MassVision allows users to import MSI data in a structured CSV format for analysis. This format ensures compatibility with any MSI data where all pixels share a common list of ions. For a data with **MxN pixels** and **L ions** per pixel, the CSV file should have **M×N+1 rows** (one header row and M×N rows for pixel spectra) and **L+2 columns** (two location indices and L abundance values):
 
 1. **Header Row**  
