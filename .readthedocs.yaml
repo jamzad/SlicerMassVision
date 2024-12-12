@@ -11,6 +11,3 @@ python:
 
 sphinx:
   configuration: docs/source/conf.py
-
-# Enable conditional builds
-conditional_build: true
