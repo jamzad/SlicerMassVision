@@ -1,4 +1,5 @@
-# Getting Started
+Getting Started
+=====
 
 MassVision is hosted in 3D Slicer image computation platform. To learn more about the platform and its applications, please refer to the official `3D Slicer Documentation <https://slicer.readthedocs.io/en/latest/>`_.
 Please ensure that you installed the latest stable version of 3D Slicer on your system. The detailed instruction for installation and system requirements can be found on the official `3D SLicer Installation Guide <https://slicer.readthedocs.io/en/latest/user_guide/getting_started.html#installing-3d-slicer>`_.
@@ -7,8 +8,8 @@ Please ensure that you installed the latest stable version of 3D Slicer on your 
       :width: 150
       :align: center
 
-## Installing MassVision
-
+Installing MassVision
+-------
 #. Open 3D Slicer. 
 #. Select "Extensions Manager" from the "View" menu at the top of the screen.
 
@@ -18,8 +19,8 @@ Please ensure that you installed the latest stable version of 3D Slicer on your 
 #. Search for "MassVision" in the top right box and install the extension.
 #. The 3D Slicer should be restarted to complete the installation.
 
-## Opening MassVision
-
+Opening MassVision
+-------
 #. Open 3D Slicer
 #. Go to the 'Modules' section of the toolbar (top left) and click on the magnifying glass |ModulesIcon|.
 #. Search for "MassVision" and switch to the module.  
@@ -37,7 +38,7 @@ Please ensure that you installed the latest stable version of 3D Slicer on your 
     .. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/MassVisionHome.png
         :width: 600
 
-## Test Data
-
+Test Data
+-------
 The test data to test some of the functionality of the module can be downloaded from `here <https://www.dropbox.com/scl/fo/lq51ojt2cdnvaobn4vism/AO9o0aCMEOg41dsy9FNA2Pc?rlkey=dzwyhoocpc6nct4ocwbx59z43&st=qiyyw93k&dl=0>`_
 
