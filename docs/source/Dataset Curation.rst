@@ -1,4 +1,4 @@
-Generating a Dataset
+Dataset Curation
 ######
 To generate a suitable dataset, the histopathology and MSI visualization must undergo preprocessing and registration prior to ROI selection. Use **Dataset generation** tab for this task
  
@@ -16,6 +16,7 @@ Co-localization
 #. After selecting a landmark on the PCA image, a corresponding dot will appear on the histopathology image in the anticipated corresponding location. Drag the dot on the pathology image to the correct location. If necessary, re-fit the images with the grid icon.
 #. Continue this process for 3-4 landmarks to ensure proper alignment and registration of the images. 
 #. Upon completion, navigate to the overlay view and select the maximize view button to see the result in full screen.
+   
    .. image:: https://www.dropbox.com/scl/fi/cumbv2xfwfgixyxdhuqxz/registration.gif?rlkey=cvi87xl1jz5l9y1vn2te4ktru&st=6fxm9mkb&raw=1
        :width: 600
 
