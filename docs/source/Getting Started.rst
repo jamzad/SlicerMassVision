@@ -19,8 +19,8 @@ Installing MassVision
 #. Search for "MassVision" in the top right box and install the extension.
 
     .. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/MassVisionInstall.png
-        :width: 200
-        :align: center
+        :width: 400
+
 
 #. The 3D Slicer should be restarted to complete the installation.
 
@@ -45,5 +45,4 @@ Opening MassVision
 
 Test Data
 -------
-The test data to test some of the functionality of the module can be downloaded from `here <https://www.dropbox.com/scl/fo/lq51ojt2cdnvaobn4vism/AO9o0aCMEOg41dsy9FNA2Pc?rlkey=dzwyhoocpc6nct4ocwbx59z43&st=qiyyw93k&dl=0>`_
-
+DESI MSI data from a sample slide and corresponding histopathology annotations are provided for users as a test data to explore and evaluate different functionalities. The data can be downloaded from `this link <https://www.dropbox.com/scl/fo/lq51ojt2cdnvaobn4vism/AO9o0aCMEOg41dsy9FNA2Pc?rlkey=dzwyhoocpc6nct4ocwbx59z43&st=qiyyw93k&dl=0>`_
