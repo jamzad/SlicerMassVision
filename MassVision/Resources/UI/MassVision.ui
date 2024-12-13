@@ -32,14 +32,14 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>7</number>
+   <number>4</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
   </property>
   <widget class="QWidget" name="tab">
    <attribute name="title">
-    <string>Data Import</string>
+    <string>Data import</string>
    </attribute>
    <layout class="QFormLayout" name="formLayout_8">
     <item row="0" column="0" colspan="2">
@@ -771,7 +771,7 @@ color: rgb(255, 255, 255);</string>
   </widget>
   <widget class="QWidget" name="tab_3">
    <attribute name="title">
-    <string>Dataset generation</string>
+    <string>Dataset curation</string>
    </attribute>
    <layout class="QFormLayout" name="formLayout_3">
     <item row="0" column="0">
@@ -1299,7 +1299,7 @@ p, li { white-space: pre-wrap; }
   </widget>
   <widget class="QWidget" name="tab_7">
    <attribute name="title">
-    <string>Dataset Post-processing</string>
+    <string>Dataset preprocessing</string>
    </attribute>
    <layout class="QFormLayout" name="formLayout">
     <item row="3" column="0">
@@ -1717,7 +1717,7 @@ p, li { white-space: pre-wrap; }
   </widget>
   <widget class="QWidget" name="tab_4">
    <attribute name="title">
-    <string>Model training</string>
+    <string>AI model training</string>
    </attribute>
    <layout class="QFormLayout" name="formLayout_5">
     <item row="2" column="0">
@@ -2200,7 +2200,7 @@ color: rgb(255, 255, 255);</string>
   </widget>
   <widget class="QWidget" name="tab_8">
    <attribute name="title">
-    <string>Model Deployment</string>
+    <string>AI model deployment</string>
    </attribute>
    <layout class="QFormLayout" name="formLayout_7">
     <item row="0" column="0">

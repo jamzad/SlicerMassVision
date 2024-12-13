@@ -162,7 +162,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		dim_y = int(df.columns[0].split('=')[-1])
 		dim_x = int(df.columns[1].split('=')[-1])
 
-		# handle misorders and missing values
+		# handle unsorted and missing values
 		flat_ind = list(loc[:,0]*dim_x+loc[:,1])
 		full_len = dim_y*dim_x
 
