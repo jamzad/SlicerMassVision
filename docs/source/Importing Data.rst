@@ -21,46 +21,66 @@ MassVision allows users to import MSI data in a structured CSV format for analys
 1. **Header Row**  
    The first row (header) contains:  
    
-   - **M**: Number of pixels in width (integer)  
-   - **N**: Number of pixels in height (integer)  
-   - **L m/z values**: The m/z values corresponding to L ions  
-
-   **Example** for M=2, N=3, L=4 (with m/z values 100.1, 150.3, 250.2, and 300.5):  
-   
-   .. code-block:: csv
-
-      2,3,100.1,150.3,250.2,300.5
+   - **M**: Number of pixels in height (integer)  
+   - **N**: Number of pixels in width (integer)  
+   - **L m/z values**: The m/z values corresponding to L ions (float) 
 
 2. **Pixel Data Rows**  
    Each subsequent row corresponds to a pixel on the M×N grid. Each row contains:  
    
-   - **i**: The pixel’s x-coordinate (integer, range 0 to M-1)  
-   - **j**: The pixel’s y-coordinate (integer, range 0 to N-1)  
-   - **Ion intensities**: The abundance values for the L ions at this pixel. These values can be integers or floating-point numbers. No specific type constraints are imposed on these values.  
+   - **i**: The pixel’s y-coordinate (integer, range 0 to M-1, 0 being the top)  
+   - **j**: The pixel’s x-coordinate (integer, range 0 to N-1, 0 being the left)  
+   - **Ion intensities**: The abundance values for the L ions at this pixel. (no specific type or range constraints) 
+
+**Example** 2x3 pixels MSI with 4 ions at m/z of 281.0375, 494.2507, 600.324, 831.5288:
+   
+ ..
+     .. code-block:: csv
+
+      2, 3, 281.0375, 494.2507, 600.324, 831.5288
+  
+ 
 
    **Example Pixel Data** for a 2×3 grid with 4 ions:  
    
    .. code-block:: csv
 
-      0,0,1000,5000,2500,9000
-      0,1,1500,5200,2600,9100
-      0,2,1800,5400,2700,9200
-      1,0,2000,6000,3000,9500
-      1,1,2500,6200,3200,9600
-      1,2,2800,6400,3300,9700
+      0,0,26,59,9,133
+      0,1,45,32,0,24
+      0,2,0,0,77,0
+      1,0,112,60,18,72
+      1,1,0,28,38,22
+      1,2,0,0,0,18
+
++---+---+----------+----------+---------+----------+
+| 2 | 3 | 281.0375 | 494.2507 | 600.324 | 831.5288 |
++---+---+----------+----------+---------+----------+
+| 0 | 0 |    26    |    59    |    9    |    133   |
++---+---+----------+----------+---------+----------+
+| 0 | 1 |    45    |    32    |    0    |    24    |
++---+---+----------+----------+---------+----------+
+| 0 | 2 |     0    |     0    |    77   |     0    |
++---+---+----------+----------+---------+----------+
+| 1 | 0 |    112   |    60    |    18   |    72    |
++---+---+----------+----------+---------+----------+
+| 1 | 1 |     0    |    28    |    38   |    22    |
++---+---+----------+----------+---------+----------+
+| 1 | 2 |     0    |     0    |    0    |    18    |
++---+---+----------+----------+---------+----------+
 
 By following this format, users can import MSI data from diverse modalities into MassVision for analysis and visualization. 
 
-Load Pathology Image
+Import Pathology Image
 ---------
 To load a pathology image, click 'Select file...' under pathology image. A file dialog box will appear, allowing you to upload the desired image. 
 
 .. image:: https://raw.githubusercontent.com/jamzad/SlicerDESI/main/docs/source/Images/LoadPathology.png
     :width: 600
 
-Loading an Existing Project
+Loading Existing Project
 -----------
 If have a saved project you would like to resume working on, click 'Load an existing project..' at the top of the tab. Note that saved projects include annotated scenes, labeled segments, ion visualizations, however, they do not save the MSI file that was used in the previous processing (since the file is too large to store with the project). After loading a saved project, load the MSI file to continue editing where you left off. 
 
 
 To clear the scene, navigate to the 'Clear data and start a new project' button at the top of the Data Import Tab. 
+
