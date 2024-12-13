@@ -15,10 +15,10 @@ The functionalities include data exploration via various targeted and non-target
 * Data format: DESI TXT images, structured CSV MSI
 * Visualization: targeted (single-ion heatmap, multi-ion colormap), untargeted (global PCA, regional PCA), pixel spectrum
 * Dataset generation: spatial colocalization to pathological annotation, labelled ROI extraction
-* Multi-slide peak alignment and dataset merge
+* Multi-slide merge via feature alignment
 * Preprocessing: normalization (TIC, single-ion), subband selection, spatial pixel aggregation
-* Model training: data stratification, data balancing, model selection
-* Whole-slide deployment: global deployment, masked deployment
+* AI Model training: data stratification, data balancing, model selection
+* Whole-slide AI deployment: global deployment, masked deployment
 
 ## Demonstration
 * Visualization with global vs local contrast [demo](https://www.dropbox.com/scl/fi/tiwy6mm8pompeeprexf0l/visualization.gif?rlkey=tqtly8rqeymvxkhmdf9hf4039&st=anz46hn1&raw=1)
@@ -31,7 +31,10 @@ Visit [here](https://SlicerMassVision.readthedocs.io/en/latest/Installation.html
 ## Documentations
 Visit [here](https://SlicerMassVision.readthedocs.io/en/latest/) to access user guide, tutorials, and other documentations.
 
+## Test Data
+MassVis*ion* provides users with a test data for exploring and evaluating its functionalities. The test data includes a sample **MSI data** in a structured CSV format, along with the corresponding **histopathology image** in TIFF format. The data is available in the [release section](https://github.com/jamzad/SlicerMassVision/releases/tag/test-data)
 
 ## Citation
-Please use the following citations if you are using MassVis*ion*
+Please use the following citations if you use MassVis*ion* in your studies and publication
+
 * TBA 

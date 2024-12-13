@@ -45,4 +45,9 @@ Opening MassVision
 
 Test Data
 -------
-DESI MSI data from a sample slide and corresponding histopathology annotations are provided for users as a test data to explore and evaluate different functionalities. The data can be downloaded from `this link <https://www.dropbox.com/scl/fo/lq51ojt2cdnvaobn4vism/AO9o0aCMEOg41dsy9FNA2Pc?rlkey=dzwyhoocpc6nct4ocwbx59z43&st=qiyyw93k&dl=0>`_
+ 
+MassVision provides users with test data for exploring and evaluating its functionalities. The data can be downloaded from `here <https://github.com/jamzad/SlicerMassVision/releases/tag/test-data>`_
+
+The test data includes a sample **MSI data** in a structured CSV format, along with the corresponding **histopathology image** in TIFF format. The data is collected using DESI modality from a colorectal tissue slide as part of the following study:
+
+Kaufmann M, Iaboni N, Jamzad A, Hurlbut D, Ren KYM, Rudan JF, Mousavi P, Fichtinger G, Varma S, Caycedo-Marulanda A, et al. Metabolically Active Zones Involving Fatty Acid Elongation Delineated by DESI-MSI Correlate with Pathological and Prognostic Features of Colorectal Cancer. Metabolites. 2023; 13(4):508. https://doi.org/10.3390/metabo13040508
