@@ -124,7 +124,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.tabWidget.setCurrentIndex(0)
 		self.ui.tabWidget.currentChanged.connect(self.onTabChange)
 		slicer.util.moduleSelector().connect('moduleSelected(QString)', self.onModuleChange)
-
+		
+		# make markup toolbar visible
+		slicer.util.mainWindow().findChild('QToolBar', 'MarkupsToolBar').show()
+		
 		# Connections
 		if self.REIMS==0:
 			self.ui.label_REIMS.hide()

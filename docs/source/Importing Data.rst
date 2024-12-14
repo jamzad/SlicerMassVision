@@ -1,12 +1,29 @@
 Importing Data
 =====
 
-To load the data navigate to the **Data Import** tab. You have different options for data format. 
+To load a new MSI data or a MassVision project, navigate to the **Data Import** tab.
+
+Clear Scene
+----------
+To clear any open data and analysis in MassVision, click on 'Clear data and analysis' at the top of the tab.
+
+.. tip::
+   We recommend that users clear MassVision before uploading any new MSI data, or starting a new independent task. 
+
+Load Existing Project
+-----------
+If you have a saved MassVision project you would like to resume working on, click 'Load project.' at the top of the tab. 
+
+.. important::
+   After loading a saved MassVision project, you must reload the corresponding MSI data to resume editing from where you left off.
+
+MassVision projects contain all processed files, such as annotated scenes, labeled segments, and visualizations. However, the original MSI data used in the analysis is excluded to prevent project size inflation and avoid duplicating the original data.
+
 
 Import MSI Data
 -------
-#. To import MSI data, click 'Select file...' under MSI data. A file dialog box will open, allowing you to browse and select the file. The current supported formats are DESI image files (.txt) and tabular structured files (.csv). After choosing the file, the path of the selected file will be displayed.
-#. After the data is loaded, the generated TIC image will be displayed in the viewer. To adjust the image's contrast, click the |WinLevIcon| icon in the Slicer toolbar at the top of the screen. You can adjust the image's contrast by left-click-and-drag on the image or by selecting a region.  
+#. Click 'Select file...' under MSI data. A file dialog box will open, allowing you to browse and select the file. The current supported formats are DESI image files (.txt) and general MSI structured files (.csv). Click 'Open' to load the data.
+#. After the data is loaded, general information like number of pixels, number of ions, and the name and location of the file will appears in the text box. The TIC visualization will also be displayed in the viewer. To adjust the image's contrast, click the |WinLevIcon| icon in the Slicer toolbar at the top of the screen. You can adjust the contrast by left-click-and-drag on the image or by selecting a region.  
 
 .. |WinLevIcon| image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/AdjustWindowLevel.png
    :height: 30
@@ -14,7 +31,7 @@ Import MSI Data
 .. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/ImportMSIFile.png
     :width: 600
 
-CSV File Structure
+How to structure your CSV
 #######
 MassVision allows users to import MSI data in a structured CSV format for analysis. This format ensures compatibility with any MSI data where all pixels share a common list of ions. For a data with **MxN pixels** and **L ions** per pixel, the CSV file should have **M×N+1 rows** (one header row and M×N rows for pixel spectra) and **L+2 columns** (two location indices and L abundance values):
 
@@ -32,7 +49,7 @@ MassVision allows users to import MSI data in a structured CSV format for analys
    - **j**: The pixel’s x-coordinate (integer, range 0 to N-1, 0 being the left)  
    - **Ion intensities**: The abundance values for the L ions at this pixel. (no specific type or range constraints) 
 
-**Example** For a 2x3 pixel MSI data the spatial indexing of the pixels will look like
+**Example** For a 3x2 pixel MSI data the spatial indexing of the pixels will look like
 
 +-----+-----+
 |(0,0)|(0,1)|
@@ -62,7 +79,7 @@ MassVision allows users to import MSI data in a structured CSV format for analys
 Assume the data contains 4 ions with m/z of 281.0375, 494.2507, 600.324, and 831.5288, the CSV structure will look like
 
 +---+---+----------+----------+----------+----------+
-| 2 | 3 | 281.0375 | 494.2507 | 600.324  | 831.5288 |
+| 3 | 2 | 281.0375 | 494.2507 | 600.324  | 831.5288 |
 +===+===+==========+==========+==========+==========+
 | 0 | 0 |    26    |    59    |    9     |    133   |
 +---+---+----------+----------+----------+----------+
@@ -79,17 +96,12 @@ Assume the data contains 4 ions with m/z of 281.0375, 494.2507, 600.324, and 831
 
 By following this format, users can import MSI data from diverse modalities into MassVision for analysis and visualization. 
 
-Import Pathology Image
+Import Reference Image
 ---------
-To load a pathology image, click 'Select file...' under pathology image. A file dialog box will appear, allowing you to upload the desired image. 
+To load a gold-standard image like histopathology annotations, click 'Select file...' under Reference Image. A file dialog box will appear, allowing you to upload the desired image. 
 
 .. image:: https://raw.githubusercontent.com/jamzad/SlicerDESI/main/docs/source/Images/LoadPathology.png
     :width: 600
 
-Loading Existing Project
------------
-If have a saved project you would like to resume working on, click 'Load an existing project..' at the top of the tab. Note that saved projects include annotated scenes, labeled segments, ion visualizations, however, they do not save the MSI file that was used in the previous processing (since the file is too large to store with the project). After loading a saved project, load the MSI file to continue editing where you left off. 
 
-
-To clear the scene, navigate to the 'Clear data and start a new project' button at the top of the Data Import Tab. 
 

@@ -10,8 +10,8 @@ project = 'MassVision'
 copyright = '2024'
 author = 'Amoon Jamzad'
 
-release = '0.1'
-version = '0.1.0'
+release = '0.6'
+version = '0.6.2'
 
 # -- General configuration
 
