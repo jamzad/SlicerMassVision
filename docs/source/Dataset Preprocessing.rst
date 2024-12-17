@@ -1,30 +1,34 @@
 Dataset Preprocessing
 #####
-#. In the **Dataset Preprocessing** Tab, locate and click on ‘Select’ to import the converted CSV dataset. 
-#. A file dialog box will appear, allowing you to browse and select the desired CSV file from your local storage. Once you have chosen the file, its path will be displayed on the screen, indicating that the file has been successfully selected. 
-#. Click ‘Import’. If the file was loaded successfully, a confirmation message will be displayed, stating "Dataset successfully loaded". 
+The **Dataset Preprocessing** tab is designed for spectral and spatial normalization and filtering of the data.
+
+
+Import 
+---------
+Click on **Select file** under "Import CSV dataset". A dialog box will appear allowing you to browse your local storage and select the desired CSV file. You will be prompted by the successful load message and the information about the dataset including number of slides, number of classes, number of total spectra, and number of spectra per classes will appear in the available text box
 
 
 Normalization 
 ---------
-To perform normalization on the dataset, check the box beside ‘Normalization’. Total Ion Current (TIC) normalization is automatically applied. If you would like to normalize to a choose reference ion, select 'Reference Ion' and specify a m/z value from the drop down menu. 
+To perform spectrum normalization on the dataset, check the box beside **Normalization**. You have the option to normalize based on total ion current (TIC) or a reference ion that can be selected from the available m/z ion list.
 
-Spectrum Filling
+
+Spectrum Filtering
 ----------
-To filter the spectrum and limit the feature space, check the box beside ‘Spectrum Filtering’. In the provided fields, specify m/z values for lower and upper bands of the filtering range.
+To limit the m/z range to a specific interval, select the checkbox next to **Spectrum Filtering**. Then, enter the m/z values for the lower and upper bounds of the range in the provided fields.
+
 
 Pixel Aggregation
 --------
-To create custom ROI patches by grouping pixels, check the box beside ‘Pixel Aggregation’. This will generate a grid of patches to be overlaid on the segmentation in the dataset, and each patch within the grid becomes an individual sample in the dataset. 
-Adjust the settings in the appropriate fields 
-    - Patch Width (defines the width of each individual patch in pixels)
-    - Stride (defines the space between adjacent patches)
-    - Partial Patch Percentage (sets the overlap percentage between neighboring patches)
-In the dropdown menu select an aggregation mode to determine how pixels within each patch are combined to represent the patch as a single sample. 
+To aggregate the neighboring spectra in each slide's ROI (spatial denoising), check the box beside **Pixel Aggregation**. The process involves reshaping the data from individual slides in the dataset back to their 2D structure. MassVision then overlay a **regular grid of square patches** with specific patch size and distance on the slide. The available spectra within each patch (if they cover specific percentage of the patch) are summarized to a single spectrum using a defined statistics.
 
+Users can adjust the settings of aggregation 
+    - Patch width (the width of the neighborhood included in the patch in pixels)
+    - Patch distance (the distance between consequent patches on a grid in pixels)
+    - Incomplete patch reject (he minimum percentage of available pixels within a patch required for it to be considered complete and included in the aggregation.)
+    - Aggregation mode (the statistical operation for aggregating the pixels within the patch)
 
-Saving the Processed Dataset 
+Apply Processing 
 -----------
-When you are done adjusting preprocessing settings, click ‘Apply’ at the bottom of the window. Provide a name for the processed dataset and location to save it to on your local storage. 
+When you are done adjusting preprocessing settings, click **Apply** at the bottom of the tab. Specify a name and save location for the preprocessed file on your local storage. Once saved, the summary of the processed file will appear in the available text box. Representative visualizations of the patch grids for each slide are also generated and saved in the same location for further exploration.
 
-###will automatically be saved to your working directory as a CSV file named ‘processed_dataset.csv’. ###

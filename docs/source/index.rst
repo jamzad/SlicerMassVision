@@ -13,12 +13,11 @@ Contents
    :maxdepth: 2
    
    About MassVision
-   Getting Started 
-   Importing Data
+   Getting Started
+   Data Import
    Visualization
    Dataset Curation
    Multi-slide Alignment
    Dataset Preprocessing
-   Model Training
-   Results
-   Model Deployment
+   AI Model Training
+   AI Model Deployment
