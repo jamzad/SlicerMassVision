@@ -17,17 +17,17 @@ Model Training
 #. Choose the data partitioning configuration from **Data split scheme** to determine the division of data for train and validation.
 
     Options:    
-    - Training on whole dataset: use the whole dataset for training and report the training performance measures.
-    - Random train/test split: divide the data randomly into train/test and report the performance measures for both train and test set.
-    - Slide-based train/test customization: user can choose which slides/patients from the dataset included in train or test by selecting the appropriate checkboxes from the provided list. The performance report would be for both train and test set.
+        - Training on whole dataset: use the whole dataset for training and report the training performance measures.
+        - Random train/test split: divide the data randomly into train/test and report the performance measures for both train and test set.
+        - Slide-based train/test customization: user can choose which slides/patients from the dataset included in train or test by selecting the appropriate checkboxes from the provided list. The performance report would be for both train and test set.
 
 #. To balance the training data and equalize the number of spectra in each class, select one of the available options from **Data balancing**.
     
     Options:
-    - None: no balancing
-    - Down-sample: randomly exclude spectra from classes to have the same number of spectra as the the minority class.
-    - Up-sample: randomly repeat spectra within each class to reach the number of spectra in the majority class
-    - Mid-sample: up-sample the classes with low number of spectra, while down-sample the classes with high number of spectra, to the average spectrum per class value
+        - None: no balancing
+        - Down-sample: randomly exclude spectra from classes to have the same number of spectra as the the minority class.
+        - Up-sample: randomly repeat spectra within each class to reach the number of spectra in the majority class
+        - Mid-sample: up-sample the classes with low number of spectra, while down-sample the classes with high number of spectra, to the average spectrum per class value
 
 #. if you want to save the model for later use on the whole slide, please check the box for **Export model pipeline**.
 
