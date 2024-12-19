@@ -39,3 +39,5 @@ html_logo = "images/logo.png"
 
 # -- Options for EPUB output
 epub_show_urls = 'footnote'
+
+html_baseurl = "https://slicermassvision.readthedocs.io/"
