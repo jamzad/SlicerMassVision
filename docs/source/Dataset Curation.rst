@@ -10,8 +10,8 @@ Co-localization
 #. In 'Co-localization' section, click on the 'Landmark Registration'to switch to the **Landmark Registration** module in 3D Slicer. 
 #. In the pop-up dialog box, designate an MSI visualization as the **Fixed Volume**, and the pathology image as the **Moving Volume**, and then click **Apply**.
 
-.. tip::
-   Use an MSI visualization that highlights spatial landmarks, such as tissue boundaries or tears, to facilitate co-localization and enhance its accuracy. The global-contrast PCA is one recommendation. 
+   .. tip::
+      Use an MSI visualization that highlights spatial landmarks, such as tissue boundaries or tears, to facilitate co-localization and enhance its accuracy. The global-contrast PCA is one recommendation. 
     
 #. On the left side menu under **Visualization**, click on **Axial** and then **Fit** button to see the MSI visualization, pathology image, and the overlay of co-localized pathology on MSI side-by-side.
 #. Set the registration parameters for translation-rotation transformation by selecting **Affine Registration** as the *Registration Type*, and **Similarity** as the *Registration Mode*.
@@ -25,8 +25,8 @@ Co-localization
 #. Upon completion, navigate to the overlay view and select the maximize view button to see the result in full screen.
 #. Return to the MassVision module by clicking green back arrow in the toolbar. Alternatively, you can switch between modules by clicking the magnifying glass in the toolbar beside 'Modules' and searching for your desired module.
 
-.. note::
-   This guide only covered translation-rotation transformation as a co-localization approach. For more information about registration parameters and other available approaches, please visit: `<https://www.slicer.org/wiki/Documentation/Nightly/Modules/LandmarkRegistration>`_
+   .. note::
+      This guide only covered translation-rotation transformation as a co-localization approach. For more information about registration parameters and other available approaches, please visit: `<https://www.slicer.org/wiki/Documentation/Nightly/Modules/LandmarkRegistration>`_
 
 
 ROI Selection
@@ -37,14 +37,14 @@ ROI Selection
 
 #. In the *Dataset Generation* tab in **ROI selection** section, you can select two visualizations; one as the **Main** reference and the other as the **Guide** for your ROI selection. 
 
-.. important::
-   The main visualization should always be an MSI visualization, and the guide can be either an MSI visualization or the co-localized pathology image.
+   .. important::
+      The main visualization should always be an MSI visualization, and the guide can be either an MSI visualization or the co-localized pathology image.
 
 #. Click on 'Segment editor' to go to the **Segment Editor** module in 2D Slicer. You'll see the two chosen images displayed side-by-side and spatially linked, meaning changing the view on one window will change the view on the other one accordingly.
 #. click on **Add** to add a segment. Each segment will count as a separate class label for your dataset. Users have the option to modify the name and the color of the segments by clicking on them in the segment list.
 
-.. important::
-   The segment name serves as the class label. Therefore, when running a multi-slide study, it is essential to maintain consistent name labels for the segments across all slides. 
+   .. important::
+      The segment name serves as the class label. Therefore, when running a multi-slide study, it is essential to maintain consistent name labels for the segments across all slides. 
 
 #. You have different options to add regions to your label list. The simplest is to use  the **Paint** and **Eraser** which can be activated by selecting |PaintIcon| and |EraserIcon| respectively. You can add as many ROIs as needed per segment. The spectrum from any selected pixel will be included with the label determined in the segment name.
 #. You can add as many labels as you want. Each segment can be modified by activating it (selecting the segment from the list).
@@ -52,8 +52,8 @@ ROI Selection
 #. Within the 'Dataset Generation' tab under "Export dataset" select **Create CSV**. You will be prompted to enter a file name and location on your local computer. 
 #. The images of ROIs will also be saved in the same folder path.
 
-.. note::
-   This guide only covered the paint-erase segmentation for ROI selection. For more information about other available manual and automated segmentation approaches, please visit: `<https://slicer.readthedocs.io/en/latest/user_guide/modules/segmenteditor.html#>`_
+   .. note::
+      This guide only covered the paint-erase segmentation for ROI selection. For more information about other available manual and automated segmentation approaches, please visit: `<https://slicer.readthedocs.io/en/latest/user_guide/modules/segmenteditor.html#>`_
 
 
 .. |PaintIcon| image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/PaintIcon.png

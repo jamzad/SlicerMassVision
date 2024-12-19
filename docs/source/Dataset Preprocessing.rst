@@ -23,6 +23,7 @@ Pixel Aggregation
 To aggregate the neighboring spectra in each slide's ROI (spatial denoising), check the box beside **Pixel Aggregation**. The process involves reshaping the data from individual slides in the dataset back to their 2D structure. MassVision then overlay a **regular grid of square patches** with specific patch size and distance on the slide. The available spectra within each patch (if they cover specific percentage of the patch) are summarized to a single spectrum using a defined statistics.
 
 Users can adjust the settings of aggregation 
+
     - Patch width (the width of the neighborhood included in the patch in pixels)
     - Patch distance (the distance between consequent patches on a grid in pixels)
     - Incomplete patch reject (he minimum percentage of available pixels within a patch required for it to be considered complete and included in the aggregation.)
