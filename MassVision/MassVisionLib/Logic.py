@@ -159,8 +159,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		mz = np.array(df.columns[peak_start_col:], dtype='float')
 		peaks = df[df.columns[peak_start_col:]].values
 		loc =  df[df.columns[0:peak_start_col]].values
-		dim_y = int(df.columns[0].split('=')[-1])
-		dim_x = int(df.columns[1].split('=')[-1])
+		dim_y = int(float(df.columns[0].split('=')[-1]))
+		dim_x = int(float(df.columns[1].split('=')[-1]))
 
 		# handle unsorted and missing values
 		flat_ind = list(loc[:,0]*dim_x+loc[:,1])
