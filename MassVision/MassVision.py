@@ -349,6 +349,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		# logic processes pca in the ROI
 		self.logic.partial_pca_display((int(min_y), int(min_x)), (int(max_y), int(max_x)), 
 								 extend=self.ui.pcaExtendCheckbox.isChecked())
+		
+		info = self.logic.LoadingsRank()
+		info = f'Local Contrast \nregion ({int(min_y[0])},{int(max_y[0])}), ({int(min_x[0])},{int(max_x[0])})\n\n' + info
+		self.ui.LoadingsInfo.setText(info)
 
 	def onROIContrast(self):
 		# get all ROIs
@@ -370,6 +374,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		
 		# logic processes pca in the ROI
 		self.logic.roi_pca_display(label_mask, extend=self.ui.roiCintrastExtend.isChecked())
+		
+		info = self.logic.LoadingsRank()
+		info = 'ROI Contrast \n\n' + info
+		self.ui.LoadingsInfo.setText(info)
 
 
 	def onROIContrastLDA(self):
@@ -405,6 +413,11 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 	def onPCAButton(self):
 		# displays the pca image
 		self.logic.pca_display()
+
+		info = self.logic.LoadingsRank()
+		info = 'Global Contrast \n\n' + info
+		self.ui.LoadingsInfo.setText(info)
+
   
 	def populateMzLists(self):
 		# adds the m/z values to m/z lists for the color channels

@@ -109,6 +109,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		#self.volume = None
 		self.CNNHyperparameters = {}
 		self.REIMS_H = 300
+		self.lastPCA = None
 		
 
 	def setDefaultParameters(self, parameterNode):
@@ -655,7 +656,35 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		
 		self.visualizationRunHelper(pca_image, pca_image.shape, visualization_type='pca')
 
+		self.lastPCA = dim_reduction
 		return True
+	
+	def LoadingsRank(self):
+		pca = self.lastPCA
+		mz = self.mz
+		n_ranks = 5
+		colors = [' (Red)', ' (Green)', ' (Blue)']
+		info = ''
+		loadings = pca.components_
+		for pc_ind in range(len(loadings)):
+			print('PC'+str(pc_ind+1))
+			info += 'PC'+str(pc_ind+1)+colors[pc_ind]+'\n'
+			feature_contributions = np.abs(loadings)
+			most_important_ind = np.argsort(-feature_contributions[pc_ind]) 
+			print('all:', mz[most_important_ind][:n_ranks])
+			info += 'all: '+', '.join([str(x) for x in mz[most_important_ind][:n_ranks]])+'\n'
+
+			pos_feature_contributions = np.maximum(loadings[pc_ind],0)
+			pos_important_ind = np.argsort(-pos_feature_contributions)
+			print('pos:', mz[pos_important_ind][:n_ranks])
+			info += 'pos: '+', '.join([str(x) for x in mz[pos_important_ind][:n_ranks]])+'\n'
+
+			neg_feature_contributions = np.minimum(loadings[pc_ind],0)
+			neg_important_ind = np.argsort(neg_feature_contributions)
+			print('neg:', mz[neg_important_ind][:n_ranks])
+			info += 'neg: '+', '.join([str(x) for x in mz[neg_important_ind][:n_ranks]])+'\n\n'
+
+		return info
 	
 	# generates the single ion image for the m/z value specified
 	def single_ion_display_colours(self, mz_r):
@@ -1774,6 +1803,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		self.visualizationRunHelper(local_pca_image, local_pca_image.shape, visualization_type='local_pca')
 		
+		self.lastPCA = local_pca
 		return True
 
 
@@ -1809,6 +1839,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		self.visualizationRunHelper(local_pca_image, local_pca_image.shape, visualization_type='roi_pca')
 		
+		self.lastPCA = local_pca
 		return True
 	
 
