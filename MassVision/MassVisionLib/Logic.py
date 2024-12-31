@@ -44,6 +44,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import LinearSVC
 from sklearn.cross_decomposition import PLSRegression, PLSCanonical
 from sklearn.utils import resample
+from sklearn.cluster import KMeans
 
 try:
 	import pandas as pd
@@ -715,6 +716,25 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.visualizationRunHelper(array, array.shape, 'single', heatmap=heatmap)
 		return True
 	
+	def VisCluster(self, n_clusters):
+		kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+		labels = kmeans.fit_predict(self.peaks_pca)  # Cluster labels for each pixel
+		
+		## clusters have the same color as visualization
+		# centers = kmeans.cluster_centers_  # RGB values of cluster centers
+		# color_image = centers[labels].reshape((self.dim_y,self.dim_x,-1),order='C')
+		
+		## clusters have jet colormap
+		cluster_colors = cm.get_cmap('jet')(np.linspace(0, 1, n_clusters))
+		cluster_colors = cluster_colors[:,:3]
+		color_image = cluster_colors[labels].reshape((self.dim_y,self.dim_x,-1),order='C')
+
+		color_image = np.expand_dims(color_image, axis=0)*255
+
+		self.visualizationRunHelper(color_image, color_image.shape, visualization_type='cluster')
+
+		return True
+
 	def spectrum_plot(self):
 		fiducial_nodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsFiducialNode")
 		fnode_names = []
@@ -947,7 +967,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		
 		# delete all current views as we will load a new volume
 		filename = f'{self.slideName}_{visualization_type}'
-		if not (visualization_type.endswith('pca') or visualization_type.endswith('lda')) : filename += 'ion'
+		if not (visualization_type.endswith('pca') or visualization_type.endswith('lda') or visualization_type.endswith('cluster')) : filename += 'ion'
 		existingOverlays = slicer.util.getNodes(f'{filename}*')
 		for node in existingOverlays: slicer.mrmlScene.RemoveNode(existingOverlays[node])
 		
@@ -1803,6 +1823,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		self.visualizationRunHelper(local_pca_image, local_pca_image.shape, visualization_type='local_pca')
 		
+		self.peaks_pca = local_peaks_pca
 		self.lastPCA = local_pca
 		return True
 

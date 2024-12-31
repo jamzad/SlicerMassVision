@@ -172,6 +172,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.partialPCA.connect("clicked(bool)", self.onPartialPCAButton)
 		self.dataInfo = ''
 		
+		self.ui.Cluster_button.connect("clicked(bool)", self.onClusterButton)
 
 		# Dataset generation
 		self.ui.gotoRegistration.connect("clicked(bool)", self.landmark)
@@ -465,6 +466,11 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		# runs the valudation for all of the color channels
 		self.logic.singleIonVisualization(float(self.ui.singleIonMzList.currentText), 
 									self.ui.singleIonHeatmapList.currentText)
+
+	
+	def onClusterButton(self):
+		n_clusters = int(self.ui.nCluster.currentText)
+		self.logic.VisCluster(n_clusters)
 
 	### Dataset generation
 
