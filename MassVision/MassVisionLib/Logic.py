@@ -66,6 +66,12 @@ from scipy.signal import find_peaks
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import pickle
 
+try:
+	import h5py
+except ModuleNotFoundError:
+	slicer.util.pip_install("h5py")
+	import h5py
+
 from MassVisionLib.Utils import *
 
 
@@ -154,7 +160,16 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		stopTime = time.time()
 		logging.info(f'Processing completed in {stopTime-startTime:.2f} seconds')
 
-	
+	def MSI_h52numpy(self, h5_file):
+		with h5py.File(h5_file, 'r') as h5file:
+			peaks = h5file['peaks'][:]
+			mz = h5file['mz'][:]
+
+		dim_y, dim_x, _ = peaks.shape
+		peaks = peaks.reshape((dim_y*dim_x,-1),order='C')
+
+		return peaks, mz, dim_y, dim_x
+
 	def MSI_csv2numpy(self, csv_file):
 		df = pd.read_csv(csv_file)
 		peak_start_col = 2
@@ -179,37 +194,36 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	# takes in the desi text function and organized the information
 	# into the peaks, mz values, xdimensions, ydimensions
 	def DESI_txt2numpy(self, desi_text):
-				data = []
-				with open(desi_text, 'r') as read_obj:
-						for i,line in enumerate(read_obj):
-								x = line.split()
-								y = [float(num) for num in x]
-								data.append(y)
-								
-				ind = np.argsort(data[3]) # data[3] has unsorted m/z values
-				mz = np.take_along_axis(np.asarray(data[3]), ind, axis=0) # sort with indices
+		data = []
+		with open(desi_text, 'r') as read_obj:
+			for i,line in enumerate(read_obj):
+				x = line.split()
+				y = [float(num) for num in x]
+				data.append(y)
+						
+		ind = np.argsort(data[3]) # data[3] has unsorted m/z values
+		mz = np.take_along_axis(np.asarray(data[3]), ind, axis=0) # sort with indices
 
-				x, y = [], []
-				peaks = []
-				
-				for i in range(4,len(data)-1):
-						x.append(data[i][1])
-						y.append(data[i][2])
-						p = np.asarray(data[i][3:-2])
-						p = np.take_along_axis(p, ind, axis=0)
-						p = np.expand_dims(p,axis=0)
-						peaks.append(p)
-				peaks = np.concatenate(peaks,axis=0)
+		x, y = [], []
+		peaks = []
+		
+		for i in range(4,len(data)-1):
+			x.append(data[i][1])
+			y.append(data[i][2])
+			p = np.asarray(data[i][3:-2])
+			p = np.take_along_axis(p, ind, axis=0)
+			p = np.expand_dims(p,axis=0)
+			peaks.append(p)
+		peaks = np.concatenate(peaks,axis=0)
 
-				## find desi data dimension
-				t = np.asarray(x)
-				t = np.abs(np.diff(t))
-				dim_x = int(np.round(np.max(t)/np.min(t)))+1
-				t = np.asarray(y)
-				dim_y = int(np.round(np.abs(t[0]-t[-1])/np.max(np.abs(np.diff(t)))))+1
-				
-				
-				return peaks, mz, dim_y, dim_x
+		## find desi data dimension
+		t = np.asarray(x)
+		t = np.abs(np.diff(t))
+		dim_x = int(np.round(np.max(t)/np.min(t)))+1
+		t = np.asarray(y)
+		dim_y = int(np.round(np.abs(t[0]-t[-1])/np.max(np.abs(np.diff(t)))))+1
+		
+		return peaks, mz, dim_y, dim_x
 			
 	# noramlizes the peaks 
 	def tic_normalize(self, peaks):
@@ -1492,7 +1506,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		fileExplorer = qt.QFileDialog()
 		# filePaths = fileExplorer.getOpenFileNames(None, "Open DESI text file", "", "Text Files (*.txt);;All Files (*)")
 		# data_path_temp = filePaths[0]
-		filePaths = fileExplorer.getOpenFileName(None, "Import MSI data", "", "DESI Text Files (*.txt);;Structured CSV Files (*.csv);;All Files (*)")
+		filePaths = fileExplorer.getOpenFileName(None, "Import MSI data", "", "Structured CSV (*.csv);;Hierarchical HDF5 (*.h5);;DESI Text (*.txt);;All Files (*)")
 		data_path_temp = filePaths
 		slide_name = data_path_temp.split('/')[-1]
 		lengthy = len(slide_name)
@@ -1577,11 +1591,14 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		slide_name = name.split('/')[-1]
 		data_path = name[:len(name)-len(slide_name)]
+		data_extension = slide_name.split('.')[-1].lower()
 
-		if slide_name[-3:].lower() == 'txt':
+		if data_extension == 'txt':
 			[peaks, mz, dim_y, dim_x] = self.DESI_txt2numpy(name)
-		elif slide_name[-3:].lower() == 'csv':
+		elif data_extension == 'csv':
 			[peaks, mz, dim_y, dim_x] = self.MSI_csv2numpy(name)
+		elif data_extension == 'h5':
+			[peaks, mz, dim_y, dim_x] = self.MSI_h52numpy(name)
 		else:
 			pass
 		
