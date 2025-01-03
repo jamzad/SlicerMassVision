@@ -136,6 +136,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			self.ui.REIMSFileLoad.hide()
 			self.ui.REIMSInformation.hide()
 
+		self.ui.LoadingsInfo.hide()
+
 		# import push botton mechanism
 		self.ui.textFileLoad.hide()
 		self.ui.loadHisto.hide()
@@ -171,8 +173,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.PCA_button.connect("clicked(bool)", self.onPCAButton)
 		self.ui.partialPCA.connect("clicked(bool)", self.onPartialPCAButton)
 		self.dataInfo = ''
-		
+		self.ui.ContrastThumbnail.connect("clicked(bool)", self.onContrastThumbnail)
+
 		self.ui.Cluster_button.connect("clicked(bool)", self.onClusterButton)
+		self.ui.ClusterThumbnail.connect("clicked(bool)", self.onClusterThumbnail)
 
 		# Dataset generation
 		self.ui.gotoRegistration.connect("clicked(bool)", self.landmark)
@@ -467,10 +471,29 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.logic.singleIonVisualization(float(self.ui.singleIonMzList.currentText), 
 									self.ui.singleIonHeatmapList.currentText)
 
-	
+	def onContrastThumbnail(self):
+		self.logic.ViewContrastThumbnail()
+
 	def onClusterButton(self):
 		n_clusters = int(self.ui.nCluster.currentText)
-		self.logic.VisCluster(n_clusters)
+		cluster_colors = self.logic.VisCluster(n_clusters)
+
+		self.ui.ClusterInd.clear()
+		for i in range(n_clusters):
+			self.ui.ClusterInd.addItem(str(i))
+
+	def onClusterThumbnail(self):
+		cluster_ind = int(self.ui.ClusterInd.currentText) 
+		volcano_mz, dice_score, volcano_fc, volcano_pval = self.logic.ViewClusterThumbnail(cluster_ind)
+
+		for i in range(5):
+			self.ui.ClusterTable.setItem(i, 0, qt.QTableWidgetItem(str(volcano_mz[i])))
+			self.ui.ClusterTable.setItem(i, 1, qt.QTableWidgetItem(str(np.round(dice_score[i],4))))
+			self.ui.ClusterTable.setItem(i, 2, qt.QTableWidgetItem(str( np.round(volcano_fc[i],4))))
+			item = str(np.round(volcano_pval[i],4))
+			if volcano_pval[i]>=300:
+				item = '>300'
+			self.ui.ClusterTable.setItem(i, 3, qt.QTableWidgetItem(item))
 
 	### Dataset generation
 

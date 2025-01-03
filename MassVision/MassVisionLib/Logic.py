@@ -72,6 +72,8 @@ except ModuleNotFoundError:
 	slicer.util.pip_install("h5py")
 	import h5py
 
+from scipy.stats import ttest_ind
+
 from MassVisionLib.Utils import *
 
 
@@ -117,6 +119,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.CNNHyperparameters = {}
 		self.REIMS_H = 300
 		self.lastPCA = None
+		self.contrast_thumbnail_inds = None
+		self.pixel_clusters = None
 		
 
 	def setDefaultParameters(self, parameterNode):
@@ -681,6 +685,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		colors = [' (Red)', ' (Green)', ' (Blue)']
 		info = ''
 		loadings = pca.components_
+		contrast_thumbnail_inds = []
 		for pc_ind in range(len(loadings)):
 			# print('PC'+str(pc_ind+1))
 			info += 'PC'+str(pc_ind+1)+colors[pc_ind]+'\n'
@@ -688,17 +693,21 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			most_important_ind = np.argsort(-feature_contributions[pc_ind]) 
 			# print('all:', mz[most_important_ind][:n_ranks])
 			info += 'all: '+', '.join([str(x) for x in mz[most_important_ind][:n_ranks]])+'\n'
+			# contrast_thumbnail_inds.append(most_important_ind[:n_ranks])
 
 			pos_feature_contributions = np.maximum(loadings[pc_ind],0)
 			pos_important_ind = np.argsort(-pos_feature_contributions)
 			# print('pos:', mz[pos_important_ind][:n_ranks])
 			info += 'pos: '+', '.join([str(x) for x in mz[pos_important_ind][:n_ranks]])+'\n'
+			contrast_thumbnail_inds.append(pos_important_ind[:n_ranks])
 
 			neg_feature_contributions = np.minimum(loadings[pc_ind],0)
 			neg_important_ind = np.argsort(neg_feature_contributions)
 			# print('neg:', mz[neg_important_ind][:n_ranks])
 			info += 'neg: '+', '.join([str(x) for x in mz[neg_important_ind][:n_ranks]])+'\n\n'
+			contrast_thumbnail_inds.append(neg_important_ind[:n_ranks])
 
+		self.contrast_thumbnail_inds = np.concatenate(contrast_thumbnail_inds)
 		return info
 	
 	# generates the single ion image for the m/z value specified
@@ -730,10 +739,50 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.visualizationRunHelper(array, array.shape, 'single', heatmap=heatmap)
 		return True
 	
+	def ViewContrastThumbnail(self):
+		mz_inds = self.contrast_thumbnail_inds
+		dim_y = self.dim_y
+		dim_x = self.dim_x
+
+		top_n = int(len(mz_inds)/3)
+
+		fig, axes = plt.subplots(3, top_n, figsize=(top_n/dim_y*dim_x*2, 3*2), gridspec_kw={'wspace': 0, 'hspace': 0})
+
+		for i, ax in enumerate(axes.flat):
+			ion_image = self.peaks_norm[:, mz_inds[i]].reshape((dim_y,dim_x),order='C')
+			ax.imshow(ion_image, cmap='inferno')
+			ax.text(0, 0, str(self.mz[ mz_inds[i] ]), color='black', fontsize=10, ha='left', va='top', 
+					bbox=dict(facecolor='yellow', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
+			ax.axis('off')  # Turn off axes
+
+		plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
+
+		# save plot
+		filename = os.path.join(self.saveFolder, self.slideName + f'_thumbCont.jpeg')
+		plt.savefig(filename, bbox_inches='tight', dpi=100)
+		plt.close()
+
+		# display plot
+		RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
+		markupNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsNode")
+		for markupNode in markupNodes:
+			displayNode = markupNode.GetDisplayNode()
+			displayNode.SetViewNodeIDs([RedNode.GetID()])
+
+		YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
+		YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
+
+		volumeNode = slicer.util.loadVolume(filename, {"singleFile": True})
+		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
+
+		YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
+		YellowNode.SetOrientation("Axial")
+		slicer.util.resetSliceViews()
+
 	def VisCluster(self, n_clusters):
 		kmeans = KMeans(n_clusters=n_clusters, random_state=42)
 		labels = kmeans.fit_predict(self.peaks_pca)  # Cluster labels for each pixel
-		
+		self.pixel_clusters = labels
 		## clusters have the same color as visualization
 		# centers = kmeans.cluster_centers_  # RGB values of cluster centers
 		# color_image = centers[labels].reshape((self.dim_y,self.dim_x,-1),order='C')
@@ -747,8 +796,113 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		self.visualizationRunHelper(color_image, color_image.shape, visualization_type='cluster')
 
-		return True
+		return cluster_colors
 
+	def ViewClusterThumbnail(self, cluster_id):
+		segmentation_mask = (self.pixel_clusters == cluster_id).astype(int)
+
+		# Define thresholds
+		thresholds = np.linspace(0.1, 0.9, 9)  # 9 thresholds
+
+		# Precompute sums of the segmentation mask
+		mask_sum = np.sum(segmentation_mask)  # Total pixels in the mask
+
+		# Precompute thresholded data for all thresholds (vectorized)
+		thresholded_data = np.expand_dims(self.peaks_norm, axis=2) > thresholds  # Shape: (pixels, ions, thresholds)
+
+		# Calculate intersection and union for Dice score using einsum
+		intersection = np.einsum('p, pit -> it', segmentation_mask, thresholded_data)  # Shape: (ions, thresholds)
+		thresh_sum = np.sum(thresholded_data, axis=0)  # Shape: (ions, thresholds)
+
+		dice_scores = 2 * intersection / (mask_sum + thresh_sum + 1e-10)  # Avoid division by zero
+
+		# Keep Dice scores as (ions, thresholds) and adjust subsequent calculations accordingly
+		# Find the max Dice score for each ion across thresholds
+		max_dice_scores = np.max(dice_scores, axis=1)  # Shape: (ions,)
+		max_threshold_indices = np.argmax(dice_scores, axis=1)  # Shape: (ions,)
+
+		# Combine max scores and corresponding thresholds
+		max_thresholds = thresholds[max_threshold_indices]
+
+		# Sort ions by max Dice score in descending order
+		sorted_indices = np.argsort(-max_dice_scores)
+
+		# Get top 5 ions and their scores
+		top_n = 5
+		top_ions = sorted_indices[:top_n]
+
+		# print("Top 5 ions based on max Dice score:")
+		# for rank, ion_idx in enumerate(top_ions):
+		# 	print(f"Rank {rank + 1}: Ion {ion_idx}, mz {self.mz[ion_idx]}, Max Dice Score = {max_dice_scores[ion_idx]:.4f}, Threshold = {max_thresholds[ion_idx]:.1f}")
+
+		mz_inds = top_ions
+		dim_y = self.dim_y
+		dim_x = self.dim_x
+
+		fig, axes = plt.subplots(1, 1+top_n, figsize=(top_n/dim_y*dim_x*2, 1*2), gridspec_kw={'wspace': 0, 'hspace': 0})
+
+		for i, ax in enumerate(axes.flat):
+			if i==0:
+				mask_image = segmentation_mask.reshape((dim_y,dim_x),order='C')
+				ax.imshow(mask_image, cmap='inferno')
+				ax.text(0, 0, 'cluster', color='yellow', fontsize=10, ha='left', va='top', 
+						bbox=dict(facecolor='black', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
+			else:
+				ion_image = self.peaks_norm[:, mz_inds[i-1]].reshape((dim_y,dim_x),order='C')
+				ax.imshow(ion_image, cmap='inferno')
+				ax.text(0, 0, str(self.mz[ mz_inds[i-1] ]), color='black', fontsize=10, ha='left', va='top', 
+						bbox=dict(facecolor='yellow', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
+			ax.axis('off')  # Turn off axes
+
+		plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
+
+		# save plot
+		filename = os.path.join(self.saveFolder, self.slideName + f'_thumbCluster.jpeg')
+		plt.savefig(filename, bbox_inches='tight', dpi=100)
+		plt.close()
+
+		# display plot
+		RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
+		markupNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsNode")
+		for markupNode in markupNodes:
+			displayNode = markupNode.GetDisplayNode()
+			displayNode.SetViewNodeIDs([RedNode.GetID()])
+
+		YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
+		YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
+
+		volumeNode = slicer.util.loadVolume(filename, {"singleFile": True})
+		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
+
+		YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
+		YellowNode.SetOrientation("Axial")
+		slicer.util.resetSliceViews()
+		
+		volcano_fc, volcano_pval = self.volcano_table(segmentation_mask>0, top_ions)
+
+		return self.mz[top_ions], max_dice_scores[top_ions], volcano_fc, volcano_pval
+	
+	def volcano_table(self, mask, top_ind):
+		inside_segment = self.peaks_norm[mask][:, top_ind]
+		outside_segment = self.peaks_norm[~mask][:, top_ind]
+
+		mean_inside = np.mean(inside_segment, axis=0)  # Mean for each ion inside the segment
+		mean_outside = np.mean(outside_segment, axis=0)  # Mean for each ion outside the segment
+		std_inside = np.std(inside_segment, axis=0, ddof=1)  # Standard deviation inside
+		std_outside = np.std(outside_segment, axis=0, ddof=1)  # Standard deviation outside
+
+		n_inside = inside_segment.shape[0]
+		n_outside = outside_segment.shape[0]
+
+		pooled_std = np.sqrt((std_inside**2 / n_inside) + (std_outside**2 / n_outside))
+		t_stat = (mean_inside - mean_outside) / (pooled_std + 1e-10)  # Avoid division by zero
+		_, p_values = ttest_ind(inside_segment, outside_segment, axis=0, equal_var=False)
+		p_values = -np.log10(p_values+1e-300)
+
+		fold_changes = np.log2(mean_inside / (mean_outside + 1e-10))  # Avoid division by zero
+
+		return fold_changes, p_values
+	
 	def spectrum_plot(self):
 		fiducial_nodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsFiducialNode")
 		fnode_names = []
@@ -1972,7 +2126,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		slicer.mrmlScene.AddNode(labelMapVolumeNode)
 
 		return labelMapVolumeNode
-
 
 
 	def createCustomColorTable(self, segmentationNode):
