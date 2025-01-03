@@ -682,21 +682,21 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		info = ''
 		loadings = pca.components_
 		for pc_ind in range(len(loadings)):
-			print('PC'+str(pc_ind+1))
+			# print('PC'+str(pc_ind+1))
 			info += 'PC'+str(pc_ind+1)+colors[pc_ind]+'\n'
 			feature_contributions = np.abs(loadings)
 			most_important_ind = np.argsort(-feature_contributions[pc_ind]) 
-			print('all:', mz[most_important_ind][:n_ranks])
+			# print('all:', mz[most_important_ind][:n_ranks])
 			info += 'all: '+', '.join([str(x) for x in mz[most_important_ind][:n_ranks]])+'\n'
 
 			pos_feature_contributions = np.maximum(loadings[pc_ind],0)
 			pos_important_ind = np.argsort(-pos_feature_contributions)
-			print('pos:', mz[pos_important_ind][:n_ranks])
+			# print('pos:', mz[pos_important_ind][:n_ranks])
 			info += 'pos: '+', '.join([str(x) for x in mz[pos_important_ind][:n_ranks]])+'\n'
 
 			neg_feature_contributions = np.minimum(loadings[pc_ind],0)
 			neg_important_ind = np.argsort(neg_feature_contributions)
-			print('neg:', mz[neg_important_ind][:n_ranks])
+			# print('neg:', mz[neg_important_ind][:n_ranks])
 			info += 'neg: '+', '.join([str(x) for x in mz[neg_important_ind][:n_ranks]])+'\n\n'
 
 		return info

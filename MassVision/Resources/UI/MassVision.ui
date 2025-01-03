@@ -32,7 +32,7 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>1</number>
+   <number>0</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
@@ -43,21 +43,57 @@
    </attribute>
    <layout class="QFormLayout" name="formLayout_8">
     <item row="0" column="0" colspan="2">
+     <widget class="QLabel" name="label_55">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>MassVision 0.6.2 </string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="0" colspan="2">
      <widget class="QPushButton" name="clearReloadPush">
       <property name="text">
        <string>Clear data and analysis</string>
       </property>
      </widget>
     </item>
-    <item row="1" column="0" colspan="2">
+    <item row="2" column="0" colspan="2">
      <widget class="QPushButton" name="loadScenePush">
       <property name="text">
        <string>Load project...</string>
       </property>
      </widget>
     </item>
-    <item row="4" column="0">
-     <widget class="QLabel" name="label_55">
+    <item row="3" column="0" colspan="2">
+     <spacer name="verticalSpacer_16">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="5" column="0">
+     <widget class="QLabel" name="label_64">
       <property name="font">
        <font>
         <pointsize>10</pointsize>
@@ -73,7 +109,7 @@
       </property>
      </widget>
     </item>
-    <item row="4" column="1">
+    <item row="5" column="1">
      <spacer name="horizontalSpacer_24">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -86,21 +122,21 @@
       </property>
      </spacer>
     </item>
-    <item row="5" column="0">
+    <item row="6" column="0">
      <widget class="QPushButton" name="textFileSelect">
       <property name="text">
        <string>Select file...</string>
       </property>
      </widget>
     </item>
-    <item row="5" column="1">
+    <item row="6" column="1">
      <widget class="QLineEdit" name="ImportlineEdit">
       <property name="readOnly">
        <bool>true</bool>
       </property>
      </widget>
     </item>
-    <item row="6" column="1">
+    <item row="7" column="1">
      <widget class="QPushButton" name="textFileLoad">
       <property name="styleSheet">
        <string notr="true">background-color: #1769aa;
@@ -120,7 +156,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="7" column="0" colspan="2">
+    <item row="8" column="0" colspan="2">
      <widget class="QTextBrowser" name="dataInformation">
       <property name="maximumSize">
        <size>
@@ -137,7 +173,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="8" column="0" colspan="2">
+    <item row="9" column="0" colspan="2">
      <spacer name="verticalSpacer_15">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -153,7 +189,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="9" column="0">
+    <item row="10" column="0">
      <widget class="QLabel" name="label_61">
       <property name="font">
        <font>
@@ -170,7 +206,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="9" column="1">
+    <item row="10" column="1">
      <spacer name="horizontalSpacer_5">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -183,21 +219,21 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="10" column="0">
+    <item row="11" column="0">
      <widget class="QPushButton" name="histoFileSelect">
       <property name="text">
        <string>Select file...</string>
       </property>
      </widget>
     </item>
-    <item row="10" column="1">
+    <item row="11" column="1">
      <widget class="QLineEdit" name="HistoLineEdit">
       <property name="readOnly">
        <bool>true</bool>
       </property>
      </widget>
     </item>
-    <item row="11" column="1">
+    <item row="12" column="1">
      <widget class="QPushButton" name="loadHisto">
       <property name="styleSheet">
        <string notr="true">background-color: #1769aa;
@@ -208,7 +244,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="12" column="0" colspan="2">
+    <item row="13" column="0" colspan="2">
      <spacer name="verticalSpacer_25">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -224,7 +260,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="13" column="0">
+    <item row="14" column="0">
      <widget class="QLabel" name="label_REIMS">
       <property name="font">
        <font>
@@ -241,7 +277,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="13" column="1">
+    <item row="14" column="1">
      <spacer name="horizontalSpacer_28">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -254,14 +290,14 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="14" column="0">
+    <item row="15" column="0">
      <widget class="QPushButton" name="REIMSFileSelect">
       <property name="text">
        <string>Select...</string>
       </property>
      </widget>
     </item>
-    <item row="14" column="1">
+    <item row="15" column="1">
      <widget class="QTextBrowser" name="filenameREIMSBrowser">
       <property name="maximumSize">
        <size>
@@ -281,7 +317,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="15" column="1">
+    <item row="16" column="1">
      <widget class="QPushButton" name="REIMSFileLoad">
       <property name="styleSheet">
        <string notr="true">background-color: #1769aa;
@@ -292,7 +328,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="16" column="0" colspan="2">
+    <item row="17" column="0" colspan="2">
      <widget class="QTextBrowser" name="REIMSInformation">
       <property name="maximumSize">
        <size>
@@ -309,26 +345,10 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="17" column="0" colspan="2">
+    <item row="18" column="0" colspan="2">
      <spacer name="verticalSpacer_17">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>40</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="2" column="0" colspan="2">
-     <spacer name="verticalSpacer_16">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Fixed</enum>
       </property>
       <property name="sizeHint" stdset="0">
        <size>
