@@ -485,15 +485,18 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			self.ui.ClusterInd.addItem(str(i))
 
 	def ClearClusterTable(self):
-		for i in range(5):
-			for j in range(4):
-				self.ui.ClusterTable.setItem(i, j, qt.QTableWidgetItem(''))
+		self.ui.ClusterTable.setRowCount(1)
+		for j in range(4):
+			self.ui.ClusterTable.setItem(0, j, qt.QTableWidgetItem(''))
 
 	def onClusterThumbnail(self):
 		cluster_ind = int(self.ui.ClusterInd.currentText) 
 		volcano_mz, dice_score, volcano_fc, volcano_pval = self.logic.ViewClusterThumbnail(cluster_ind)
+		
+		nRows = len(volcano_mz)
+		self.ui.ClusterTable.setRowCount(nRows)
 
-		for i in range(5):
+		for i in range(nRows):
 			self.ui.ClusterTable.setItem(i, 0, qt.QTableWidgetItem(str(volcano_mz[i])))
 			self.ui.ClusterTable.setItem(i, 1, qt.QTableWidgetItem(str(np.round(dice_score[i],4))))
 			self.ui.ClusterTable.setItem(i, 2, qt.QTableWidgetItem(str( np.round(volcano_fc[i],4))))

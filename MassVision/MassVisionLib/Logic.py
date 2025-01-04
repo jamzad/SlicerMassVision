@@ -853,8 +853,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# Sort ions by max Dice score in descending order
 		sorted_indices = np.argsort(-max_dice_scores)
 
-		# Get top 5 ions and their scores
-		top_n = 5
+		# Get top 5 ions and their scores for thumbnail
+		top_n = 5 
 		top_ions = sorted_indices[:top_n]
 
 		# print("Top 5 ions based on max Dice score:")
@@ -904,9 +904,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		YellowNode.SetOrientation("Axial")
 		slicer.util.resetSliceViews()
 		
-		volcano_fc, volcano_pval = self.volcano_table(segmentation_mask>0, top_ions)
+		top_n_table = 20 
+		top_ions_table = sorted_indices[:top_n_table]
+		volcano_fc, volcano_pval = self.volcano_table(segmentation_mask>0, top_ions_table)
 
-		return self.mz[top_ions], max_dice_scores[top_ions], volcano_fc, volcano_pval
+		return self.mz[top_ions_table], max_dice_scores[top_ions_table], volcano_fc, volcano_pval
 	
 	def volcano_table(self, mask, top_ind):
 		inside_segment = self.peaks_norm[mask][:, top_ind]
