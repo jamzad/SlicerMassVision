@@ -121,6 +121,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.lastPCA = None
 		self.contrast_thumbnail_inds = None
 		self.pixel_clusters = None
+		self.peaks_pca = None
 		
 
 	def setDefaultParameters(self, parameterNode):
@@ -746,13 +747,38 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		top_n = int(len(mz_inds)/3)
 
-		fig, axes = plt.subplots(3, top_n, figsize=(top_n/dim_y*dim_x*2, 3*2), gridspec_kw={'wspace': 0, 'hspace': 0})
+		# fig, axes = plt.subplots(3, top_n, figsize=(top_n/dim_y*dim_x*2, 3*2), gridspec_kw={'wspace': 0, 'hspace': 0})
+
+		# for i, ax in enumerate(axes.flat):
+		# 	ion_image = self.peaks_norm[:, mz_inds[i]].reshape((dim_y,dim_x),order='C')
+		# 	ax.imshow(ion_image, cmap='inferno')
+		# 	ax.text(0, 0, str(self.mz[ mz_inds[i] ]), color='black', fontsize=10, ha='left', va='top', 
+		# 			bbox=dict(facecolor='yellow', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
+		# 	ax.axis('off')  # Turn off axes
+
+		peaks_pca = self.peaks_pca
+		fig, axes = plt.subplots(3, top_n+1, figsize=((top_n+1)/dim_y*dim_x*3, 3*3), gridspec_kw={'wspace': 0, 'hspace': 0})
 
 		for i, ax in enumerate(axes.flat):
-			ion_image = self.peaks_norm[:, mz_inds[i]].reshape((dim_y,dim_x),order='C')
-			ax.imshow(ion_image, cmap='inferno')
-			ax.text(0, 0, str(self.mz[ mz_inds[i] ]), color='black', fontsize=10, ha='left', va='top', 
-					bbox=dict(facecolor='yellow', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
+			q, r = divmod(i, top_n+1)
+			if r==0: # start each line with the PC image
+				pc_image = peaks_pca[:,q].reshape((dim_y,dim_x),order='C')
+				ax.imshow(pc_image, cmap='inferno')
+				ax.text(0, 0, f'PC{q+1}', color='yellow', fontsize=10, ha='left', va='top', 
+						bbox=dict(facecolor='black', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
+			else: # ion images
+				ion_index = i-1-q
+				ion_image = self.peaks_norm[:, mz_inds[ion_index]].reshape((dim_y,dim_x),order='C')
+				ax.imshow(ion_image, cmap='inferno')
+
+				if r>(top_n/2): #label change for positive and negative loadings
+					label = str(self.mz[ mz_inds[ion_index] ])+"\u2193"
+				else:
+					label = str(self.mz[ mz_inds[ion_index] ])+"\u2191"
+
+				ax.text(0, 0, label, color='black', fontsize=10, ha='left', va='top', 
+						bbox=dict(facecolor='yellow', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
+			
 			ax.axis('off')  # Turn off axes
 
 		plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
@@ -2032,6 +2058,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.visualizationRunHelper(local_pca_image, local_pca_image.shape, visualization_type='roi_pca')
 		
 		self.lastPCA = local_pca
+		self.peaks_pca = local_peaks_pca
 		return True
 	
 

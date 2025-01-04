@@ -137,6 +137,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			self.ui.REIMSInformation.hide()
 
 		self.ui.LoadingsInfo.hide()
+		self.ui.pcaExtendCheckbox.hide()
+		self.ui.roiCintrastExtend.hide()
 
 		# import push botton mechanism
 		self.ui.textFileLoad.hide()
@@ -477,10 +479,15 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 	def onClusterButton(self):
 		n_clusters = int(self.ui.nCluster.currentText)
 		cluster_colors = self.logic.VisCluster(n_clusters)
-
+		self.ClearClusterTable()
 		self.ui.ClusterInd.clear()
 		for i in range(n_clusters):
 			self.ui.ClusterInd.addItem(str(i))
+
+	def ClearClusterTable(self):
+		for i in range(5):
+			for j in range(4):
+				self.ui.ClusterTable.setItem(i, j, qt.QTableWidgetItem(''))
 
 	def onClusterThumbnail(self):
 		cluster_ind = int(self.ui.ClusterInd.currentText) 

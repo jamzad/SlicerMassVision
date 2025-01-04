@@ -32,7 +32,7 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>2</number>
+   <number>1</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
@@ -970,6 +970,9 @@ color: rgb(255, 255, 255);</string>
     </item>
     <item row="31" column="0" colspan="2">
      <widget class="QTableWidget" name="ClusterTable">
+      <property name="sortingEnabled">
+       <bool>true</bool>
+      </property>
       <row>
        <property name="text">
         <string>1</string>
