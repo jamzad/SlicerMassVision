@@ -139,6 +139,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.LoadingsInfo.hide()
 		self.ui.pcaExtendCheckbox.hide()
 		self.ui.roiCintrastExtend.hide()
+		self.ClearClusterTable()
 
 		# import push botton mechanism
 		self.ui.textFileLoad.hide()
@@ -495,24 +496,27 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 	def ClearClusterTable(self):
 		self.ui.ClusterTable.setRowCount(1)
 		for j in range(4):
-			self.ui.ClusterTable.setItem(0, j, qt.QTableWidgetItem(''))
+			self.ui.ClusterTable.setItem(0, j, qt.QTableWidgetItem(' '))
+		self.ui.ClusterTable.resizeColumnsToContents()  # Adjust column widths
+		self.ui.ClusterTable.resizeRowsToContents()     # Adjust row heights
 
 	def onClusterThumbnail(self):
 		clusterText = self.ui.ClusterInd.currentText
 		cluster_ind = int(clusterText.split(' ')[-1])-1
-		volcano_mz, dice_score, volcano_fc, volcano_pval = self.logic.ViewClusterThumbnail(cluster_ind)
+		volcano_mz, dice_score, volcano_fc, volcano_pval, pearson_corr = self.logic.ViewClusterThumbnail(cluster_ind)
 		
 		nRows = len(volcano_mz)
 		self.ui.ClusterTable.setRowCount(nRows)
 
 		for i in range(nRows):
 			self.ui.ClusterTable.setItem(i, 0, qt.QTableWidgetItem(str(volcano_mz[i])))
-			self.ui.ClusterTable.setItem(i, 1, qt.QTableWidgetItem(str(np.round(dice_score[i],4))))
+			self.ui.ClusterTable.setItem(i, 1, qt.QTableWidgetItem(str(np.round(pearson_corr[i],4))))
 			self.ui.ClusterTable.setItem(i, 2, qt.QTableWidgetItem(str( np.round(volcano_fc[i],4))))
 			item = str(np.round(volcano_pval[i],4))
 			if volcano_pval[i]>=300:
 				item = '>300'
 			self.ui.ClusterTable.setItem(i, 3, qt.QTableWidgetItem(item))
+			self.ui.ClusterTable.setItem(i, 4, qt.QTableWidgetItem(str(np.round(dice_score[i],4))))
 		
 		self.ui.ClusterTable.resizeColumnsToContents()  # Adjust column widths
 		self.ui.ClusterTable.resizeRowsToContents()     # Adjust row heights

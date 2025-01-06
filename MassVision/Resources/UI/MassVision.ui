@@ -957,8 +957,14 @@ color: rgb(255, 255, 255);</string>
       <property name="frameShape">
        <enum>QFrame::StyledPanel</enum>
       </property>
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarAsNeeded</enum>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAsNeeded</enum>
+      </property>
       <property name="sizeAdjustPolicy">
-       <enum>QAbstractScrollArea::AdjustToContents</enum>
+       <enum>QAbstractScrollArea::AdjustIgnored</enum>
       </property>
       <property name="gridStyle">
        <enum>Qt::SolidLine</enum>
@@ -1001,17 +1007,22 @@ color: rgb(255, 255, 255);</string>
       </column>
       <column>
        <property name="text">
-        <string>Dice score</string>
+        <string>Pearson</string>
        </property>
       </column>
       <column>
        <property name="text">
-        <string>log2(FC)</string>
+        <string>log(FC)</string>
        </property>
       </column>
       <column>
        <property name="text">
-        <string>-log10(p-value)</string>
+        <string>-log(p-value)</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Dice</string>
        </property>
       </column>
      </widget>

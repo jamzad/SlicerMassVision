@@ -883,9 +883,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return cluster_colors
 
-	def ViewClusterThumbnail(self, cluster_id):
-		segmentation_mask = (self.pixel_clusters == cluster_id).astype(int)
-
+	def dice_score(self, segmentation_mask):
 		# Define thresholds
 		thresholds = np.linspace(0.1, 0.9, 9)  # 9 thresholds
 
@@ -909,11 +907,28 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# Combine max scores and corresponding thresholds
 		max_thresholds = thresholds[max_threshold_indices]
 
-		# Sort ions by max Dice score in descending order
-		sorted_indices = np.argsort(-max_dice_scores)
+		return max_dice_scores, max_thresholds
+	
+	def pearson_corr(self, segmentation_mask):
+		x_centered = segmentation_mask - segmentation_mask.mean()
+		Y_centered = self.peaks_norm - self.peaks_norm.mean(axis=0)
+
+		numerator = np.dot(x_centered, Y_centered)
+		denominator = np.sqrt(np.sum(x_centered**2)) * np.sqrt(np.sum(Y_centered**2, axis=0))
+		pearson_corrs = numerator / denominator
+
+		return pearson_corrs
+
+	def ViewClusterThumbnail(self, cluster_id):
+		segmentation_mask = (self.pixel_clusters == cluster_id).astype(int)
+
+		max_dice_scores, max_thresholds = self.dice_score(segmentation_mask)
+		pearson_corrs = self.pearson_corr(segmentation_mask)
+
+		sorted_indices = np.argsort(-pearson_corrs)
 
 		# Get top 5 ions and their scores for thumbnail
-		top_n = 5 
+		top_n = 10 
 		top_ions = sorted_indices[:top_n]
 
 		# print("Top 5 ions based on max Dice score:")
@@ -924,7 +939,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		dim_y = self.dim_y
 		dim_x = self.dim_x
 
-		fig, axes = plt.subplots(1, 1+top_n, figsize=(top_n/dim_y*dim_x*2, 1*2), gridspec_kw={'wspace': 0, 'hspace': 0})
+		fig, axes = plt.subplots(1, 1+top_n, figsize=(top_n/dim_y*dim_x*3, 1*3), gridspec_kw={'wspace': 0, 'hspace': 0})
 
 		for i, ax in enumerate(axes.flat):
 			if i==0:
@@ -963,11 +978,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		YellowNode.SetOrientation("Axial")
 		slicer.util.resetSliceViews()
 		
-		top_n_table = 20 
+		top_n_table = 10 
 		top_ions_table = sorted_indices[:top_n_table]
 		volcano_fc, volcano_pval = self.volcano_table(segmentation_mask>0, top_ions_table)
 
-		return self.mz[top_ions_table], max_dice_scores[top_ions_table], volcano_fc, volcano_pval
+		return self.mz[top_ions_table], max_dice_scores[top_ions_table], volcano_fc, volcano_pval, pearson_corrs[top_ions_table]
 	
 	def volcano_table(self, mask, top_ind):
 		inside_segment = self.peaks_norm[mask][:, top_ind]
