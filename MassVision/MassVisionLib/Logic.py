@@ -740,6 +740,59 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.visualizationRunHelper(array, array.shape, 'single', heatmap=heatmap)
 		return True
 	
+	def ViewAbundanceThumbnail(self):
+		total_abundance = self.tic_normalize(self.peaks).sum(axis=0)
+		sorted_indices = np.argsort(-total_abundance)
+
+		dim_y = self.dim_y
+		dim_x = self.dim_x
+		n_row = 7
+		n_col = 8
+		fig_scale = 2
+
+		fig, axes = plt.subplots(n_row, n_col, figsize=(fig_scale*n_col/dim_y*dim_x, fig_scale*n_row), gridspec_kw={'wspace': 0, 'hspace': 0})
+
+		for i, ax in enumerate(axes.flat):
+			if i==0:
+				tic_image = self.peaks.sum(axis=1).reshape((dim_y,dim_x),order='C')
+				tic_image = tic_image[::2,::2]
+				ax.imshow(tic_image, cmap='gray')
+				ax.text(0, 0, 'TIC', color='yellow', fontsize=10, ha='left', va='top', 
+						bbox=dict(facecolor='black', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
+			else:
+				ion_image = self.peaks_norm[:, sorted_indices[i-1]].reshape((dim_y,dim_x),order='C')
+				ion_image = ion_image[::2,::2]
+				ax.imshow(ion_image, cmap='inferno')
+				ax.text(0, 0, str(self.mz[ sorted_indices[i-1] ])+f' (#{i})', color='black', fontsize=10, ha='left', va='top', 
+						bbox=dict(facecolor='yellow', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
+			ax.axis('off')  # Turn off axes
+
+		plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
+
+		# save plot
+		filename = os.path.join(self.saveFolder, self.slideName + f'_thumbAbundance.jpeg')
+		plt.savefig(filename, bbox_inches='tight', dpi=100)
+		plt.close()
+
+		# display plot
+		RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
+		markupNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsNode")
+		for markupNode in markupNodes:
+			displayNode = markupNode.GetDisplayNode()
+			displayNode.SetViewNodeIDs([RedNode.GetID()])
+
+		YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
+		YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
+
+		volumeNode = slicer.util.loadVolume(filename, {"singleFile": True})
+		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
+
+		YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
+		YellowNode.SetOrientation("Axial")
+		slicer.util.resetSliceViews()
+
+		return True
+	
 	def ViewContrastThumbnail(self):
 		mz_inds = self.contrast_thumbnail_inds
 		dim_y = self.dim_y
@@ -764,7 +817,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			if r==0: # start each line with the PC image
 				pc_image = peaks_pca[:,q].reshape((dim_y,dim_x),order='C')
 				ax.imshow(pc_image, cmap='inferno')
-				ax.text(0, 0, f'PC{q+1}', color='yellow', fontsize=10, ha='left', va='top', 
+				ax.text(0, 0, f'PC{q+1}', color='white', fontsize=10, ha='left', va='top', 
 						bbox=dict(facecolor='black', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
 			else: # ion images
 				ion_index = i-1-q
@@ -773,11 +826,15 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 				if r>(top_n/2): #label change for positive and negative loadings
 					label = str(self.mz[ mz_inds[ion_index] ])+"\u2193"
+					textColor = 'yellow'
+					boxColor =  'black'
 				else:
 					label = str(self.mz[ mz_inds[ion_index] ])+"\u2191"
+					textColor = 'black'
+					boxColor =  'yellow'
 
-				ax.text(0, 0, label, color='black', fontsize=10, ha='left', va='top', 
-						bbox=dict(facecolor='yellow', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
+				ax.text(0, 0, label, color=textColor, fontsize=10, ha='left', va='top', 
+						bbox=dict(facecolor=boxColor, alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
 			
 			ax.axis('off')  # Turn off axes
 

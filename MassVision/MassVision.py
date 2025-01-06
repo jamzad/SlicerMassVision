@@ -170,6 +170,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.singleIonHeatmapList.addItem('Cividis')
 		self.ui.singleIonHeatmapList.addItem('ColdToHotRainbow')
 	
+		self.ui.AbundanceThumbnail.connect("clicked(bool)", self.onAbundanceThumbnail)
+
 		self.ui.singleIonButton.connect("clicked(bool)", self.selectedSingleIon)
 		self.ui.multiIonButton.connect("clicked(bool)", self.selectedMultiIon)
 		self.ui.PCA_button.connect("clicked(bool)", self.onPCAButton)
@@ -473,6 +475,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.logic.singleIonVisualization(float(self.ui.singleIonMzList.currentText), 
 									self.ui.singleIonHeatmapList.currentText)
 
+	def onAbundanceThumbnail(self):
+		self.logic.ViewAbundanceThumbnail()
+
 	def onContrastThumbnail(self):
 		self.logic.ViewContrastThumbnail()
 
@@ -482,7 +487,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ClearClusterTable()
 		self.ui.ClusterInd.clear()
 		for i in range(n_clusters):
-			self.ui.ClusterInd.addItem(str(i))
+			item = qt.QStandardItem(f'cluster {i+1}')
+			color = tuple(int(component * 255) for component in cluster_colors[i])
+			item.setForeground(qt.QColor(*color))
+			self.ui.ClusterInd.model().appendRow(item)
 
 	def ClearClusterTable(self):
 		self.ui.ClusterTable.setRowCount(1)
@@ -490,7 +498,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			self.ui.ClusterTable.setItem(0, j, qt.QTableWidgetItem(''))
 
 	def onClusterThumbnail(self):
-		cluster_ind = int(self.ui.ClusterInd.currentText) 
+		clusterText = self.ui.ClusterInd.currentText
+		cluster_ind = int(clusterText.split(' ')[-1])-1
 		volcano_mz, dice_score, volcano_fc, volcano_pval = self.logic.ViewClusterThumbnail(cluster_ind)
 		
 		nRows = len(volcano_mz)
@@ -504,6 +513,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			if volcano_pval[i]>=300:
 				item = '>300'
 			self.ui.ClusterTable.setItem(i, 3, qt.QTableWidgetItem(item))
+		
+		self.ui.ClusterTable.resizeColumnsToContents()  # Adjust column widths
+		self.ui.ClusterTable.resizeRowsToContents()     # Adjust row heights
 
 	### Dataset generation
 
