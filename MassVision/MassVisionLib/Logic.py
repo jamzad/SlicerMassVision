@@ -915,6 +915,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		numerator = np.dot(x_centered, Y_centered)
 		denominator = np.sqrt(np.sum(x_centered**2)) * np.sqrt(np.sum(Y_centered**2, axis=0))
+		denominator[denominator == 0] = np.nan  # Avoid division by zero
+
 		pearson_corrs = numerator / denominator
 
 		return pearson_corrs

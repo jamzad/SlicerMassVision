@@ -495,7 +495,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 	def ClearClusterTable(self):
 		self.ui.ClusterTable.setRowCount(1)
-		for j in range(4):
+		for j in range(5):
 			self.ui.ClusterTable.setItem(0, j, qt.QTableWidgetItem(' '))
 		self.ui.ClusterTable.resizeColumnsToContents()  # Adjust column widths
 		self.ui.ClusterTable.resizeRowsToContents()     # Adjust row heights
