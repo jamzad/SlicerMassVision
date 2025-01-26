@@ -12,7 +12,7 @@ The functionalities include data exploration via various targeted and non-target
 <img src="https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/Screenshot.png" alt="screenshot" width="100%"/>
 
 ## Features
-* Data format: DESI TXT images, structured CSV MSI
+* Data format: structured CSV MSI, hierarchical HDF5 MSI, DESI TXT images, 
 * Visualization: targeted (single-ion heatmap, multi-ion colormap), untargeted (global PCA, regional PCA), pixel spectrum
 * Dataset generation: spatial colocalization to pathological annotation, labelled ROI extraction
 * Multi-slide merge via feature alignment
