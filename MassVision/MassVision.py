@@ -449,7 +449,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.mzlist_7.addItem("None")
 		self.ui.singleIonMzList.addItem("None")
 		
-		all_mz = self.logic.getSelectedMz()
+		all_mz = list(self.logic.mz)
 		for mz in all_mz:
 			self.ui.mzlist.addItem(mz)
 			self.ui.mzlist_2.addItem(mz)
@@ -499,12 +499,15 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			self.ui.ClusterTable.setItem(0, j, qt.QTableWidgetItem(' '))
 		self.ui.ClusterTable.resizeColumnsToContents()  # Adjust column widths
 		self.ui.ClusterTable.resizeRowsToContents()     # Adjust row heights
+		self.ui.ClusterTable.sortItems(1, qt.Qt.DescendingOrder)
+
 
 	def onClusterThumbnail(self):
 		clusterText = self.ui.ClusterInd.currentText
 		cluster_ind = int(clusterText.split(' ')[-1])-1
 		volcano_mz, dice_score, volcano_fc, volcano_pval, pearson_corr = self.logic.ViewClusterThumbnail(cluster_ind)
 		
+		self.ClearClusterTable()
 		nRows = len(volcano_mz)
 		self.ui.ClusterTable.setRowCount(nRows)
 

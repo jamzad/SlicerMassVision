@@ -106,13 +106,13 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.saveFolder = None
 		self.df= None
 		self.iondims = None
-		self.peaks_3D = None
+		# self.peaks_3D = None
 		self.modellingFile = None
 		self.split = 'random'
 		self.test_cases = set()
 		self.train_cases = set()
 		self.val_cases = set()
-		self.selectedmz = []
+		# self.selectedmz = []
 		self.model_type = None
 		self.train_balancing = 'None'
 		#self.volume = None
@@ -714,7 +714,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	# generates the single ion image for the m/z value specified
 	def single_ion_display_colours(self, mz_r):
 		# generates and displays the single ion image
-		ch_r = self.selectedmz.index(mz_r)
+		# ch_r = self.selectedmz.index(mz_r)
+		ch_r = list(self.mz).index(mz_r)
 		image_r = (self.peaks_norm[:,ch_r]).reshape((self.dim_y,self.dim_x,-1),order='C')
 
 		# displays the single ion image
@@ -1026,7 +1027,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		for i in range(N):
 			fnode_name = fnode_names[i]
 			fnode_loc = fnode_locs[i]
-			spec = self.peaks_3D[fnode_loc[0],fnode_loc[1],:]
+
+			fnode_ind = ind_ToFrom_sub(fnode_loc, self.dim_x)
+			spec = self.peaks[fnode_ind,:]
+			# spec = self.peaks_3D[fnode_loc[0],fnode_loc[1],:]
 
 			plt.subplot(N,1,i+1)
 			markerline, stemlines, baseline = plt.stem(self.mz, spec, linefmt='C'+str(i), markerfmt=" ", basefmt='C'+str(i))
@@ -1177,7 +1181,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			names += [segment_id]
 			segment_id = segments.GetNthSegmentID(i + 1)
 			i += 1
-							
+
 		for (i, name) in enumerate(names):
 			segment_name = segments.GetNthSegment(i).GetName()
 		 
@@ -1197,8 +1201,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 						
 						
 						for i in range(len(self.mz)): 
-							row2.append(self.peaks_3D[x][y][i])
-						
+							# row2.append(self.peaks_3D[x][y][i])
+							xy = ind_ToFrom_sub([x,y], self.dim_x)
+							row2.append(self.peaks[xy][i])
+
 						writer.writerow(row2)
 		f.close()
 	
@@ -1717,7 +1723,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	# gets the histopath they want to upload, uploads it and puts it in the slicer view
 	def loadHistopathology(self, tryer):
 		import matplotlib.image as mpimg
-		print(self.savenameBase)
 
 		img=mpimg.imread(tryer)
 		# plt.imsave(self.saveFolder + 'histo.jpg',img)
@@ -1804,7 +1809,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.mz = mz
 		self.dim_y = dim_y
 		self.dim_x = dim_x
-		self.peaks_3D = peaks.reshape((self.dim_y,self.dim_x,-1),order='C')
+		# self.peaks_3D = peaks.reshape((self.dim_y,self.dim_x,-1),order='C')
 			
 		# save path for pca image
 		self.saveFolder = data_path
@@ -1814,9 +1819,9 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 
 		# add each value
-		self.selectedmz = []
-		for i in range(len(mz)):
-			self.selectedmz.append(mz[i])
+		# self.selectedmz = []
+		# for i in range(len(mz)):
+		# 	self.selectedmz.append(mz[i])
 
 		return True
 
@@ -1847,15 +1852,15 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	# Reads in the text file and converts it to a numpy array and saves
 	def textFileLoad(self, name):
 
-		slide_name = name.split('/')[-1]
-		data_path = name[:len(name)-len(slide_name)]
-		data_extension = slide_name.split('.')[-1].lower()
+		slide_name = os.path.basename(name)
+		data_path = os.path.dirname(name)
+		data_extension = os.path.splitext(slide_name)[1].lower()
 
-		if data_extension == 'txt':
+		if data_extension == '.txt':
 			[peaks, mz, dim_y, dim_x] = self.DESI_txt2numpy(name)
-		elif data_extension == 'csv':
+		elif data_extension == '.csv':
 			[peaks, mz, dim_y, dim_x] = self.MSI_csv2numpy(name)
-		elif data_extension == 'h5':
+		elif data_extension == '.h5':
 			[peaks, mz, dim_y, dim_x] = self.MSI_h52numpy(name)
 		else:
 			pass
@@ -1864,24 +1869,22 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.mz = mz
 		self.dim_y = dim_y
 		self.dim_x = dim_x
-		self.peaks_3D = peaks.reshape((self.dim_y,self.dim_x,-1),order='C')
+		# self.peaks_3D = peaks.reshape((self.dim_y,self.dim_x,-1),order='C')
 			
 		# save path for pca image
 		self.saveFolder = data_path
-		self.slideName = slide_name[:-4]
-		self.savenameBase = self.saveFolder+self.slideName
-		print(self.savenameBase)
-
+		self.slideName = os.path.splitext(slide_name)[0]
+		self.savenameBase = os.path.splitext(name)[0]
 
 		# add each value
-		self.selectedmz = []
-		for i in range(len(mz)):
-			self.selectedmz.append(mz[i])
+		# self.selectedmz = []
+		# for i in range(len(mz)):
+		# 	self.selectedmz.append(mz[i])
 
 		return True
 
-	def getSelectedMz(self):
-		return self.selectedmz
+	# def getSelectedMz(self):
+	# 	return self.selectedmz
 		
 	 # Define function to align peaks and merge csv file 
 	def batch_peak_alignment(self, files, csv_save_name):
@@ -2289,18 +2292,18 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.val_cases = cases
 
 	def getDataInformation(self):
-		infostr = f'Slide successfully loaded \n'
-		infostr += f'File name:\t \t {self.slideName} \n'
-		infostr += f'Total number of spectra:\t {self.peaks_3D.shape[0]*self.peaks_3D.shape[1]} \n'
-		infostr += f'Image dimensions:\t {self.peaks_3D.shape[0]} x {self.peaks_3D.shape[1]} pixels \n'
-		infostr += f'Number of m/z per pixel:\t {self.peaks_3D.shape[2]} \n'
+		infostr = f'{self.slideName} \n'
+		infostr += f'spatial:\t {self.dim_y} x {self.dim_x} pixels \n'
+		infostr += f'spectra:\t {self.dim_y*self.dim_x} \n'
+		infostr += f'm/z per pixel:\t {len(self.mz)} \n'
+		infostr += f'm/z range: \t {self.mz.min()} - {self.mz.max()} \n'
 		return infostr
 	
 	def getREIMSInfo(self):
 		infostr = f'Slide successfully loaded \n'
 		infostr += f'File name:\t \t {self.slideName} \n'
 		infostr += f'Total number of spectra:\t {self.dim_x} \n'
-		infostr += f'Number of m/z per spectrum:\t {self.peaks_3D.shape[2]} \n'
+		infostr += f'Number of m/z per spectrum:\t {len(self.mz)} \n'
 		return infostr
 	
 	def datasetInfo(self, df):
@@ -2311,3 +2314,14 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		for x,y in zip(class_names,class_lens):
 			retstr += f'   {str(y)}\t in class\t {x} \n'
 		return retstr
+
+def ind_ToFrom_sub(X, dim_x):
+    if isinstance(X, int):
+        ind = X
+        i = ind // dim_x
+        j = ind % dim_x
+        res = [i, j]
+    elif len(X)==2:
+        i, j = X
+        res = i * dim_x + j
+    return res
