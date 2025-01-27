@@ -25,7 +25,7 @@ Import MSI Data
 #. Click 'Select file...' under MSI data. A file dialog box will open, allowing you to browse and select the file. The current version of MassVision supports modality independent structured MSI files (.csv), hierarchical HDF5 files (.h5), and DESI MSI image files (.txt). Select the format from the dropdown menu, select the file, and click 'Open' to load the data.
 
 .. note::
-   The instruction on how to structure your MSI data into CSV or HDF5 compatible with MassVision can be found in `Data Structure<Data Structure>`_ page.
+   The instruction on how to structure your MSI data into CSV or HDF5 compatible with MassVision can be found in `Data Structure <https://slicermassvision.readthedocs.io/en/latest/Data%20Structure.html#data-structure>`_ page.
 
 #. After the data is loaded, general information like number of pixels, number of ions, and the name and location of the file will appears in the text box. The TIC visualization will also be displayed in the viewer. To adjust the image's contrast, click the |WinLevIcon| icon in the Slicer toolbar at the top of the screen. You can adjust the contrast by left-click-and-drag on the image or by selecting a region.  
 
