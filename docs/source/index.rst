@@ -21,3 +21,4 @@ Contents
    Dataset Preprocessing
    AI Model Training
    AI Model Deployment
+   Data Structure

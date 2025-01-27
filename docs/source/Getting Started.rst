@@ -2,7 +2,7 @@ Getting Started
 =====
 
 MassVision is hosted in 3D Slicer image computation platform. To learn more about the platform and its applications, please refer to the official `3D Slicer Documentation <https://slicer.readthedocs.io/en/latest/>`_.
-Please ensure that you installed the latest stable version of 3D Slicer on your system. The detailed instruction for installation and system requirements can be found on the official `3D SLicer Installation Guide <https://slicer.readthedocs.io/en/latest/user_guide/getting_started.html#installing-3d-slicer>`_.
+Please ensure that you installed the latest stable version of 3D Slicer on your system. The detailed instruction for installation and system requirements can be found on the official `3D Slicer Installation Guide <https://slicer.readthedocs.io/en/latest/user_guide/getting_started.html#installing-3d-slicer>`_.
 
 .. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/SlicerLogo.png
       :width: 150

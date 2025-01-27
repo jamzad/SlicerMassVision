@@ -8,6 +8,13 @@ Single-ion heatmap
 -----------
 Under 'Targeted single-ion' select the m/z value of interest from the 'Ion Image' dropdown, or type the m/z value while on the list to find and select the ion. Select a heatmap option and push 'Visualize' to see the single-ion image on the viewer.
 
+Most abundant ions
+-----------
+In 'Targeted single-ion' section, click on **Thumbnail view** to see a grid image of TIC and top ion images with highest overall intensity across the slide. 
+
+.. image :: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/Abundant.jpeg
+    :width: 600
+
 Multi-ion visualization
 -----------
 Under 'Targeted multi-ion' select multiple m/z values associated with different color channels using a similar instruction for single-ion. MassVision supports overlaying up to 7 ion images using distinct color scales. Push 'Visualize' to see the result in the viewer.
@@ -51,6 +58,28 @@ After the region is specified, click on 'Local Contrast (PCA)' to see generate t
 
 .. |WinLevIcon| image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/AdjustWindowLevel.png
    :height: 30
+
+Contrast dominant ions
+----------
+Under 'Untargeted multivariate' section click on **Thumbnail view** to see a grid image of individual PC images and top ion images with highest positive and negative loadings. These ion images are considered to be most dominant in creating the final untargeted visualization. The thumbnail view works for all global, local, and ROI contrast images.
+
+.. image :: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/Loadings.png
+    :width: 600
+
+Contrast clustering
+******
+After generating local or global contrast images, users can run **K-means clustering** on these visualizations to cluster the pixels. Users can compare each cluster with ion images and find ions with highest spatial co-localization with the cluster. This is useful for spatially validated ion identification.
+
+Clustering
+----------
+After generating your untargeted visualization, select the number of clusters using the dropdown menu and click **Cluster**. The view will display the clustering results as a label map image, where pixels belonging to the same cluster are assigned the same color, distinct from the colors of pixels in other clusters.
+
+Cluster dominant ions
+----------
+After clustering, select a specific cluster from the dropdown menu, which is color-coded to match the cluster image for convenience. Click on **Thumbnail view** to display a grid image of selected cluster and highly correlated ion images with that cluster. While the ranking is based on **Pearson corelation coefficient**, other measures like **fold change**, **p-value of T-test**, and **Dice score** between the cluster and highly correlated ion images are also reported in a table under 'Cluster dominant ions'.
+
+.. image :: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/Cluster.png
+    :width: 600
 
 Pixel Spectrum
 ******
