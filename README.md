@@ -32,9 +32,9 @@ Visit [here](https://SlicerMassVision.readthedocs.io/en/latest/Getting%20Started
 Visit [here](https://SlicerMassVision.readthedocs.io/en/latest/) to access user guide, tutorials, and other documentations.
 
 ## Test Data
-MassVis*ion* provides users with a test data for exploring and evaluating its functionalities. The test data includes a sample **MSI data** in a structured CSV format, along with the corresponding **histopathology image** in TIFF format. The data is available in the [release section](https://github.com/jamzad/SlicerMassVision/releases/tag/test-data)
+MassVis*ion* provides users with a test data for exploring and evaluating its functionalities. The test data includes a sample **MSI data** along with the corresponding **histopathology image** in TIFF format. The data is available in the [release section](https://github.com/jamzad/SlicerMassVision/releases/tag/test-data)
 
 ## Citation
 Please use the following citations if you use MassVis*ion* in your studies and publication
 
-* TBA 
+Jamzad, A.; Warren, J.; Syeda, A.; Kaufmann, M.; Iaboni, N.; Nicol, C.; Rudan, J.; Ren, K.; Hurlbut, D.; Varma, S.; Fichtinger, G.; Mousavi, P. MassVision: An Open-Source End-to-End Platform for AI-Driven Mass Spectrometry Image Analysis. bioRxiv 2025. [https://doi.org/10.1101/2025.01.29.635489](https://doi.org/10.1101/2025.01.29.635489). 
