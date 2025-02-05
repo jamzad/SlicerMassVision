@@ -1012,79 +1012,94 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		fiducial_nodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsFiducialNode")
 		fnode_names = []
 		fnode_locs = []
+
+		# Collect fiducial information
 		for fiducial_node in fiducial_nodes:
-			num_fiducials = fiducial_node.GetNumberOfControlPoints ()
+			num_fiducials = fiducial_node.GetNumberOfControlPoints()
 			for i in range(num_fiducials):
 				position = [0.0, 0.0, 0.0]
 				fiducial_node.GetNthControlPointPosition(i, position)
 				point_name = fiducial_node.GetNthControlPointLabel(i)
 				fnode_names.append(point_name)
-				fnode_locs.append( self.fiducial_to_index(position) )
-				# print(f"  Fiducial {i+1} named {point_name} position:", position, self.fiducial_to_index(position))
-		# print(self.dim_y, self.dim_x)
+				fnode_locs.append(self.fiducial_to_index(position))
+
 		N = len(fnode_locs)
-		plt.figure(figsize=(10,5))
+		if N == 0:
+			print("No fiducials found. Aborting plot.")
+			return False
+
+		print(f"Number of fiducials: {N}")
+
+		# Create a new plot chart node
+		plotChartNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotChartNode")
+		plotChartNode.SetTitle("Mass Spectrum Plot")
+		plotChartNode.SetXAxisTitle("Mass to Charge Ratio (m/z)")
+		plotChartNode.SetYAxisTitle("Intensity")
+
+		# Create a subplot for each fiducial
 		for i in range(N):
 			fnode_name = fnode_names[i]
 			fnode_loc = fnode_locs[i]
 
 			fnode_ind = ind_ToFrom_sub(fnode_loc, self.dim_x)
-			spec = self.peaks[fnode_ind,:]
-			# spec = self.peaks_3D[fnode_loc[0],fnode_loc[1],:]
+			spec = self.peaks[fnode_ind, :]
 
-			plt.subplot(N,1,i+1)
-			markerline, stemlines, baseline = plt.stem(self.mz, spec, linefmt='C'+str(i), markerfmt=" ", basefmt='C'+str(i))
-			plt.setp(stemlines, linewidth=1)
-			plt.legend( ['{} located at {}, {}'.format(fnode_name,fnode_loc[0],fnode_loc[1])] )
-			plt.xlim([self.mz.min(), self.mz.max()])
-			plt.ylim(bottom=0)
+			# Create a new plot series node
+			plotSeriesNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotSeriesNode")
+			plotSeriesNode.SetName(f"Fiducial {fnode_name}")
 
-			# format y tick for scientific style
-			ax = plt.gca()
-			ax.ticklabel_format(axis='y', style='scientific', scilimits=[0,0], useMathText=True)
-			
-			# if (i+1)==N:
-			# 	plt.xticks(np.arange(self.mz.min(),self.mz.max(),50))
-			# else:
-			# 	plt.xticks(np.arange(self.mz.min(),self.mz.max(),50), labels=[])
-			# plt.grid(True, 'both', linestyle='--')
-			if (i+1)!=N:
-				ax = plt.gca()
-				ax.set_xticklabels([])
+			# Create a table node to hold spectrum data
+			tableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode")
+			table = tableNode.GetTable()
 
-			pp, properties = find_peaks(spec, height=0)
-			n_prominent_peaks = 4
-			prominent_peaks_indices = np.argsort(properties['peak_heights'])[-n_prominent_peaks:]
-			prominent_peaks = pp[prominent_peaks_indices]
+			# Create columns for m/z and intensity
+			col_mz = vtk.vtkFloatArray()
+			col_mz.SetName("m/z")
+			col_intensity = vtk.vtkFloatArray()
+			col_intensity.SetName("Intensity")
 
-			for peak in prominent_peaks:
-				plt.annotate(f'{self.mz[peak]}', (self.mz[peak], spec[peak]), rotation=0, ha='left',
-						 	textcoords="offset points", xytext=(1,-4), fontsize=8)
+			# Add data points to table
+			for mz_value, intensity in zip(self.mz, spec):
+				col_mz.InsertNextValue(mz_value)
+				col_intensity.InsertNextValue(intensity)
 
-		plt.xlabel('mass to chatge ratio')
-		plt.ylabel('intensity')
-		plt.savefig(self.savenameBase + '_spectra.jpeg', bbox_inches='tight', dpi=600)
-		plt.close()
-		
-		RedCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeRed")
-		RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
-		YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
-		YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
+			table.AddColumn(col_mz)
+			table.AddColumn(col_intensity)
 
-		VolumeIDonRed = RedCompNode.GetBackgroundVolumeID()
+			# Link table data to plot series
+			plotSeriesNode.SetAndObserveTableNodeID(tableNode.GetID())
+			plotSeriesNode.SetXColumnName("m/z")
+			plotSeriesNode.SetYColumnName("Intensity")
+			plotSeriesNode.SetPlotType(slicer.vtkMRMLPlotSeriesNode.PlotTypeScatter)
+			plotSeriesNode.SetColor(i / N, 0.5, 0.5)  # Assign unique colors per fiducial
 
-		volumeNode = slicer.util.loadVolume(self.savenameBase + '_spectra.jpeg', {"singleFile": True})
+			# Add plot series to the chart
+			plotChartNode.AddAndObservePlotSeriesNodeID(plotSeriesNode.GetID())
 
-		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutSideBySideView)
-		RedCompNode.SetBackgroundVolumeID(VolumeIDonRed)
-		YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
-		YellowNode.SetOrientation("Axial")
-		slicer.util.resetSliceViews()
-		
-		markupNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsNode")
-		for markupNode in markupNodes:
-			displayNode = markupNode.GetDisplayNode()
-			displayNode.SetViewNodeIDs([RedNode.GetID()])
+		# Switch to Red Slice and Plot View layout
+		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
+		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpPlotView)
+		slicer.app.processEvents()
+
+		# Display the interactive plot
+		slicer.modules.plots.logic().ShowChartInLayout(plotChartNode)
+		slicer.app.processEvents()
+		print("Interactive plot displayed with fiducials.")
+
+		# **Save Non-Interactive Version as an Image**
+		screenshotPath = self.savenameBase + '_spectra.jpeg'
+		slicer.util.delayDisplay("Saving plot image...", 500)
+
+		# **Fix Screenshot Saving**
+		layoutManager = slicer.app.layoutManager()
+		plotWidget = layoutManager.plotWidget(0)  # Get first plot view
+		if plotWidget:
+			plotView = plotWidget.plotView()
+			screenshot = plotView.grab()
+			screenshot.save(screenshotPath)
+			print(f"Saved spectrum plot to: {screenshotPath}")
+		else:
+			print("Error: No plot view available. Screenshot not saved.")
 
 		return True
 
