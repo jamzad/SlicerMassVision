@@ -1426,6 +1426,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		if len(class_order)<=2:
 			y_train_prob = expit(y_train_prob)
 			y_train_prob = y_train_prob.reshape(-1,1)
+			y_train_prob = np.concatenate([1-y_train_prob, y_train_prob], axis=1)
 		else:
 			y_train_prob = softmax(y_train_prob, axis=1)
 
@@ -1434,6 +1435,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		if len(class_order)<=2:
 			y_test_prob = expit(y_test_prob)
 			y_test_prob = y_test_prob.reshape(-1,1)
+			y_test_prob = np.concatenate([1-y_test_prob, y_test_prob], axis=1)
 		else:
 			y_test_prob = softmax(y_test_prob, axis=1)
 
