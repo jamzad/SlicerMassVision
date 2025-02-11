@@ -1009,11 +1009,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return fold_changes, p_values
 	
 	def spectrum_plot(self):
+		# Collect fiducial information
 		fiducial_nodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsFiducialNode")
 		fnode_names = []
 		fnode_locs = []
 
-		# Collect fiducial information
 		for fiducial_node in fiducial_nodes:
 			num_fiducials = fiducial_node.GetNumberOfControlPoints()
 			for i in range(num_fiducials):
@@ -1025,83 +1025,111 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		N = len(fnode_locs)
 		if N == 0:
-			print("No fiducials found. Aborting plot.")
+			print("No fiducials found. Clearing all plots.")
+			self.clear_all_plots()
 			return False
-
 		print(f"Number of fiducials: {N}")
 
-		# Create a new plot chart node
-		plotChartNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotChartNode")
-		plotChartNode.SetTitle("Mass Spectrum Plot")
-		plotChartNode.SetXAxisTitle("Mass to Charge Ratio (m/z)")
-		plotChartNode.SetYAxisTitle("Intensity")
-
-		# Create a subplot for each fiducial
-		for i in range(N):
-			fnode_name = fnode_names[i]
-			fnode_loc = fnode_locs[i]
-
+		# Create or update a plot for each fiducial
+		for i, (fnode_name, fnode_loc) in enumerate(zip(fnode_names, fnode_locs)):
 			fnode_ind = ind_ToFrom_sub(fnode_loc, self.dim_x)
 			spec = self.peaks[fnode_ind, :]
 
-			# Create a new plot series node
-			plotSeriesNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotSeriesNode")
-			plotSeriesNode.SetName(f"Fiducial {fnode_name}")
+			# Check if plot nodes already exist for this fiducial
+			plotViewNode = slicer.mrmlScene.GetSingletonNode(f"Plot{i+1}", "vtkMRMLPlotViewNode")
+			plotChartNode = slicer.mrmlScene.GetNodeByID(f"vtkMRMLPlotChartNode{i+1}")
 
-			# Create a table node to hold spectrum data
+			# Create new nodes if they don't exist
+			if not plotViewNode:
+				plotViewNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotViewNode", f"Plot{i+1}")
+				plotViewNode.SetSingletonTag(f"Plot{i+1}")
+				plotViewNode.SetLayoutLabel(f"Plot{i+1}")
+			if not plotChartNode:
+				plotChartNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotChartNode", f"PlotChart{i+1}")
+				plotChartNode.SetTitle(f"Mass Spectrum Plot - Fiducial {fnode_name}")
+				plotChartNode.SetXAxisTitle("Mass to Charge Ratio (m/z)")
+				plotChartNode.SetYAxisTitle("Intensity")
+				plotChartNode.SetLegendVisibility(False)
+
+			# Create or update plot series and table
+			plotSeriesNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotSeriesNode", f"Fiducial {fnode_name}")
 			tableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode")
 			table = tableNode.GetTable()
 
-			# Create columns for m/z and intensity
+			# Populate table with data
 			col_mz = vtk.vtkFloatArray()
 			col_mz.SetName("m/z")
 			col_intensity = vtk.vtkFloatArray()
 			col_intensity.SetName("Intensity")
-
-			# Add data points to table
 			for mz_value, intensity in zip(self.mz, spec):
 				col_mz.InsertNextValue(mz_value)
 				col_intensity.InsertNextValue(intensity)
-
 			table.AddColumn(col_mz)
 			table.AddColumn(col_intensity)
 
-			# Link table data to plot series
+			# Link data to series and chart
 			plotSeriesNode.SetAndObserveTableNodeID(tableNode.GetID())
 			plotSeriesNode.SetXColumnName("m/z")
 			plotSeriesNode.SetYColumnName("Intensity")
 			plotSeriesNode.SetPlotType(slicer.vtkMRMLPlotSeriesNode.PlotTypeScatter)
-			plotSeriesNode.SetColor(i / N, 0.5, 0.5)  # Assign unique colors per fiducial
-
-			# Add plot series to the chart
+			plotSeriesNode.SetLineStyle(slicer.vtkMRMLPlotSeriesNode.LineStyleSolid)
 			plotChartNode.AddAndObservePlotSeriesNodeID(plotSeriesNode.GetID())
 
-		# Switch to Red Slice and Plot View layout
-		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
-		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpPlotView)
-		slicer.app.processEvents()
+			# Link chart to view
+			plotViewNode.SetPlotChartNodeID(plotChartNode.GetID())
 
-		# Display the interactive plot
-		slicer.modules.plots.logic().ShowChartInLayout(plotChartNode)
-		slicer.app.processEvents()
-		print("Interactive plot displayed with fiducials.")
+		# Update layout dynamically
+		self.update_layout(N)
 
-		# **Save Non-Interactive Version as an Image**
-		screenshotPath = self.savenameBase + '_spectra.jpeg'
-		slicer.util.delayDisplay("Saving plot image...", 500)
-
-		# **Fix Screenshot Saving**
-		layoutManager = slicer.app.layoutManager()
-		plotWidget = layoutManager.plotWidget(0)  # Get first plot view
-		if plotWidget:
-			plotView = plotWidget.plotView()
-			screenshot = plotView.grab()
-			screenshot.save(screenshotPath)
-			print(f"Saved spectrum plot to: {screenshotPath}")
-		else:
-			print("Error: No plot view available. Screenshot not saved.")
-
+		print("Interactive plot updated with fiducials.")
+		
 		return True
+
+	def update_layout(self, N):
+		layoutXML = """
+		<layout type="horizontal">
+			<item>
+				<view class="vtkMRMLSliceNode" singletontag="Red">
+					<property name="orientation" action="default">Axial</property>
+					<property name="viewlabel" action="default">R</property>
+					<property name="viewcolor" action="default">#F34A4A</property>
+				</view>
+			</item>
+			<item>
+				<layout type="vertical">
+		"""
+		for i in range(N):
+			layoutXML += f"""
+				<item>
+					<view class="vtkMRMLPlotViewNode" singletontag="Plot{i+1}">
+						<property name="viewlabel" action="default">Plot{i+1}</property>
+					</view>
+				</item>
+			"""
+		layoutXML += """
+				</layout>
+			</item>
+		</layout>
+		"""
+
+		layoutNode = slicer.app.layoutManager().layoutLogic().GetLayoutNode()
+		customLayoutId = N * 500
+		layoutNode.AddLayoutDescription(customLayoutId, layoutXML)
+		layoutNode.SetViewArrangement(customLayoutId)
+		slicer.app.processEvents()
+
+	def clear_all_plots(self):
+		"""Remove all plot nodes when no fiducials exist."""
+		existingPlotViewNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLPlotViewNode")
+		existingPlotChartNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLPlotChartNode")
+		for i in range(existingPlotViewNodes.GetNumberOfItems()):
+			slicer.mrmlScene.RemoveNode(existingPlotViewNodes.GetItemAsObject(i))
+		for i in range(existingPlotChartNodes.GetNumberOfItems()):
+			slicer.mrmlScene.RemoveNode(existingPlotChartNodes.GetItemAsObject(i))
+		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
+		slicer.app.processEvents()
+		print("Cleared all plots.")
+
 
 	def fiducial_to_index(self, position):
 		I = int(np.round(-position[0]))
