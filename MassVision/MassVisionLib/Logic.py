@@ -1009,6 +1009,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return fold_changes, p_values
 	
 	def spectrum_plot(self):
+		self.clear_all_plots()
 		# Collect fiducial information
 		fiducial_nodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsFiducialNode")
 		fnode_names = []
@@ -1025,8 +1026,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		N = len(fnode_locs)
 		if N == 0:
-			print("No fiducials found. Clearing all plots.")
-			self.clear_all_plots()
+			print("No fiducials found.")
 			return False
 		print(f"Number of fiducials: {N}")
 
@@ -1035,23 +1035,17 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			fnode_ind = ind_ToFrom_sub(fnode_loc, self.dim_x)
 			spec = self.peaks[fnode_ind, :]
 
-			# Check if plot nodes already exist for this fiducial
-			plotViewNode = slicer.mrmlScene.GetSingletonNode(f"Plot{i+1}", "vtkMRMLPlotViewNode")
-			plotChartNode = slicer.mrmlScene.GetNodeByID(f"vtkMRMLPlotChartNode{i+1}")
+			plotViewNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotViewNode", f"Plot{i+1}")
+			plotViewNode.SetSingletonTag(f"Plot{i+1}")
+			plotViewNode.SetLayoutLabel(f"Plot{i+1}")
+		
+			plotChartNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotChartNode", f"PlotChart{i+1}")
+			plotChartNode.SetTitle(f"Mass Spectrum Plot - Fiducial {fnode_name}")
+			plotChartNode.SetXAxisTitle("Mass to Charge Ratio (m/z)")
+			plotChartNode.SetYAxisTitle("Intensity")
+			plotChartNode.SetLegendVisibility(False)
 
-			# Create new nodes if they don't exist
-			if not plotViewNode:
-				plotViewNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotViewNode", f"Plot{i+1}")
-				plotViewNode.SetSingletonTag(f"Plot{i+1}")
-				plotViewNode.SetLayoutLabel(f"Plot{i+1}")
-			if not plotChartNode:
-				plotChartNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotChartNode", f"PlotChart{i+1}")
-				plotChartNode.SetTitle(f"Mass Spectrum Plot - Fiducial {fnode_name}")
-				plotChartNode.SetXAxisTitle("Mass to Charge Ratio (m/z)")
-				plotChartNode.SetYAxisTitle("Intensity")
-				plotChartNode.SetLegendVisibility(False)
-
-			# Create or update plot series and table
+			# Create plot series and table
 			plotSeriesNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotSeriesNode", f"Fiducial {fnode_name}")
 			tableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode")
 			table = tableNode.GetTable()
@@ -1122,10 +1116,16 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		"""Remove all plot nodes when no fiducials exist."""
 		existingPlotViewNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLPlotViewNode")
 		existingPlotChartNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLPlotChartNode")
+		existingPlotSeriesNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLPlotSeriesNode")
+		existingPlotTableNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLTableNode")
 		for i in range(existingPlotViewNodes.GetNumberOfItems()):
 			slicer.mrmlScene.RemoveNode(existingPlotViewNodes.GetItemAsObject(i))
 		for i in range(existingPlotChartNodes.GetNumberOfItems()):
 			slicer.mrmlScene.RemoveNode(existingPlotChartNodes.GetItemAsObject(i))
+		for i in range(existingPlotSeriesNodes.GetNumberOfItems()):
+			slicer.mrmlScene.RemoveNode(existingPlotSeriesNodes.GetItemAsObject(i))
+		for i in range(existingPlotTableNodes.GetNumberOfItems()):
+			slicer.mrmlScene.RemoveNode(existingPlotTableNodes.GetItemAsObject(i))
 		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
 		slicer.app.processEvents()
 		print("Cleared all plots.")
