@@ -1040,7 +1040,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			plotViewNode.SetLayoutLabel(f"Plot{i+1}")
 		
 			plotChartNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotChartNode", f"PlotChart{i+1}")
-			plotChartNode.SetTitle(f"Mass Spectrum Plot - Fiducial {fnode_name}")
+			plotChartNode.SetTitle(f"{fnode_name}")
 			plotChartNode.SetXAxisTitle("Mass to Charge Ratio (m/z)")
 			plotChartNode.SetYAxisTitle("Intensity")
 			plotChartNode.SetLegendVisibility(False)
@@ -1060,24 +1060,49 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 				col_intensity.InsertNextValue(intensity)
 			table.AddColumn(col_mz)
 			table.AddColumn(col_intensity)
-
+			
+			ranks = self.calculate_ranks(col_intensity)
+			col_label = vtk.vtkStringArray()
+			col_label.SetName("Label")
+			for mz_value, intensity, rank in zip(self.mz, spec, ranks):
+				label = f"\nm/z: {mz_value}\nIntensity: {intensity:.2e}\nRank: {rank}"
+				col_label.InsertNextValue(label)
+			table.AddColumn(col_label)
 			# Link data to series and chart
 			plotSeriesNode.SetAndObserveTableNodeID(tableNode.GetID())
 			plotSeriesNode.SetXColumnName("m/z")
 			plotSeriesNode.SetYColumnName("Intensity")
+			plotSeriesNode.SetLabelColumnName("Label")
 			plotSeriesNode.SetPlotType(slicer.vtkMRMLPlotSeriesNode.PlotTypeScatter)
+			plotSeriesNode.SetMarkerStyle(slicer.vtkMRMLPlotSeriesNode.MarkerStyleNone) 
 			plotSeriesNode.SetLineStyle(slicer.vtkMRMLPlotSeriesNode.LineStyleSolid)
 			plotChartNode.AddAndObservePlotSeriesNodeID(plotSeriesNode.GetID())
-
+			
 			# Link chart to view
 			plotViewNode.SetPlotChartNodeID(plotChartNode.GetID())
 
 		# Update layout dynamically
 		self.update_layout(N)
-
+		
 		print("Interactive plot updated with fiducials.")
 		
 		return True
+
+	def calculate_ranks(self, intensity_array):
+		""" Calculate ranks for intensities (1 = highest intensity) """
+		# Get intensity values
+		intensities = [intensity_array.GetValue(i) for i in range(intensity_array.GetNumberOfValues())]
+		
+		# Sort intensities in descending order
+		sorted_intensities = sorted(intensities, reverse=True)
+		
+		# Create a dictionary to map intensity to rank
+		rank_dict = {intensity: rank + 1 for rank, intensity in enumerate(sorted_intensities)}
+		
+		# Assign ranks to each intensity
+		ranks = [rank_dict[intensity] for intensity in intensities]
+		
+		return ranks
 
 	def update_layout(self, N):
 		layoutXML = """
