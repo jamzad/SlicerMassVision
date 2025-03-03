@@ -733,16 +733,12 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return image_r
 	
-	def singleIonVisualization(self, mz, heatmap, window=False):
+	def singleIonVisualization(self, mz, heatmap):
 		#mz_ind = self.selectedmz.index(mz)
 		#slicer.modules.markups.logic().JumpSlicesToLocation(self.volume[mz_ind], True)
 		array = self.single_ion_display_colours(mz)
 		array = np.transpose(array, (2, 0, 1))
-		print(array.shape)
-		if window:
-			self.visualizationRunHelper(array, array.shape, 'window', heatmap=heatmap)
-		else:
-			self.visualizationRunHelper(array, array.shape, 'single', heatmap=heatmap)
+		self.visualizationRunHelper(array, array.shape, 'single', heatmap=heatmap)
 		return True
 	
 	def ViewAbundanceThumbnail(self):
@@ -1096,16 +1092,9 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		""" Calculate ranks for intensities (1 = highest intensity) """
 		# Get intensity values
 		intensities = [intensity_array.GetValue(i) for i in range(intensity_array.GetNumberOfValues())]
-		
-		# Sort intensities in descending order
 		sorted_intensities = sorted(intensities, reverse=True)
-		
-		# Create a dictionary to map intensity to rank
 		rank_dict = {intensity: rank + 1 for rank, intensity in enumerate(sorted_intensities)}
-		
-		# Assign ranks to each intensity
 		ranks = [rank_dict[intensity] for intensity in intensities]
-		
 		return ranks
 
 	def update_layout(self, N):
@@ -1149,7 +1138,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 	def get_data(self, data, collection):
 		if collection.GetNumberOfItems() == 0:
-			print("No data selected.")
 			return
 		selected_item = collection.GetItemAsObject(0)
 		if selected_item is None:
@@ -1173,7 +1161,9 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 							table = tableNode.GetTable()
 							if row_index < table.GetNumberOfRows():  # Ensure valid row index
 								mz_value = round(float(table.GetValue(row_index, 0).ToDouble()),4)  # Column 0 = m/z values
-								self.singleIonVisualization(mz_value, heatmap="Inferno", window=True)
+								self.singleIonVisualization(mz_value, heatmap="Inferno")
+								self.update_layout(slicer.app.layoutManager().plotViewCount)
+								plotWidget.plotView().fitToContent()
 								return
 		
 	def clear_all_plots(self):
@@ -1357,7 +1347,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		for node in existingOverlays: slicer.mrmlScene.RemoveNode(existingOverlays[node])
 		
 		imagesize = [arraySize[2],arraySize[1],1]
-		print("Image size: ",imagesize)
 		voxelType = vtk.VTK_UNSIGNED_CHAR
 		imageOrigin = [0.0, 0.0, 0.0]
 		imageSpacing = [1.0, 1.0, 1.0]
@@ -1375,7 +1364,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		imageData = vtk.vtkImageData()
 		imageData.SetDimensions(imagesize)
 
-		imageData.AllocateScalars(voxelType, 1 if visualization_type in ['single', 'window'] else 3)
+		imageData.AllocateScalars(voxelType, 1 if visualization_type == 'single' else 3)
 		imageData.GetPointData().GetScalars().Fill(fillVoxelValue)
 
 		volumeNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLVectorVolumeNode", filename)
@@ -1389,7 +1378,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		voxels = slicer.util.arrayFromVolume(volumeNode)
 		voxels[:] = overlay
-		print(f"Before reshaping - Overlay shape: {overlay.shape}")
 		volumeNode.Modified()
 		displayNode = volumeNode.GetDisplayNode()
 		displayNode.AutoWindowLevelOff()
@@ -1404,14 +1392,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		
 		if visualization_type != 'single': 
 			slicer.util.setSliceViewerLayers(background=volumeNode, foreground=None)
-		elif visualization_type == 'window':
-			label = qt.QLabel()
-			image = sitk.GetArrayFromImage(image)
-			height, width = image.shape[0], image.shape[1]
-			qtimage = qt.QtGui.QImage(bytes(image), width, height, 3*width, qt.QtGui.QImage.Format_RGB888)
-			pixmap = qt.QtGui.QPixmap(qtimage)
-			label.setPixmap(pixmap)
-			label.show()
 		else: 
 			# delete current node and reload the volume
 			slicer.mrmlScene.RemoveNode(volumeNode)
