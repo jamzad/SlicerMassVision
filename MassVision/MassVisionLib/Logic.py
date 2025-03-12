@@ -1133,8 +1133,17 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		layoutNode.AddLayoutDescription(customLayoutId, layoutXML)
 		layoutNode.SetViewArrangement(customLayoutId)
 		slicer.app.processEvents()
+		
+		# Clear old selections
 		for i in range(slicer.app.layoutManager().plotViewCount):
-			slicer.app.layoutManager().plotWidget(i).plotView().RemovePlotSelections()  # Clear old selections
+			slicer.app.layoutManager().plotWidget(i).plotView().RemovePlotSelections()  
+		# Remove existing connections
+		for i in range(slicer.app.layoutManager().plotViewCount):
+			plotView = slicer.app.layoutManager().plotWidget(i).plotView()
+			try:
+				plotView.disconnect("dataSelected(vtkStringArray*, vtkCollection*)", self.get_data)  # Remove previous connections
+			except TypeError:
+				pass
 		# Connect to data selection event
 		for i in range(slicer.app.layoutManager().plotViewCount):
 			plotView = slicer.app.layoutManager().plotWidget(i).plotView()
@@ -1154,22 +1163,16 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		for i in range(slicer.app.layoutManager().plotViewCount):
 			plotWidget = slicer.app.layoutManager().plotWidget(i)
 			plotViewNode = slicer.mrmlScene.GetNodeByID(plotWidget.mrmlPlotViewNode().GetID())
-			if plotViewNode:
-				plotChartNode = slicer.mrmlScene.GetNodeByID(plotViewNode.GetPlotChartNodeID())
-				if plotChartNode:
-					plotSeriesNodeID = plotChartNode.GetNthPlotSeriesNodeID(0)  # Get first plot series in chart
-					plotSeriesNode = slicer.mrmlScene.GetNodeByID(plotSeriesNodeID)
-
-					if plotSeriesNode and plotSeriesNode.GetTableNodeID():
-						tableNode = slicer.mrmlScene.GetNodeByID(plotSeriesNode.GetTableNodeID())
-						if tableNode:
-							table = tableNode.GetTable()
-							if row_index < table.GetNumberOfRows():  # Ensure valid row index
-								mz_value = round(float(table.GetValue(row_index, 0).ToDouble()),4)  # Column 0 = m/z values
-								self.singleIonVisualization(mz_value, heatmap="Inferno")
-								self.update_layout(slicer.app.layoutManager().plotViewCount)
-								plotWidget.plotView().fitToContent()
-								return
+			plotChartNode = slicer.mrmlScene.GetNodeByID(plotViewNode.GetPlotChartNodeID())
+			plotSeriesNodeID = plotChartNode.GetNthPlotSeriesNodeID(0)  # Get first plot series in chart
+			plotSeriesNode = slicer.mrmlScene.GetNodeByID(plotSeriesNodeID)
+			tableNode = slicer.mrmlScene.GetNodeByID(plotSeriesNode.GetTableNodeID())
+			table = tableNode.GetTable()
+			mz_value = round(float(table.GetValue(row_index, 0).ToDouble()),4)  # Column 0 = m/z values
+			self.singleIonVisualization(mz_value, heatmap="Inferno")
+			self.update_layout(slicer.app.layoutManager().plotViewCount)
+			plotWidget.plotView().fitToContent()
+			return
 		
 	def clear_all_plots(self):
 		"""Remove all plot nodes when no fiducials exist."""
