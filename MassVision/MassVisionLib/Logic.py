@@ -1076,6 +1076,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			plotSeriesNode.SetPlotType(slicer.vtkMRMLPlotSeriesNode.PlotTypeScatter)
 			plotSeriesNode.SetMarkerStyle(slicer.vtkMRMLPlotSeriesNode.MarkerStyleNone) 
 			plotSeriesNode.SetLineStyle(slicer.vtkMRMLPlotSeriesNode.LineStyleSolid)
+			colour = cm.get_cmap("tab10")(i % 10)[:3]  # Get RGB values from 'tab10' colormap
+			plotSeriesNode.SetColor(*colour)
+
+			plotChartNode.SetYAxisLogScale(False)
 			plotChartNode.AddAndObservePlotSeriesNodeID(plotSeriesNode.GetID())
 			
 			# Link chart to view
@@ -1135,6 +1139,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		for i in range(slicer.app.layoutManager().plotViewCount):
 			plotView = slicer.app.layoutManager().plotWidget(i).plotView()
 			plotView.connect("dataSelected(vtkStringArray*, vtkCollection*)", self.get_data)
+			slicer.app.layoutManager().plotWidget(i).plotView().fitToContent()
 
 	def get_data(self, data, collection):
 		if collection.GetNumberOfItems() == 0:
