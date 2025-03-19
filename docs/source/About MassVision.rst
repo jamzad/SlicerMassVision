@@ -5,7 +5,7 @@ About MassVision
 
 How to Cite
 -------
-Thankyou for choosing MassVision for your study! Please cite the following MassVision paper in your publications
+Thank you for choosing MassVision for your study! Please cite the following MassVision paper in your publications:
 
-TBA
+Jamzad, A.; Warren, J.; Syeda, A.; Kaufmann, M.; Iaboni, N.; Nicol, C.; Rudan, J.; Ren, K.; Hurlbut, D.; Varma, S.; Fichtinger, G.; Mousavi, P. MassVision: An Open-Source End-to-End Platform for AI-Driven Mass Spectrometry Image Analysis. bioRxiv 2025. `https://doi.org/10.1101/2025.01.29.635489 <https://doi.org/10.1101/2025.01.29.635489>`_.
 

@@ -8,11 +8,9 @@ HDF5 file structure
 ----------
 The HDF5 should have two datasets, one for peak intensities named **peaks**, and one for ions named **mz**. The content of the datasets are the following **Numpy** arrays:
 
-1. **peaks** 
-   A three-dimensional MSI data as Numpy array with shape **(MxNxL)** (float or integer)
+1. **peaks**: A three-dimensional MSI data as Numpy array with shape **(MxNxL)** (float or integer)
 
-2. **mz**
-   A one-dimensional vector data as Numpy array with shape **(L,)** (float) 
+2. **mz**: A one-dimensional vector data as Numpy array with shape **(L,)** (float) 
 
 
 CSV file structure

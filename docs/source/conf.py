@@ -41,3 +41,6 @@ html_logo = "images/logo.png"
 epub_show_urls = 'footnote'
 
 html_baseurl = "https://slicermassvision.readthedocs.io/"
+html_css_files = [
+    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
+]

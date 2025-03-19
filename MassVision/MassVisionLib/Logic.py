@@ -1428,7 +1428,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 	# uploads the modelling file and saves the file names into the class directory 
 	def modellingFileLoad(self, filename):
-		self.df = pd.read_csv(filename)
+		self.df = pd.read_csv(filename, dtype={"Slide": str, "Class": str})
 		self.df["Class"] = self.df["Class"].str.lower()
 		self.modellingFile = filename
 		retstr = 'Dataset successfully loaded \n'
@@ -1530,6 +1530,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		if len(class_order)<=2:
 			y_train_prob = expit(y_train_prob)
 			y_train_prob = y_train_prob.reshape(-1,1)
+			y_train_prob = np.concatenate([1-y_train_prob, y_train_prob], axis=1)
 		else:
 			y_train_prob = softmax(y_train_prob, axis=1)
 
@@ -1538,6 +1539,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		if len(class_order)<=2:
 			y_test_prob = expit(y_test_prob)
 			y_test_prob = y_test_prob.reshape(-1,1)
+			y_test_prob = np.concatenate([1-y_test_prob, y_test_prob], axis=1)
 		else:
 			y_test_prob = softmax(y_test_prob, axis=1)
 
@@ -2103,15 +2105,15 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			mz_old = mz[i]
 			pmean = peaks[i].mean(axis=0)/peaks[i].mean(axis=0).max()
 			for j in range(n_mz):
-				mz_cell = new_mz_df[new_mz_df.columns[j]][i]
+				mz_cell = new_mz_df.loc[i, new_mz_df.columns[j]]
 				if len(mz_cell)==0:
 					pass
 				elif len(mz_cell)==1:
-					final_mz_df[final_mz_df.columns[j]][i] = mz_cell[0]
+					final_mz_df.loc[i, final_mz_df.columns[j]] = mz_cell[0]
 				else:
 					ind = [np.abs(x-mz_old).argmin() for x in mz_cell]
 					i_abundant = pmean[ind].argmax()
-					final_mz_df[final_mz_df.columns[j]][i] = mz_cell[i_abundant]
+					final_mz_df.loc[i, final_mz_df.columns[j]] = mz_cell[i_abundant]
 								
 
 		# correct the selected mz
