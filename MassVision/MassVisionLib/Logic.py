@@ -1041,8 +1041,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		
 			plotChartNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotChartNode", f"PlotChart{i+1}")
 			plotChartNode.SetTitle(f"{fnode_name}")
-			plotChartNode.SetXAxisTitle("Mass to Charge Ratio (m/z)")
-			plotChartNode.SetYAxisTitle("Intensity")
+			plotChartNode.SetXAxisTitle("m/z")
+			plotChartNode.SetYAxisTitle("intensity")
 			plotChartNode.SetLegendVisibility(False)
 
 			# Create plot series and table
@@ -1148,7 +1148,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		for i in range(slicer.app.layoutManager().plotViewCount):
 			plotView = slicer.app.layoutManager().plotWidget(i).plotView()
 			plotView.connect("dataSelected(vtkStringArray*, vtkCollection*)", self.get_data)
-			slicer.app.layoutManager().plotWidget(i).plotView().fitToContent()
+			# slicer.app.layoutManager().plotWidget(i).plotView().fitToContent()
 
 	def get_data(self, data, collection):
 		if collection.GetNumberOfItems() == 0:
@@ -1171,7 +1171,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			mz_value = round(float(table.GetValue(row_index, 0).ToDouble()),4)  # Column 0 = m/z values
 			self.singleIonVisualization(mz_value, heatmap="Inferno")
 			self.update_layout(slicer.app.layoutManager().plotViewCount)
-			plotWidget.plotView().fitToContent()
+			# plotWidget.plotView().fitToContent()
 			return
 		
 	def clear_all_plots(self):
