@@ -1009,84 +1009,189 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return fold_changes, p_values
 	
 	def spectrum_plot(self):
+		self.clear_all_plots()
+		# Collect fiducial information
 		fiducial_nodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsFiducialNode")
 		fnode_names = []
 		fnode_locs = []
+
 		for fiducial_node in fiducial_nodes:
-			num_fiducials = fiducial_node.GetNumberOfControlPoints ()
+			num_fiducials = fiducial_node.GetNumberOfControlPoints()
 			for i in range(num_fiducials):
 				position = [0.0, 0.0, 0.0]
 				fiducial_node.GetNthControlPointPosition(i, position)
 				point_name = fiducial_node.GetNthControlPointLabel(i)
 				fnode_names.append(point_name)
-				fnode_locs.append( self.fiducial_to_index(position) )
-				# print(f"  Fiducial {i+1} named {point_name} position:", position, self.fiducial_to_index(position))
-		# print(self.dim_y, self.dim_x)
+				fnode_locs.append(self.fiducial_to_index(position))
+
 		N = len(fnode_locs)
-		plt.figure(figsize=(10,5))
-		for i in range(N):
-			fnode_name = fnode_names[i]
-			fnode_loc = fnode_locs[i]
+		if N == 0:
+			print("No fiducials found.")
+			return False
+		print(f"Number of fiducials: {N}")
 
+		# Create or update a plot for each fiducial
+		for i, (fnode_name, fnode_loc) in enumerate(zip(fnode_names, fnode_locs)):
 			fnode_ind = ind_ToFrom_sub(fnode_loc, self.dim_x)
-			spec = self.peaks[fnode_ind,:]
-			# spec = self.peaks_3D[fnode_loc[0],fnode_loc[1],:]
+			spec = self.peaks[fnode_ind, :]
 
-			plt.subplot(N,1,i+1)
-			markerline, stemlines, baseline = plt.stem(self.mz, spec, linefmt='C'+str(i), markerfmt=" ", basefmt='C'+str(i))
-			plt.setp(stemlines, linewidth=1)
-			plt.legend( ['{} located at {}, {}'.format(fnode_name,fnode_loc[0],fnode_loc[1])] )
-			plt.xlim([self.mz.min(), self.mz.max()])
-			plt.ylim(bottom=0)
+			plotViewNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotViewNode", f"Plot{i+1}")
+			plotViewNode.SetSingletonTag(f"Plot{i+1}")
+			plotViewNode.SetLayoutLabel(f"Plot{i+1}")
+		
+			plotChartNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotChartNode", f"PlotChart{i+1}")
+			plotChartNode.SetTitle(f"{fnode_name}")
+			plotChartNode.SetXAxisTitle("m/z")
+			plotChartNode.SetYAxisTitle("intensity")
+			plotChartNode.SetLegendVisibility(False)
 
-			# format y tick for scientific style
-			ax = plt.gca()
-			ax.ticklabel_format(axis='y', style='scientific', scilimits=[0,0], useMathText=True)
+			# Create plot series and table
+			plotSeriesNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotSeriesNode", f"Fiducial {fnode_name}")
+			tableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode")
+			table = tableNode.GetTable()
+
+			# Populate table with data
+			col_mz = vtk.vtkFloatArray()
+			col_mz.SetName("m/z")
+			col_intensity = vtk.vtkFloatArray()
+			col_intensity.SetName("Intensity")
+			for mz_value, intensity in zip(self.mz, spec):
+				col_mz.InsertNextValue(mz_value)
+				col_intensity.InsertNextValue(intensity)
+			table.AddColumn(col_mz)
+			table.AddColumn(col_intensity)
 			
-			# if (i+1)==N:
-			# 	plt.xticks(np.arange(self.mz.min(),self.mz.max(),50))
-			# else:
-			# 	plt.xticks(np.arange(self.mz.min(),self.mz.max(),50), labels=[])
-			# plt.grid(True, 'both', linestyle='--')
-			if (i+1)!=N:
-				ax = plt.gca()
-				ax.set_xticklabels([])
+			ranks = self.calculate_ranks(col_intensity)
+			col_label = vtk.vtkStringArray()
+			col_label.SetName("Label")
+			for mz_value, intensity, rank in zip(self.mz, spec, ranks):
+				label = f"\nm/z: {mz_value}\nIntensity: {intensity:.2e}\nRank: {rank}"
+				col_label.InsertNextValue(label)
+			table.AddColumn(col_label)
+			# Link data to series and chart
+			plotSeriesNode.SetAndObserveTableNodeID(tableNode.GetID())
+			plotSeriesNode.SetXColumnName("m/z")
+			plotSeriesNode.SetYColumnName("Intensity")
+			plotSeriesNode.SetLabelColumnName("Label")
+			plotSeriesNode.SetPlotType(slicer.vtkMRMLPlotSeriesNode.PlotTypeScatter)
+			plotSeriesNode.SetMarkerStyle(slicer.vtkMRMLPlotSeriesNode.MarkerStyleNone) 
+			plotSeriesNode.SetLineStyle(slicer.vtkMRMLPlotSeriesNode.LineStyleSolid)
+			colour = cm.get_cmap("tab10")(i % 10)[:3]  # Get RGB values from 'tab10' colormap
+			plotSeriesNode.SetColor(*colour)
 
-			pp, properties = find_peaks(spec, height=0)
-			n_prominent_peaks = 4
-			prominent_peaks_indices = np.argsort(properties['peak_heights'])[-n_prominent_peaks:]
-			prominent_peaks = pp[prominent_peaks_indices]
+			plotChartNode.SetYAxisLogScale(False)
+			plotChartNode.AddAndObservePlotSeriesNodeID(plotSeriesNode.GetID())
+			
+			# Link chart to view
+			plotViewNode.SetPlotChartNodeID(plotChartNode.GetID())
 
-			for peak in prominent_peaks:
-				plt.annotate(f'{self.mz[peak]}', (self.mz[peak], spec[peak]), rotation=0, ha='left',
-						 	textcoords="offset points", xytext=(1,-4), fontsize=8)
-
-		plt.xlabel('mass to chatge ratio')
-		plt.ylabel('intensity')
-		plt.savefig(self.savenameBase + '_spectra.jpeg', bbox_inches='tight', dpi=600)
-		plt.close()
+		# Update layout dynamically
+		self.update_layout(N)
 		
-		RedCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeRed")
-		RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
-		YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
-		YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
-
-		VolumeIDonRed = RedCompNode.GetBackgroundVolumeID()
-
-		volumeNode = slicer.util.loadVolume(self.savenameBase + '_spectra.jpeg', {"singleFile": True})
-
-		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutSideBySideView)
-		RedCompNode.SetBackgroundVolumeID(VolumeIDonRed)
-		YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
-		YellowNode.SetOrientation("Axial")
-		slicer.util.resetSliceViews()
+		print("Interactive plot updated with fiducials.")
 		
-		markupNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsNode")
-		for markupNode in markupNodes:
-			displayNode = markupNode.GetDisplayNode()
-			displayNode.SetViewNodeIDs([RedNode.GetID()])
-
 		return True
+
+	def calculate_ranks(self, intensity_array):
+		""" Calculate ranks for intensities (1 = highest intensity) """
+		# Get intensity values
+		intensities = [intensity_array.GetValue(i) for i in range(intensity_array.GetNumberOfValues())]
+		sorted_intensities = sorted(intensities, reverse=True)
+		rank_dict = {intensity: rank + 1 for rank, intensity in enumerate(sorted_intensities)}
+		ranks = [rank_dict[intensity] for intensity in intensities]
+		return ranks
+
+	def update_layout(self, N):
+		layoutXML = """
+		<layout type="horizontal">
+			<item>
+				<view class="vtkMRMLSliceNode" singletontag="Red">
+					<property name="orientation" action="default">Axial</property>
+					<property name="viewlabel" action="default">R</property>
+					<property name="viewcolor" action="default">#F34A4A</property>
+				</view>
+			</item>
+			<item>
+				<layout type="vertical">
+		"""
+		for i in range(N):
+			layoutXML += f"""
+				<item>
+					<view class="vtkMRMLPlotViewNode" singletontag="Plot{i+1}">
+						<property name="viewlabel" action="default">Plot{i+1}</property>
+					</view>
+				</item>
+			"""
+		layoutXML += """
+				</layout>
+			</item>
+		</layout>
+		"""
+
+		layoutNode = slicer.app.layoutManager().layoutLogic().GetLayoutNode()
+		customLayoutId = N * 500
+		layoutNode.AddLayoutDescription(customLayoutId, layoutXML)
+		layoutNode.SetViewArrangement(customLayoutId)
+		slicer.app.processEvents()
+		
+		# Clear old selections
+		for i in range(slicer.app.layoutManager().plotViewCount):
+			slicer.app.layoutManager().plotWidget(i).plotView().RemovePlotSelections()  
+		# Remove existing connections
+		for i in range(slicer.app.layoutManager().plotViewCount):
+			plotView = slicer.app.layoutManager().plotWidget(i).plotView()
+			try:
+				plotView.disconnect("dataSelected(vtkStringArray*, vtkCollection*)", self.get_data)  # Remove previous connections
+			except TypeError:
+				pass
+		# Connect to data selection event
+		for i in range(slicer.app.layoutManager().plotViewCount):
+			plotView = slicer.app.layoutManager().plotWidget(i).plotView()
+			plotView.connect("dataSelected(vtkStringArray*, vtkCollection*)", self.get_data)
+			# slicer.app.layoutManager().plotWidget(i).plotView().fitToContent()
+
+	def get_data(self, data, collection):
+		if collection.GetNumberOfItems() == 0:
+			return
+		selected_item = collection.GetItemAsObject(0)
+		if selected_item is None:
+			print("No valid selection.")
+			return
+		
+		row_index = int(selected_item.GetValue(0))
+		# Identify which plot widget triggered the selection
+		for i in range(slicer.app.layoutManager().plotViewCount):
+			plotWidget = slicer.app.layoutManager().plotWidget(i)
+			plotViewNode = slicer.mrmlScene.GetNodeByID(plotWidget.mrmlPlotViewNode().GetID())
+			plotChartNode = slicer.mrmlScene.GetNodeByID(plotViewNode.GetPlotChartNodeID())
+			plotSeriesNodeID = plotChartNode.GetNthPlotSeriesNodeID(0)  # Get first plot series in chart
+			plotSeriesNode = slicer.mrmlScene.GetNodeByID(plotSeriesNodeID)
+			tableNode = slicer.mrmlScene.GetNodeByID(plotSeriesNode.GetTableNodeID())
+			table = tableNode.GetTable()
+			mz_value = round(float(table.GetValue(row_index, 0).ToDouble()),4)  # Column 0 = m/z values
+			self.singleIonVisualization(mz_value, heatmap="Inferno")
+			self.update_layout(slicer.app.layoutManager().plotViewCount)
+			# plotWidget.plotView().fitToContent()
+			return
+		
+	def clear_all_plots(self):
+		"""Remove all plot nodes when no fiducials exist."""
+		existingPlotViewNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLPlotViewNode")
+		existingPlotChartNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLPlotChartNode")
+		existingPlotSeriesNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLPlotSeriesNode")
+		existingPlotTableNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLTableNode")
+		for i in range(existingPlotViewNodes.GetNumberOfItems()):
+			slicer.mrmlScene.RemoveNode(existingPlotViewNodes.GetItemAsObject(i))
+		for i in range(existingPlotChartNodes.GetNumberOfItems()):
+			slicer.mrmlScene.RemoveNode(existingPlotChartNodes.GetItemAsObject(i))
+		for i in range(existingPlotSeriesNodes.GetNumberOfItems()):
+			slicer.mrmlScene.RemoveNode(existingPlotSeriesNodes.GetItemAsObject(i))
+		for i in range(existingPlotTableNodes.GetNumberOfItems()):
+			slicer.mrmlScene.RemoveNode(existingPlotTableNodes.GetItemAsObject(i))
+		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
+		slicer.app.processEvents()
+		print("Cleared all plots.")
+
 
 	def fiducial_to_index(self, position):
 		I = int(np.round(-position[0]))
@@ -1250,7 +1355,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		for node in existingOverlays: slicer.mrmlScene.RemoveNode(existingOverlays[node])
 		
 		imagesize = [arraySize[2],arraySize[1],1]
-
 		voxelType = vtk.VTK_UNSIGNED_CHAR
 		imageOrigin = [0.0, 0.0, 0.0]
 		imageSpacing = [1.0, 1.0, 1.0]
