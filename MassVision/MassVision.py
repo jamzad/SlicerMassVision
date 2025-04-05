@@ -141,13 +141,19 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.roiCintrastExtend.hide()
 		self.ClearClusterTable()
 
-		# import push botton mechanism
+
 		self.ui.textFileLoad.hide()
 		self.ui.loadHisto.hide()
 		self.ui.csvLoad.hide()
 		self.ui.modellingFile.hide()
 		self.ui.deployImport.hide()
 		self.ui.deployModelImport.hide()
+
+		self.ui.normMethodComboBox.setCurrentText("Total ion current (TIC)")
+		self.ui.refionLabel.setVisible(False)
+		self.ui.refIoncomboBox.setVisible(False)
+		self.ui.thresholdLabel.setVisible(False)
+		self.ui.thresholdValue.setVisible(False)
 		
 		# Data Import
 		self.ui.clearReloadPush.connect("clicked(bool)", self.onClearReload)
@@ -204,9 +210,11 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.csvLoad.connect("clicked(bool)", self.onCsvLoad)
 		self.ui.normalizeCheckbox.connect("clicked(bool)", self.onNormalizationState)
 
-		self.ui.refNorm.toggled.connect(self.onIonNorm)
-		self.ui.normalizeTICoption.toggled.connect(self.onIonNorm)
+		# self.ui.refNorm.toggled.connect(self.onIonNorm)
+		# self.ui.normalizeTICoption.toggled.connect(self.onIonNorm)
 		
+		self.ui.normMethodComboBox.currentTextChanged.connect(self.onNormMethodChange)
+
 		self.ui.spectrumFiltercheckBox.connect("clicked(bool)", self.onFilterState)
 		self.ui.pixelaggcheckBox.connect("clicked(bool)", self.onAggState)
 		self.ui.applyProcessingButton.connect("clicked(bool)", self.onApplyProcessing)	
@@ -695,22 +703,57 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			all_mz = self.logic.getCsvMzList()
 			for mz in all_mz:
 				self.ui.refIoncomboBox.addItem(mz)
+			threshold = self.logic.getTUSthreshold()
+			self.ui.thresholdValue.setText(str(threshold))
+	
+	# def onNormalizationState(self):
+	# 	if self.ui.normalizeCheckbox.isChecked():
+	# 		self.ui.normalizeTICoption.setEnabled(True)
+	# 		self.ui.refNorm.setEnabled(True)
+	# 		self.onIonNorm()
+	# 	else:
+	# 		self.ui.normalizeTICoption.setEnabled(False)
+	# 		self.ui.refNorm.setEnabled(False)
+	# 		self.ui.refIoncomboBox.setEnabled(False)
+
+	def onNormMethodChange(self, text):
+		if text == "Reference ion":
+			self.ui.refionLabel.setVisible(True)
+			self.ui.refIoncomboBox.setVisible(True)
+			self.ui.thresholdLabel.setVisible(False)
+			self.ui.thresholdValue.setVisible(False)
+		elif text == "Total signal current (TSC)":
+			self.ui.refionLabel.setVisible(False)
+			self.ui.refIoncomboBox.setVisible(False)
+			self.ui.thresholdLabel.setVisible(True)
+			self.ui.thresholdValue.setVisible(True)
+		else:
+			self.ui.refionLabel.setVisible(False)
+			self.ui.refIoncomboBox.setVisible(False)
+			self.ui.thresholdLabel.setVisible(False)
+			self.ui.thresholdValue.setVisible(False)
 	
 	def onNormalizationState(self):
 		if self.ui.normalizeCheckbox.isChecked():
-			self.ui.normalizeTICoption.setEnabled(True)
-			self.ui.refNorm.setEnabled(True)
-			self.onIonNorm()
-		else:
-			self.ui.normalizeTICoption.setEnabled(False)
-			self.ui.refNorm.setEnabled(False)
-			self.ui.refIoncomboBox.setEnabled(False)
-
-	def onIonNorm(self):
-		if self.ui.refNorm.isChecked():
+			self.ui.normMethodLabel.setEnabled(True)
+			self.ui.normMethodComboBox.setEnabled(True)
+			self.ui.refionLabel.setEnabled(True)
 			self.ui.refIoncomboBox.setEnabled(True)
+			self.ui.thresholdLabel.setEnabled(True)
+			self.ui.thresholdValue.setEnabled(True)
 		else:
+			self.ui.normMethodLabel.setEnabled(False)
+			self.ui.normMethodComboBox.setEnabled(False)
+			self.ui.refionLabel.setEnabled(False)
 			self.ui.refIoncomboBox.setEnabled(False)
+			self.ui.thresholdLabel.setEnabled(False)
+			self.ui.thresholdValue.setEnabled(False)
+
+	# def onIonNorm(self):
+	# 	if self.ui.refNorm.isChecked():
+	# 		self.ui.refIoncomboBox.setEnabled(True)
+	# 	else:
+	# 		self.ui.refIoncomboBox.setEnabled(False)
 
 
 	def onFilterState(self):
@@ -740,12 +783,22 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 	def onApplyProcessing(self):
 		# get normalize parameters
 		if self.ui.normalizeCheckbox.isChecked():
-			if self.ui.normalizeTICoption.isChecked():
-				spec_normalization = 'tic'
+			spec_normalization = self.ui.normMethodComboBox.currentText
+			if spec_normalization == "Reference ion":
+				normalization_param = float(self.ui.refIoncomboBox.currentText)
+			elif spec_normalization == "Total signal current (TSC)":
+				normalization_param = float(self.ui.thresholdValue.text)
 			else:
-				spec_normalization = self.ui.refIoncomboBox.currentText
+				normalization_param = None
 		else:
 			spec_normalization = None
+		# if self.ui.normalizeCheckbox.isChecked():
+		# 	if self.ui.normalizeTICoption.isChecked():
+		# 		spec_normalization = 'tic'
+		# 	else:
+		# 		spec_normalization = self.ui.refIoncomboBox.currentText
+		# else:
+		# 	spec_normalization = None
 	
 		# get spectrum filtering
 		if self.ui.spectrumFiltercheckBox.isChecked():
@@ -765,7 +818,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		print(savepath)
 
 
-		processed_csv_info = self.logic.dataset_post_processing(spec_normalization, subband_selection, pixel_aggregation, savepath)
+		processed_csv_info = self.logic.dataset_post_processing(spec_normalization, normalization_param, subband_selection, pixel_aggregation, savepath)
 
 		retstr = 'Dataset successfully processed! \n'
 		retstr += f'Processed dataset:\t {savepath} \n'

@@ -122,6 +122,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.contrast_thumbnail_inds = None
 		self.pixel_clusters = None
 		self.peaks_pca = None
+		self.peak_start_col = 4
 		
 
 	def setDefaultParameters(self, parameterNode):
@@ -338,8 +339,15 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return roi_reconstruct_num, roi_reconstruct
 
+	def getTUSthreshold(self):
+		all_values = self.peaks.flatten()
+		mean_val = np.mean(all_values)
+		std_val = np.std(all_values)
+		threshold = mean_val + 2 * std_val
+		return np.round(threshold, 2)
+
 	# the whole postporocessing fuction including nomalization, band filtering, and pixel aggregation
-	def dataset_post_processing(self, spec_normalization, subband_selection, pixel_aggregation, processed_dataset_name):
+	def dataset_post_processing(self, spec_normalization, normalization_param, subband_selection, pixel_aggregation, processed_dataset_name):
 		"""
 		the whole postporocessing fuction including nomalization, band filtering, and pixel aggregation
 		author: @moon
@@ -349,7 +357,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		df = self.csv_processing
 
 		# extract information
-		peak_start_col = 4
+		peak_start_col = self.peak_start_col
 		mz = np.array(df.columns[peak_start_col:], dtype='float')
 		peaks = df[df.columns[peak_start_col:]].values
 		labels =  df[df.columns[0:peak_start_col]].values 
@@ -358,13 +366,30 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		peaks = np.nan_to_num(peaks)
 
 		# spectrum nrmalization
-		print("spec_normalization",spec_normalization)
+		print("spec_normalization:",spec_normalization)
 		if spec_normalization != None:
-			if spec_normalization == 'tic':
-				peaks = self.tic_normalize(peaks)
-			else:
-				peaks = self.ref_normalize(peaks=peaks, mz=mz, mz_ref=float(spec_normalization))
+			if spec_normalization == "Total ion current (TIC)":
+				peaks = dataset_normalization(peaks, "TIC")
+			elif spec_normalization == "Reference ion":
+				ion_index = mz == normalization_param
+				peaks = dataset_normalization(peaks, "Reference", ion_index=ion_index)
+			elif spec_normalization == "Root mean square (RMS)":
+				peaks = dataset_normalization(peaks, "RMS")
+			elif spec_normalization == "Median":
+				peaks = dataset_normalization(peaks, "median")
+			elif spec_normalization == "Mean":
+				peaks = dataset_normalization(peaks, "mean")
+			elif spec_normalization == "Total signal current (TSC)":
+				threshold = normalization_param
+				peaks = dataset_normalization(peaks, "TUC", threshold=threshold)
+				
+
 			print('mass spectra normalization done!')
+			# if spec_normalization == 'tic':
+			# 	peaks = self.tic_normalize(peaks)
+			# else:
+			# 	peaks = self.ref_normalize(peaks=peaks, mz=mz, mz_ref=float(spec_normalization))
+			# print('mass spectra normalization done!')
 
 		# spectrum range filtering
 		if subband_selection != None:
@@ -1804,7 +1829,17 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
   
 	def CsvLoad(self, filename):
-		self.csv_processing = pd.read_csv(filename)
+		df = pd.read_csv(filename)
+		peak_start_col = self.peak_start_col
+		mz = np.array(df.columns[peak_start_col:], dtype='float')
+		peaks = df[df.columns[peak_start_col:]].values
+		# handle missing values
+		peaks = np.nan_to_num(peaks)
+
+		self.csv_processing = df
+		self.peaks = peaks
+		self.mz = mz
+
 		self.csvFile = filename
 		retstr = 'Dataset successfully loaded! \n'
 		retstr += f'Dataset name:\t {filename} \n'
@@ -1812,7 +1847,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return retstr
 
 	def getCsvMzList(self):
-		return list(self.csv_processing.keys()[5:])
+		return list(self.csv_processing.columns[self.peak_start_col:])
+		# return list(self.mz)
 
 	def fileSelect(self):
 		# read and display image practise in juptyter
@@ -2421,6 +2457,9 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			retstr += f'   {str(y)}\t in class\t {x} \n'
 		return retstr
 
+
+## Helper functions
+# 1D ind and 2D sub conversion
 def ind_ToFrom_sub(X, dim_x):
     if isinstance(X, int):
         ind = X
@@ -2431,3 +2470,67 @@ def ind_ToFrom_sub(X, dim_x):
         i, j = X
         res = i * dim_x + j
     return res
+
+# Sample-based spectrum normalization
+def dataset_normalization(data, method, **kwargs):
+	if method == "TIC":
+		scale = data.sum(axis=1, keepdims=True)
+	elif method == "RMS":
+		scale = np.sqrt(np.mean(np.square(data), axis=1, keepdims=True))
+	elif method == "median":
+		scale = np.median(data, axis=1, keepdims=True)
+	elif method == "mean":
+		scale = np.mean(data, axis=1, keepdims=True)
+	elif method == "TUC":
+		if 'threshold' not in kwargs:
+			raise ValueError("Method 'TUC' requires a 'threshold' argument.")
+		threshold = kwargs['threshold']
+		mask = data > threshold
+		scale = np.sum(data * mask, axis=1, keepdims=True)
+	elif method == "Reference":
+		if 'ion_index' not in kwargs:
+			raise ValueError("Method 'Reference' requires a 'ion_index' argument.")
+		ion_index = kwargs['ion_index']
+		scale = data[:, ion_index].copy()
+	else:
+		raise ValueError("Invalid normalization method")
+
+	scale[scale == 0] = 1  # Prevent division by zero
+	
+	return data / scale
+
+# Low Coefficient of Variation (CV) Across Spectra for selection of normalization 
+# cv = np.std(data, axis=0) / np.mean(data, axis=0)
+# ref_peak_index = np.argmin(cv)
+
+# TUS treshold
+# all_values = data.flatten()
+# mean_val = np.mean(all_values)
+# std_val = np.std(all_values)
+
+# # Compute global threshold
+# threshold = mean_val + threshold_multiplier * std_val
+
+# # Quantile Normalization
+# def quantile_normalization(data):
+#     sorted_idx = np.argsort(data, axis=0)
+#     sorted_data = np.sort(data, axis=0)
+#     mean_values = np.mean(sorted_data, axis=1)
+#     normalized = np.zeros_like(data)
+#     for i in range(data.shape[1]):
+#         normalized[sorted_idx[:, i], i] = mean_values
+#     return normalized
+
+# # Median Fold Change Normalization
+# def median_fold_change_normalization(data):
+#     median_spectrum = np.median(data, axis=0)
+#     ratios = data / (median_spectrum + 1e-10)  # Avoid division by zero
+#     scale_factors = np.median(ratios, axis=1, keepdims=True)
+#     return data / scale_factors
+
+# # Probabilistic Quotient Normalization (PQN)
+# def pqn_normalization(data):
+#     reference = np.median(data, axis=0)
+#     quotients = data / (reference + 1e-10)
+#     scale_factors = np.median(quotients, axis=1, keepdims=True)
+#     return data / scale_factors
