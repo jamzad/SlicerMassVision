@@ -141,7 +141,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.roiCintrastExtend.hide()
 		self.ClearClusterTable()
 
-		# self.ui.loadHisto.hide()
 		self.ui.csvLoad.hide()
 		self.ui.modellingFile.hide()
 		self.ui.deployImport.hide()
@@ -160,7 +159,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.textFileSelect.connect("clicked(bool)", self.onTextFileSelect)
 
 		self.ui.histoFileSelect.connect("clicked(bool)",self.onHistoSelect)
-		# self.ui.loadHisto.connect("clicked(bool)",self.onloadHisto)
+
+		self.ui.ExportPushBotton.connect("clicked(bool)",self.onExport)
 
 		self.ui.REIMSFileSelect.connect("clicked(bool)",self.onREIMSSelect)
 		self.ui.REIMSFileLoad.connect("clicked(bool)",self.onREIMSLoad)
@@ -340,6 +340,13 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.logic.heatmap_display()
 		self.populateMzLists()
 
+	def onExport(self):
+		print('Export MSI data...')
+		fileExplorer = qt.QFileDialog()		
+		defaultSave = self.logic.savenameBase
+		savepath = fileExplorer.getSaveFileName(None, "Export", defaultSave, "Structured CSV (*.csv);;Hierarchical HDF5 (*.h5)")
+		print(savepath)
+		self.logic.MSIExport(savepath)
 
 	### Visualization tab
 	def onSpectrumPlot(self):

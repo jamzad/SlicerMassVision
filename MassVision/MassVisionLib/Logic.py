@@ -2071,6 +2071,28 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return True
 
+	def MSIExport(self, savepath):
+		file_type = os.path.splitext(savepath)[-1]
+		if file_type.lower() == ".h5":
+			compression_level = 4
+			peaks = self.peaks.reshape((self.dim_y,self.dim_x,-1),order='C')
+			with h5py.File(savepath, 'w') as h5file:
+				h5file.create_dataset('peaks', data=peaks, compression='gzip', compression_opts=compression_level)
+				h5file.create_dataset('mz', data=self.mz, compression='gzip', compression_opts=compression_level)
+			print("Export completed (h5)")
+		elif file_type.lower() == ".csv":
+			YX = np.zeros((len(self.peaks),2))
+			for ind in range(len(self.peaks)):
+				j, i = ind_ToFrom_sub(ind, self.dim_x)
+				YX[ind] = [j, i]
+
+			csv_data = np.concatenate([YX, self.peaks], axis=1)
+			csv_columns = [str(self.dim_y), str(self.dim_x)] + [str(x) for x in self.mz] #[int(self.dim_y), int(self.dim_x)]+list(self.mz)
+			df = pd.DataFrame(csv_data, columns=csv_columns)
+			df.to_csv(savepath, index=False)
+			print("Export completed (csv)")
+
+
 	# def getSelectedMz(self):
 	# 	return self.selectedmz
 		

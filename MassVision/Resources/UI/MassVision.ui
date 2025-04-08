@@ -39,7 +39,7 @@
   </property>
   <widget class="QWidget" name="tab">
    <attribute name="title">
-    <string>Data import</string>
+    <string>Data</string>
    </attribute>
    <layout class="QFormLayout" name="formLayout_8">
     <item row="0" column="0" colspan="2">
@@ -251,34 +251,6 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="17" column="0" colspan="2">
-     <widget class="QLabel" name="label_66">
-      <property name="font">
-       <font>
-        <pointsize>10</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>Export MSI (image cube)</string>
-      </property>
-     </widget>
-    </item>
-    <item row="18" column="1">
-     <widget class="QPushButton" name="ExportPushBotton">
-      <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
-color: rgb(255, 255, 255);</string>
-      </property>
-      <property name="text">
-       <string>Export</string>
-      </property>
-     </widget>
-    </item>
     <item row="20" column="0" colspan="2">
      <widget class="QLabel" name="label_REIMS">
       <property name="font">
@@ -410,6 +382,34 @@ p, li { white-space: pre-wrap; }
       </property>
       <property name="text">
        <string>Raw processing</string>
+      </property>
+     </widget>
+    </item>
+    <item row="17" column="0">
+     <widget class="QLabel" name="label_66">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Export MSI data    </string>
+      </property>
+     </widget>
+    </item>
+    <item row="17" column="1">
+     <widget class="QPushButton" name="ExportPushBotton">
+      <property name="styleSheet">
+       <string notr="true">background-color: #1769aa;
+color: rgb(255, 255, 255);</string>
+      </property>
+      <property name="text">
+       <string>Export</string>
       </property>
      </widget>
     </item>
