@@ -2071,6 +2071,65 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return True
 
+	def RawFileLoad(self, filePath):
+		self.saveFolder = os.path.dirname(filePath)
+		self.slideName = os.path.splitext( os.path.basename(filePath) )[0]
+		self.savenameBase = os.path.splitext(filePath)[0]
+		
+		try:
+			from pyimzml.ImzMLParser import ImzMLParser
+		except ModuleNotFoundError:
+			slicer.util.pip_install("pyimzml")
+			from pyimzml.ImzMLParser import ImzMLParser
+
+		parser = ImzMLParser(filePath)
+		tic_image = imzML_TIC(parser)
+
+		# save tic image
+		tic_image = sitk.GetImageFromArray(np.transpose(tic_image, [0, 1]))
+		tic_filename = os.path.splitext(filePath)[0]+'.nrrd'
+		sitk.WriteImage(tic_image, tic_filename)
+		# load tic image
+		volumeNode = slicer.util.loadVolume(tic_filename, {"singleFile": True})
+		# set the colormap
+		displayNode = volumeNode.GetDisplayNode()
+		colorNode = slicer.util.getNode('Inferno')
+		displayNode.SetAndObserveColorNodeID(colorNode.GetID())
+		# set the layout
+		lm = slicer.app.layoutManager()
+		lm.setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
+		# delete the tic file
+		os.remove(tic_filename)
+
+		dim_x, dim_y, *_ = np.array(parser.coordinates).max(0)
+		n_spectra = len(parser.coordinates)
+		mzLengths = parser.mzLengths
+		mz_range = [np.inf, -np.inf]
+		for ind in range(n_spectra):
+			mz, _ = parser.getspectrum(ind)
+			mz_range[0] = np.min([mz_range[0], np.min(mz)])
+			mz_range[1] = np.max([mz_range[1], np.max(mz)])
+
+		info = os.path.basename(filePath) +'\n'
+		info += f'spatial:\t {dim_y} x {dim_x} pixels \n'
+		info += f'spectra:\t {n_spectra} \n'
+		if len(set(mzLengths))==1:
+			info += f'm/z per pixel:\t {mzLengths[0]} \n'
+		else:
+			info += f'm/z per pixel:\t {min(mzLengths)} - {max(mzLengths)} \n'
+		info += f'm/z range: \t {mz_range[0]} - {mz_range[1]} \n'
+		return info
+
+
+		# dim_x, dim_y, *_ = np.array(parser.coordinates).max(0)
+		# mz, _ = parser.getspectrum(0)
+		# peaks = np.zeros((dim_y, dim_x, len(mz)))
+		# for i, (x, y, *_) in enumerate(parser.coordinates):
+		# 	_, intensities = parser.getspectrum(i)
+		# 	peaks[y-1, x-1,:] = intensities
+		# peaks = peaks.reshape((dim_y*dim_x,-1),order='C')
+		# return peaks, mz, dim_y, dim_x
+
 	def MSIExport(self, savepath):
 		file_type = os.path.splitext(savepath)[-1]
 		if file_type.lower() == ".h5":
@@ -2566,6 +2625,14 @@ def dataset_normalization(data, method, **kwargs):
 	scale[scale == 0] = 1  # Prevent division by zero
 	
 	return data / scale
+
+def imzML_TIC(parser):
+    dim_x, dim_y, *_ = np.array(parser.coordinates).max(0)
+    tic_img = np.zeros((dim_y, dim_x))
+    for i, (x, y, *_) in enumerate(parser.coordinates):
+        _, intensities = parser.getspectrum(i)
+        tic_img[y-1, x-1] = intensities.sum()
+    return tic_img
 
 # Low Coefficient of Variation (CV) Across Spectra for selection of normalization 
 # cv = np.std(data, axis=0) / np.mean(data, axis=0)

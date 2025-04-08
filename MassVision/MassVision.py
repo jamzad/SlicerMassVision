@@ -160,6 +160,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		self.ui.histoFileSelect.connect("clicked(bool)",self.onHistoSelect)
 
+		self.ui.rawSelect.connect("clicked(bool)", self.onRawSelect)
+		self.ui.RAWplaceFiducial.connect("clicked(bool)", lambda checked: self.onPutFiducial("raw-spectrum"))
+
 		self.ui.ExportPushBotton.connect("clicked(bool)",self.onExport)
 
 		self.ui.REIMSFileSelect.connect("clicked(bool)",self.onREIMSSelect)
@@ -168,6 +171,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		# Visualization
 		self.ui.spectrumPlot.connect("clicked(bool)", self.onSpectrumPlot)
+		self.ui.placeFiducial.connect("clicked(bool)", lambda checked: self.onPutFiducial("spectrum"))
+
 		self.ui.singleIonHeatmapList.addItem('Inferno')
 		self.ui.singleIonHeatmapList.addItem('DivergingBlueRed')
 		self.ui.singleIonHeatmapList.addItem('PET-Rainbow2')
@@ -281,6 +286,30 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		fileExplorer = qt.QFileDialog()
 		mrbFilename = fileExplorer.getOpenFileName(None, "Load Slicer Project", "", "MSI Project Files (*.mrb);;All Files (*)")
 		slicer.util.loadScene(mrbFilename)
+
+	def onRawSelect(self):
+		fileExplorer = qt.QFileDialog()
+		filePath = fileExplorer.getOpenFileName(None, "Import raw MSI data", "", "imzML (*.imzml);;All Files (*)")
+		self.ui.rawLineEdit.setText(filePath)
+		info = self.logic.RawFileLoad(filePath)
+		self.ui.rawInfo.setText(info)
+
+	def onPutFiducial(self, listName):
+		# Try to get or create the fiducial node
+		try:
+			fiducialNode = slicer.util.getNode(listName)
+		except slicer.util.MRMLNodeNotFoundException:
+			fiducialNode = slicer.vtkMRMLMarkupsFiducialNode()
+			fiducialNode.SetName(listName)
+			slicer.mrmlScene.AddNode(fiducialNode)
+
+		# Set as active list for placement
+		slicer.modules.markups.logic().SetActiveListID(fiducialNode)
+
+		# Enable place mode without switching module
+		interactionNode = slicer.mrmlScene.GetNodeByID("vtkMRMLInteractionNodeSingleton")
+		interactionNode.SetCurrentInteractionMode(interactionNode.Place)
+		interactionNode.SwitchToSinglePlaceMode()  # Or use SwitchToPersistentPlaceMode() for multi
 
 	def onTextFileSelect(self):
 		file_info = self.logic.textFileSelect()
