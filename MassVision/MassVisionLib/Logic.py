@@ -72,6 +72,9 @@ except ModuleNotFoundError:
 	slicer.util.pip_install("h5py")
 	import h5py
 
+		
+
+
 from scipy.stats import ttest_ind
 
 from MassVisionLib.Utils import *
@@ -166,6 +169,46 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		stopTime = time.time()
 		logging.info(f'Processing completed in {stopTime-startTime:.2f} seconds')
 
+	
+	def MSI_contImzML2numpy(self, imzml_file):
+		try:
+			from pyimzml.ImzMLParser import ImzMLParser
+		except ModuleNotFoundError:
+			slicer.util.pip_install("pyimzml")
+			from pyimzml.ImzMLParser import ImzMLParser
+
+		parser = ImzMLParser(imzml_file)
+
+		formatError = False
+		if len(set(parser.mzOffsets))==1:
+			formatError = False
+		elif len(set(parser.mzLengths))!=1:
+			formatError = True
+		else:
+			n_all = len(parser.coordinates)
+			n_sample = 5
+			inds = np.random.choice(range(n_all), n_sample, replace=False)
+			mz_ref, _ = parser.getspectrum(inds[0])
+			cond = True
+			for ind in inds:
+				mz_rand, _ = parser.getspectrum(ind)
+				cond *= np.all(mz_rand == mz_ref)
+			if not cond:
+				formatError = True
+
+		if formatError:
+			slicer.util.errorDisplay("Only continuous-mode imzML files with a common m/z axis (i.e., cubical data) are supported for direct import. Please use 'Raw Import' for MSI data with per-spectrum m/z arrays.", windowTitle="Import Error")
+			raise ValueError("Only continuous-mode imzML files with a common m/z axis (i.e., cubical data) are supported for direct import. Please use 'Raw Import' for MSI data with per-spectrum m/z arrays. ")
+		else: 
+			dim_x, dim_y, *_ = np.array(parser.coordinates).max(0)
+			mz, _ = parser.getspectrum(0)
+			peaks = np.zeros((dim_y, dim_x, len(mz)))
+			for i, (x, y, *_) in enumerate(parser.coordinates):
+				_, intensities = parser.getspectrum(i)
+				peaks[y-1, x-1,:] = intensities
+			peaks = peaks.reshape((dim_y*dim_x,-1),order='C')
+			return peaks, mz, dim_y, dim_x
+	
 	def MSI_h52numpy(self, h5_file):
 		with h5py.File(h5_file, 'r') as h5file:
 			peaks = h5file['peaks'][:]
@@ -340,11 +383,13 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return roi_reconstruct_num, roi_reconstruct
 
 	def getTUSthreshold(self):
-		all_values = self.peaks.flatten()
-		mean_val = np.mean(all_values)
-		std_val = np.std(all_values)
-		threshold = mean_val + 2 * std_val
-		return np.round(threshold, 2)
+		### automatic detection
+		# all_values = self.peaks.flatten()
+		# mean_val = np.mean(all_values)
+		# std_val = np.std(all_values)
+		# threshold = mean_val + 2 * std_val
+		# return np.round(threshold, 2)
+		return 0
 
 	# the whole postporocessing fuction including nomalization, band filtering, and pixel aggregation
 	def dataset_post_processing(self, spec_normalization, normalization_param, subband_selection, pixel_aggregation, processed_dataset_name):
@@ -1909,14 +1954,13 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 	def textFileSelect(self):
 		fileExplorer = qt.QFileDialog()
-		# filePaths = fileExplorer.getOpenFileNames(None, "Open DESI text file", "", "Text Files (*.txt);;All Files (*)")
-		# data_path_temp = filePaths[0]
-		filePaths = fileExplorer.getOpenFileName(None, "Import MSI data", "", "Structured CSV (*.csv);;Hierarchical HDF5 (*.h5);;DESI Text (*.txt);;All Files (*)")
+		filePaths = fileExplorer.getOpenFileName(None, "Import MSI data", "", "Structured CSV (*.csv);;Hierarchical HDF5 (*.h5);;Waters DESI Text (*.txt);;Continuous imzML (*.imzml);;All Files (*)")
 		data_path_temp = filePaths
 		slide_name = data_path_temp.split('/')[-1]
 		lengthy = len(slide_name)
 		data_path = data_path_temp[:-lengthy]
 		return data_path, slide_name
+
 
 	def REIMSSelect(self):
 		fileExplorer = qt.QFileDialog()
@@ -2004,6 +2048,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			[peaks, mz, dim_y, dim_x] = self.MSI_csv2numpy(name)
 		elif data_extension == '.h5':
 			[peaks, mz, dim_y, dim_x] = self.MSI_h52numpy(name)
+		elif data_extension == '.imzml':
+			[peaks, mz, dim_y, dim_x] = self.MSI_contImzML2numpy(name)
 		else:
 			pass
 		
@@ -2502,14 +2548,6 @@ def dataset_normalization(data, method, **kwargs):
 # Low Coefficient of Variation (CV) Across Spectra for selection of normalization 
 # cv = np.std(data, axis=0) / np.mean(data, axis=0)
 # ref_peak_index = np.argmin(cv)
-
-# TUS treshold
-# all_values = data.flatten()
-# mean_val = np.mean(all_values)
-# std_val = np.std(all_values)
-
-# # Compute global threshold
-# threshold = mean_val + threshold_multiplier * std_val
 
 # # Quantile Normalization
 # def quantile_normalization(data):

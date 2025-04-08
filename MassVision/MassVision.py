@@ -141,9 +141,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.roiCintrastExtend.hide()
 		self.ClearClusterTable()
 
-
-		self.ui.textFileLoad.hide()
-		self.ui.loadHisto.hide()
+		# self.ui.loadHisto.hide()
 		self.ui.csvLoad.hide()
 		self.ui.modellingFile.hide()
 		self.ui.deployImport.hide()
@@ -160,10 +158,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.loadScenePush.connect("clicked(bool)", self.onLoadScene)
 
 		self.ui.textFileSelect.connect("clicked(bool)", self.onTextFileSelect)
-		self.ui.textFileLoad.connect("clicked(bool)", self.onTextFileLoad)
 
 		self.ui.histoFileSelect.connect("clicked(bool)",self.onHistoSelect)
-		self.ui.loadHisto.connect("clicked(bool)",self.onloadHisto)
+		# self.ui.loadHisto.connect("clicked(bool)",self.onloadHisto)
 
 		self.ui.REIMSFileSelect.connect("clicked(bool)",self.onREIMSSelect)
 		self.ui.REIMSFileLoad.connect("clicked(bool)",self.onREIMSLoad)
