@@ -776,7 +776,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 	### Model training tab
 
 	def onPlotDIstribution(self):
-		self.logic.plot_latent_pca()
+		selected_label = self.ui.plotDistributioncomboBox.currentText
+		self.logic.plot_latent_pca_interactive(plot=selected_label)
 
 	def onSelectModelData(self):
 		fileExplorer = qt.QFileDialog()

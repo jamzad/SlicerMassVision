@@ -1148,7 +1148,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		for i in range(slicer.app.layoutManager().plotViewCount):
 			plotView = slicer.app.layoutManager().plotWidget(i).plotView()
 			plotView.connect("dataSelected(vtkStringArray*, vtkCollection*)", self.get_data)
-			slicer.app.layoutManager().plotWidget(i).plotView().fitToContent()
+			#slicer.app.layoutManager().plotWidget(i).plotView().fitToContent()
 
 	def get_data(self, data, collection):
 		if collection.GetNumberOfItems() == 0:
@@ -1171,7 +1171,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			mz_value = round(float(table.GetValue(row_index, 0).ToDouble()),4)  # Column 0 = m/z values
 			self.singleIonVisualization(mz_value, heatmap="Inferno")
 			self.update_layout(slicer.app.layoutManager().plotViewCount)
-			plotWidget.plotView().fitToContent()
+			#plotWidget.plotView().fitToContent()
 			return
 		
 	def clear_all_plots(self):
@@ -1727,8 +1727,116 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
 		YellowNode.SetOrientation("Axial")
 		slicer.util.resetSliceViews()
+	
+	
+	def plot_latent_pca_interactive(self, plot="Class"):
+		# Prepare data
+		peaks = self.df.iloc[:, 4:].values
+		labels = self.df.iloc[:, 0:4].values
+		peaks = np.nan_to_num(peaks)
+		pca = PCA(n_components=2)
+		mm1 = MinMaxScaler()
+		peaks_pca = pca.fit_transform(mm1.fit_transform(peaks))
+		mm2 = MinMaxScaler()
+		peaks_pca = mm2.fit_transform(peaks_pca)
+		if plot == 'Slide':
+			title = 'Slide distribution'
+			label = labels[:, 0]
+		elif plot == 'Class':
+			title = 'Class distribution'
+			label = labels[:, 1]
 
+		# Switch to the plot layout and get plot widget and view node
+		layoutManager = slicer.app.layoutManager()
+		layoutManager.setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpPlotView)
+		slicer.app.processEvents()
+		plotWidget = layoutManager.plotWidget(0)
+		plotViewNode = plotWidget.mrmlPlotViewNode()
+
+		plotChartNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotChartNode", f"PlotChart1")
+		plotChartNode.SetTitle(title)
+		plotChartNode.SetXAxisTitle("PC1")
+		plotChartNode.SetYAxisTitle("PC2")
+		plotChartNode.SetLegendVisibility(True)
+
+		tableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode", "PCA_Table")
+		table = tableNode.GetTable()
+
+		col_PC1 = vtk.vtkFloatArray()
+		col_PC1.SetName("PC1")
+		col_PC2 = vtk.vtkFloatArray()
+		col_PC2.SetName("PC2")
+		col_slide = vtk.vtkStringArray()
+		col_slide.SetName("Slide")
+		col_class = vtk.vtkStringArray()
+		col_class.SetName("Class")
+		col_X = vtk.vtkFloatArray()
+		col_X.SetName("X")
+		col_Y = vtk.vtkFloatArray()
+		col_Y.SetName("Y")
+
+		for i in range(len(peaks_pca)):
+			col_PC1.InsertNextValue(peaks_pca[i, 0])
+			col_PC2.InsertNextValue(peaks_pca[i, 1])
+			col_slide.InsertNextValue(str(labels[i, 0]))
+			col_class.InsertNextValue(str(labels[i, 1]))
+			col_X.InsertNextValue(labels[i, 3])
+			col_Y.InsertNextValue(labels[i, 2])
+
+		table.AddColumn(col_PC1)
+		table.AddColumn(col_PC2)
+		table.AddColumn(col_slide)
+		table.AddColumn(col_class)
+		table.AddColumn(col_X)
+		table.AddColumn(col_Y)
+
+		# Split by label and create separate series
+		unique_labels = np.unique(label)
+
+		for idx, label_val in enumerate(unique_labels):
+			filteredTableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode", f"Table_{label_val}")
+			filteredTable = filteredTableNode.GetTable()
+
+			pc1Array = vtk.vtkFloatArray()
+			pc1Array.SetName("PC1")
+			pc2Array = vtk.vtkFloatArray()
+			pc2Array.SetName("PC2")
+			labelArrayNew = vtk.vtkStringArray()
+			labelArrayNew.SetName("Labels")
 			
+			for i in range(len(label)):
+				if label[i] == label_val:
+					pc1Array.InsertNextValue(peaks_pca[i, 0])
+					pc2Array.InsertNextValue(peaks_pca[i, 1])
+					if plot == 'Slide':
+						fill = f"\nX: {col_X.GetValue(i)}\nY: {col_Y.GetValue(i)}\nClass: {col_class.GetValue(i)}"
+					elif plot == 'Class':
+						fill = f"\nX: {col_X.GetValue(i)}\nY: {col_Y.GetValue(i)}\nSlide: {col_slide.GetValue(i)}"
+					labelArrayNew.InsertNextValue(fill)
+
+			filteredTable.AddColumn(pc1Array)
+			filteredTable.AddColumn(pc2Array)
+			filteredTable.AddColumn(labelArrayNew)
+
+			plotSeriesNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotSeriesNode", f"{label_val}")
+			plotSeriesNode.SetAndObserveTableNodeID(filteredTableNode.GetID())
+			plotSeriesNode.SetXColumnName("PC1")
+			plotSeriesNode.SetYColumnName("PC2")
+			plotSeriesNode.SetLabelColumnName("Labels")
+			plotSeriesNode.SetPlotType(slicer.vtkMRMLPlotSeriesNode.PlotTypeScatter)
+			plotSeriesNode.SetMarkerStyle(slicer.vtkMRMLPlotSeriesNode.MarkerStyleCross)
+			plotSeriesNode.SetMarkerSize(5)
+			plotSeriesNode.SetLineStyle(slicer.vtkMRMLPlotSeriesNode.LineStyleNone)
+			colour = cm.get_cmap("tab10")(idx % 10)[:3]
+			plotSeriesNode.SetColor(*colour)
+
+			plotChartNode.AddAndObservePlotSeriesNodeID(plotSeriesNode.GetID())
+			plotViewNode.SetPlotChartNodeID(plotChartNode.GetID())
+			
+		# Assign chart to plot view and force update
+		plotViewNode.SetPlotChartNodeID(plotChartNode.GetID())
+		plotWidget.setMRMLPlotViewNode(plotViewNode)
+		slicer.app.processEvents()
 
 
 	def LDA_plot(self, X_train_lda, y_train):
