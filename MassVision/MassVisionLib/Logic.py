@@ -1041,8 +1041,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		
 			plotChartNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotChartNode", f"PlotChart{i+1}")
 			plotChartNode.SetTitle(f"{fnode_name}")
-			plotChartNode.SetXAxisTitle("Mass to Charge Ratio (m/z)")
-			plotChartNode.SetYAxisTitle("Intensity")
+			plotChartNode.SetXAxisTitle("m/z")
+			plotChartNode.SetYAxisTitle("intensity")
 			plotChartNode.SetLegendVisibility(False)
 
 			# Create plot series and table
@@ -1148,7 +1148,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		for i in range(slicer.app.layoutManager().plotViewCount):
 			plotView = slicer.app.layoutManager().plotWidget(i).plotView()
 			plotView.connect("dataSelected(vtkStringArray*, vtkCollection*)", self.get_data)
+<<<<<<< HEAD
 			#slicer.app.layoutManager().plotWidget(i).plotView().fitToContent()
+=======
+			# slicer.app.layoutManager().plotWidget(i).plotView().fitToContent()
+>>>>>>> aafcd5511ab8881e11e26d7cc091a8999635959b
 
 	def get_data(self, data, collection):
 		if collection.GetNumberOfItems() == 0:
@@ -1171,7 +1175,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			mz_value = round(float(table.GetValue(row_index, 0).ToDouble()),4)  # Column 0 = m/z values
 			self.singleIonVisualization(mz_value, heatmap="Inferno")
 			self.update_layout(slicer.app.layoutManager().plotViewCount)
+<<<<<<< HEAD
 			#plotWidget.plotView().fitToContent()
+=======
+			# plotWidget.plotView().fitToContent()
+>>>>>>> aafcd5511ab8881e11e26d7cc091a8999635959b
 			return
 		
 	def clear_all_plots(self):
@@ -1428,7 +1436,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 	# uploads the modelling file and saves the file names into the class directory 
 	def modellingFileLoad(self, filename):
-		self.df = pd.read_csv(filename)
+		self.df = pd.read_csv(filename, dtype={"Slide": str, "Class": str})
 		self.df["Class"] = self.df["Class"].str.lower()
 		self.modellingFile = filename
 		retstr = 'Dataset successfully loaded \n'
@@ -1530,6 +1538,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		if len(class_order)<=2:
 			y_train_prob = expit(y_train_prob)
 			y_train_prob = y_train_prob.reshape(-1,1)
+			y_train_prob = np.concatenate([1-y_train_prob, y_train_prob], axis=1)
 		else:
 			y_train_prob = softmax(y_train_prob, axis=1)
 
@@ -1538,6 +1547,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		if len(class_order)<=2:
 			y_test_prob = expit(y_test_prob)
 			y_test_prob = y_test_prob.reshape(-1,1)
+			y_test_prob = np.concatenate([1-y_test_prob, y_test_prob], axis=1)
 		else:
 			y_test_prob = softmax(y_test_prob, axis=1)
 
@@ -2211,15 +2221,15 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			mz_old = mz[i]
 			pmean = peaks[i].mean(axis=0)/peaks[i].mean(axis=0).max()
 			for j in range(n_mz):
-				mz_cell = new_mz_df[new_mz_df.columns[j]][i]
+				mz_cell = new_mz_df.loc[i, new_mz_df.columns[j]]
 				if len(mz_cell)==0:
 					pass
 				elif len(mz_cell)==1:
-					final_mz_df[final_mz_df.columns[j]][i] = mz_cell[0]
+					final_mz_df.loc[i, final_mz_df.columns[j]] = mz_cell[0]
 				else:
 					ind = [np.abs(x-mz_old).argmin() for x in mz_cell]
 					i_abundant = pmean[ind].argmax()
-					final_mz_df[final_mz_df.columns[j]][i] = mz_cell[i_abundant]
+					final_mz_df.loc[i, final_mz_df.columns[j]] = mz_cell[i_abundant]
 								
 
 		# correct the selected mz
