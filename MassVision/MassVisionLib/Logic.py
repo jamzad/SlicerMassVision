@@ -1148,11 +1148,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		for i in range(slicer.app.layoutManager().plotViewCount):
 			plotView = slicer.app.layoutManager().plotWidget(i).plotView()
 			plotView.connect("dataSelected(vtkStringArray*, vtkCollection*)", self.get_data)
-<<<<<<< HEAD
 			#slicer.app.layoutManager().plotWidget(i).plotView().fitToContent()
-=======
-			# slicer.app.layoutManager().plotWidget(i).plotView().fitToContent()
->>>>>>> aafcd5511ab8881e11e26d7cc091a8999635959b
 
 	def get_data(self, data, collection):
 		if collection.GetNumberOfItems() == 0:
@@ -1175,11 +1171,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			mz_value = round(float(table.GetValue(row_index, 0).ToDouble()),4)  # Column 0 = m/z values
 			self.singleIonVisualization(mz_value, heatmap="Inferno")
 			self.update_layout(slicer.app.layoutManager().plotViewCount)
-<<<<<<< HEAD
 			#plotWidget.plotView().fitToContent()
-=======
-			# plotWidget.plotView().fitToContent()
->>>>>>> aafcd5511ab8881e11e26d7cc091a8999635959b
 			return
 		
 	def clear_all_plots(self):
