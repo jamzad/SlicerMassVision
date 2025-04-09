@@ -162,6 +162,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		self.ui.rawSelect.connect("clicked(bool)", self.onRawSelect)
 		self.ui.RAWplaceFiducial.connect("clicked(bool)", lambda checked: self.onPutFiducial("raw-spectrum"))
+		self.ui.RAWplotSpectra.connect("clicked(bool)", self.onRawPlotSpectra)
 
 		self.ui.ExportPushBotton.connect("clicked(bool)",self.onExport)
 
@@ -310,6 +311,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		interactionNode = slicer.mrmlScene.GetNodeByID("vtkMRMLInteractionNodeSingleton")
 		interactionNode.SetCurrentInteractionMode(interactionNode.Place)
 		interactionNode.SwitchToSinglePlaceMode()  # Or use SwitchToPersistentPlaceMode() for multi
+
+	def onRawPlotSpectra(self):
+		self.logic.RawPlotSpectra()
+		return True
 
 	def onTextFileSelect(self):
 		file_info = self.logic.textFileSelect()

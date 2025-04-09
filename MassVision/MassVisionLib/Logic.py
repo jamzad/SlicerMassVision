@@ -1078,6 +1078,130 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return fold_changes, p_values
 	
+	def RawPlotSpectra(self):
+		self.clear_all_plots()
+		fiducialNode = slicer.util.getNode("raw-spectrum")
+		numPoints = fiducialNode.GetNumberOfControlPoints()
+		fnode_names = []
+		fnode_locs = []
+		for i in range(numPoints):
+			position = [0.0, 0.0, 0.0]
+			fiducialNode.GetNthControlPointPosition(i, position)
+			point_name = fiducialNode.GetNthControlPointLabel(i)
+			fnode_names.append(point_name)
+			fnode_locs.append(self.fiducial_to_index(position))
+		N = len(fnode_locs)
+		if N == 0:
+			print("No fiducials found.")
+			return False
+		print(f"Number of fiducials: {N}")
+		coord_to_index = {(x, y): i for i, (x, y, *_) in enumerate(self.parser.coordinates)}
+		# Create or update a plot for each fiducial
+		for i, (fnode_name, fnode_loc) in enumerate(zip(fnode_names, fnode_locs)):
+			fnode_ind = coord_to_index[(fnode_loc[1]+1, fnode_loc[0]+1)]
+			mz, spec = self.parser.getspectrum(fnode_ind)
+
+			plotViewNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotViewNode", f"Plot{i+1}")
+			plotViewNode.SetSingletonTag(f"Plot{i+1}")
+			plotViewNode.SetLayoutLabel(f"Plot{i+1}")
+		
+			plotChartNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotChartNode", f"PlotChart{i+1}")
+			plotChartNode.SetTitle(f"{fnode_name}")
+			plotChartNode.SetXAxisTitle("m/z")
+			plotChartNode.SetYAxisTitle("intensity")
+			plotChartNode.SetLegendVisibility(False)
+
+			# Create plot series and table
+			plotSeriesNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotSeriesNode", f"Fiducial {fnode_name}")
+			tableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode")
+			table = tableNode.GetTable()
+
+			# Populate table with data
+			col_mz = vtk.vtkFloatArray()
+			col_mz.SetName("m/z")
+			col_intensity = vtk.vtkFloatArray()
+			col_intensity.SetName("Intensity")
+			for mz_value, intensity in zip(mz, spec):
+				col_mz.InsertNextValue(mz_value)
+				col_intensity.InsertNextValue(intensity)
+			table.AddColumn(col_mz)
+			table.AddColumn(col_intensity)
+			
+			col_label = vtk.vtkStringArray()
+			col_label.SetName("Label")
+			for mz_value, intensity in zip(mz, spec):
+				label = f"\nm/z: {mz_value}\nintensity: {intensity:.2e}"
+				col_label.InsertNextValue(label)
+			table.AddColumn(col_label)
+			# Link data to series and chart
+			plotSeriesNode.SetAndObserveTableNodeID(tableNode.GetID())
+			plotSeriesNode.SetXColumnName("m/z")
+			plotSeriesNode.SetYColumnName("Intensity")
+			plotSeriesNode.SetLabelColumnName("Label")
+			plotSeriesNode.SetPlotType(slicer.vtkMRMLPlotSeriesNode.PlotTypeScatter)
+			plotSeriesNode.SetMarkerStyle(slicer.vtkMRMLPlotSeriesNode.MarkerStyleNone) 
+			plotSeriesNode.SetLineStyle(slicer.vtkMRMLPlotSeriesNode.LineStyleSolid)
+			colour = cm.get_cmap("tab10")(i % 10)[:3]  # Get RGB values from 'tab10' colormap
+			plotSeriesNode.SetColor(*colour)
+
+			plotChartNode.SetYAxisLogScale(False)
+			plotChartNode.AddAndObservePlotSeriesNodeID(plotSeriesNode.GetID())
+			
+			# Link chart to view
+			plotViewNode.SetPlotChartNodeID(plotChartNode.GetID())
+
+		# # Update layout dynamically
+		layoutXML = """
+		<layout type="horizontal">
+			<item>
+				<view class="vtkMRMLSliceNode" singletontag="Red">
+					<property name="orientation" action="default">Axial</property>
+					<property name="viewlabel" action="default">R</property>
+					<property name="viewcolor" action="default">#F34A4A</property>
+				</view>
+			</item>
+			<item>
+				<layout type="vertical">
+		"""
+		for i in range(N):
+			layoutXML += f"""
+				<item>
+					<view class="vtkMRMLPlotViewNode" singletontag="Plot{i+1}">
+						<property name="viewlabel" action="default">Plot{i+1}</property>
+					</view>
+				</item>
+			"""
+		layoutXML += """
+				</layout>
+			</item>
+		</layout>
+		"""
+
+		layoutNode = slicer.app.layoutManager().layoutLogic().GetLayoutNode()
+		customLayoutId = N * 500
+		layoutNode.AddLayoutDescription(customLayoutId, layoutXML)
+		layoutNode.SetViewArrangement(customLayoutId)
+		slicer.app.processEvents()
+		
+		# Clear old selections
+		for i in range(slicer.app.layoutManager().plotViewCount):
+			slicer.app.layoutManager().plotWidget(i).plotView().RemovePlotSelections()  
+		# Remove existing connections
+		for i in range(slicer.app.layoutManager().plotViewCount):
+			plotView = slicer.app.layoutManager().plotWidget(i).plotView()
+			try:
+				plotView.disconnect("dataSelected(vtkStringArray*, vtkCollection*)", self.get_data)  # Remove previous connections
+			except TypeError:
+				pass
+		# # Connect to data selection event
+		# for i in range(slicer.app.layoutManager().plotViewCount):
+		# 	plotView = slicer.app.layoutManager().plotWidget(i).plotView()
+		# 	plotView.connect("dataSelected(vtkStringArray*, vtkCollection*)", self.get_data)
+		# 	# slicer.app.layoutManager().plotWidget(i).plotView().fitToContent()
+		# # print("Interactive plot updated with fiducials.")
+		
+		return True
+
 	def spectrum_plot(self):
 		self.clear_all_plots()
 		# Collect fiducial information
@@ -2118,6 +2242,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		else:
 			info += f'm/z per pixel:\t {min(mzLengths)} - {max(mzLengths)} \n'
 		info += f'm/z range: \t {mz_range[0]} - {mz_range[1]} \n'
+		
+		self.dim_y = dim_y
+		self.dim_x = dim_x
+		self.parser = parser
+
 		return info
 
 
