@@ -1672,63 +1672,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 				pd.DataFrame(result_test, columns=result_header).to_csv(modelSavename[:-4]+'_testTrack.csv', index=False)
 
 		return all_string
-
-
-
-	def plot_latent_pca(self):
-		peaks = self.df.iloc[0:, 4:].values
-		labels =  self.df.iloc[0:, 0:2].values
-		peaks = np.nan_to_num(peaks)
-		pca = PCA(n_components=2)
-		mm1 = MinMaxScaler()
-		peaks_pca = pca.fit_transform( mm1.fit_transform( peaks ) )
-		mm2 = MinMaxScaler()
-		peaks_pca = mm2.fit_transform(peaks_pca)
-
-		# plot PCA with colorcoding based on Slide and Class
-		fig = plt.figure(figsize=(20,10))
-		plot_titles = ['Slide distribution', 'Class distribution']
-		for jj in range(2):
-			ax = fig.add_subplot(1,2,jj+1)
-
-			scatter_labels = labels[:,jj]
-			legend_labels = np.unique(scatter_labels)
-			n_colors = len(legend_labels)
-			if n_colors<=10:
-				class_colors = plt.cm.tab10(range(n_colors))
-			else:
-				class_colors = cm.get_cmap('jet_r')(np.linspace(0, 1, n_colors))
-
-			for i in range(len(legend_labels)):
-		
-				ind = scatter_labels == legend_labels[i]
-				xx = peaks_pca[ind]
-				ax.scatter(xx[:,0],xx[:,1],
-						color=class_colors[i],
-						label=legend_labels[i], alpha=0.8)
-
-			plt.legend()
-			ax.set_xlabel('PC1')
-			ax.set_ylabel('PC2')
-			ax.set_ylim([0,1])
-			ax.set_xlim([0,1])
-			ax.set_title(plot_titles[jj])
-
-		# save plot
-		filename = self.modellingFile[:-4] + f'_PCAlatent.jpeg'
-		plt.savefig(filename, bbox_inches='tight', dpi=600)
-		plt.close()
-
-		# display plot
-		YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
-		YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
-
-		volumeNode = slicer.util.loadVolume(filename, {"singleFile": True})
-		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
-
-		YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
-		YellowNode.SetOrientation("Axial")
-		slicer.util.resetSliceViews()
 	
 	
 	def plot_latent_pca_interactive(self, plot="Class"):
