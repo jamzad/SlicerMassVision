@@ -152,6 +152,18 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.thresholdLabel.setVisible(False)
 		self.ui.thresholdValue.setVisible(False)
 		
+		# Heatmap list singleIonHeatmapList
+		self.ui.singleIonHeatmapList.addItem('Inferno')
+		self.ui.singleIonHeatmapList.addItem('DivergingBlueRed')
+		self.ui.singleIonHeatmapList.addItem('PET-Rainbow2')
+		self.ui.singleIonHeatmapList.addItem('Cividis')
+		self.ui.singleIonHeatmapList.addItem('ColdToHotRainbow')
+
+		for i in range(self.ui.singleIonHeatmapList.count):
+			text = self.ui.singleIonHeatmapList.itemText(i)
+			data = self.ui.singleIonHeatmapList.itemData(i)
+			self.ui.RawImgHeatmap.addItem(text, data)
+
 		# Data Import
 		self.ui.clearReloadPush.connect("clicked(bool)", self.onClearReload)
 		self.ui.loadScenePush.connect("clicked(bool)", self.onLoadScene)
@@ -164,6 +176,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.RAWplaceFiducial.connect("clicked(bool)", lambda checked: self.onPutFiducial("raw-spectrum"))
 		self.ui.RAWplotSpectra.connect("clicked(bool)", self.onRawPlotSpectra)
 
+		self.ui.RawPlotImg.connect("clicked(bool)", self.onRawPlotImg)
+
 		self.ui.ExportPushBotton.connect("clicked(bool)",self.onExport)
 
 		self.ui.REIMSFileSelect.connect("clicked(bool)",self.onREIMSSelect)
@@ -174,12 +188,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.spectrumPlot.connect("clicked(bool)", self.onSpectrumPlot)
 		self.ui.placeFiducial.connect("clicked(bool)", lambda checked: self.onPutFiducial("spectrum"))
 
-		self.ui.singleIonHeatmapList.addItem('Inferno')
-		self.ui.singleIonHeatmapList.addItem('DivergingBlueRed')
-		self.ui.singleIonHeatmapList.addItem('PET-Rainbow2')
-		self.ui.singleIonHeatmapList.addItem('Cividis')
-		self.ui.singleIonHeatmapList.addItem('ColdToHotRainbow')
-	
 		self.ui.AbundanceThumbnail.connect("clicked(bool)", self.onAbundanceThumbnail)
 
 		self.ui.singleIonButton.connect("clicked(bool)", self.selectedSingleIon)
@@ -316,6 +324,12 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.logic.RawPlotSpectra()
 		return True
 
+	def onRawPlotImg(self):
+		ion_mz = float(self.ui.RawImgIon.text)
+		tol_mz = float(self.ui.RawImgTol.text)
+		img_heatmap = self.ui.RawImgHeatmap.currentText
+		self.logic.RawPlotImg(ion_mz, tol_mz, img_heatmap)
+	
 	def onTextFileSelect(self):
 		file_info = self.logic.textFileSelect()
 		if file_info!=('',''):

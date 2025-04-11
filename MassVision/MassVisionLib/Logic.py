@@ -1078,6 +1078,12 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return fold_changes, p_values
 	
+	def RawPlotImg(self, ion_mz, tol_mz, img_heatmap):
+		ion_img = imzML_ionImg(self.parser, ion_mz, tol_mz)
+		ion_img = np.expand_dims(ion_img, axis=0)
+		self.visualizationRunHelper(ion_img, ion_img.shape, 'single', heatmap=img_heatmap)
+		return True
+	
 	def RawPlotSpectra(self):
 		self.clear_all_plots()
 		fiducialNode = slicer.util.getNode("raw-spectrum")
@@ -2762,6 +2768,15 @@ def imzML_TIC(parser):
         _, intensities = parser.getspectrum(i)
         tic_img[y-1, x-1] = intensities.sum()
     return tic_img
+
+def imzML_ionImg(parser, mz, tol):
+    dim_x, dim_y, *_ = spatial_dims = np.array(parser.coordinates).max(0)
+    ion_img = np.zeros((dim_y, dim_x))
+    for i, (x, y, *_) in enumerate(parser.coordinates):
+        mzs, intensities = parser.getspectrum(i)
+        mask = (mzs >= (mz-tol)) & (mzs <= (mz+tol))
+        ion_img[y-1, x-1] = intensities[mask].sum()
+    return ion_img
 
 # Low Coefficient of Variation (CV) Across Spectra for selection of normalization 
 # cv = np.std(data, axis=0) / np.mean(data, axis=0)
