@@ -734,6 +734,37 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			self.peaks_norm = self.ion_minmax_normalize(self.tic_normalize(self.peaks))
 			return True
 		
+	def nonlinear_display(self, method, param1, param2):
+		if method=="UMAP":
+			try:
+				from umap import UMAP
+			except ModuleNotFoundError:
+				slicer.util.pip_install("umap-learn")
+				from umap import UMAP
+			
+			dim_reduction = UMAP(n_components=3, n_neighbors=param1, min_dist=param2)
+			peaks_reduced = dim_reduction.fit_transform(self.peaks_norm)
+			peaks_reduced = MinMaxScaler().fit_transform( peaks_reduced )
+
+		elif method=="t-SNE":
+			try:
+				from openTSNE import TSNE
+			except ModuleNotFoundError:
+				slicer.util.pip_install("opentsne")
+				from openTSNE import TSNE
+			
+			dim_reduction = TSNE(n_components=2, perplexity=param1, early_exaggeration=param2)
+			peaks_reduced = dim_reduction.fit(self.peaks_norm)
+			peaks_reduced = MinMaxScaler().fit_transform( peaks_reduced )
+			peaks_reduced = latent2color(peaks_reduced)
+		
+		self.peaks_pca = peaks_reduced
+		peaks_reduced_img = peaks_reduced.reshape((self.dim_y,self.dim_x,-1),order='C')
+		peaks_reduced_img = np.expand_dims(peaks_reduced_img, axis=0)*255
+		
+		self.visualizationRunHelper(peaks_reduced_img, peaks_reduced_img.shape, visualization_type=method)
+	
+	
 	# generates and displays the pca image
 	def pca_display(self):
 		# generates and displays the pca image
@@ -1550,7 +1581,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		
 		# delete all current views as we will load a new volume
 		filename = f'{self.slideName}_{visualization_type}'
-		if not (visualization_type.endswith('pca') or visualization_type.endswith('lda') or visualization_type.endswith('cluster')) : filename += 'ion'
+		if (visualization_type == 'single'): filename += 'ion'
 		existingOverlays = slicer.util.getNodes(f'{filename}*')
 		for node in existingOverlays: slicer.mrmlScene.RemoveNode(existingOverlays[node])
 		
@@ -2777,6 +2808,18 @@ def imzML_ionImg(parser, mz, tol):
         mask = (mzs >= (mz-tol)) & (mzs <= (mz+tol))
         ion_img[y-1, x-1] = intensities[mask].sum()
     return ion_img
+
+def latent2color(xy):
+	from matplotlib.colors import hsv_to_rgb
+
+	x_norm = (xy[:, 0] - xy[:, 0].min()) / np.ptp(xy[:, 0])
+	y_norm = (xy[:, 1] - xy[:, 1].min()) / np.ptp(xy[:, 1])
+
+	hsv = np.stack([x_norm, np.ones_like(x_norm), y_norm], axis=1)  # shape (N, 3)
+	rgb = hsv_to_rgb(hsv)
+
+	return rgb
+
 
 # Low Coefficient of Variation (CV) Across Spectra for selection of normalization 
 # cv = np.std(data, axis=0) / np.mean(data, axis=0)

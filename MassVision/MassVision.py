@@ -197,6 +197,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.dataInfo = ''
 		self.ui.ContrastThumbnail.connect("clicked(bool)", self.onContrastThumbnail)
 
+		self.ui.NLVisMethod.currentTextChanged.connect(self.onNLVisMethod)
+		self.ui.UmapButton.connect("clicked(bool)", self.onUMAPVis)
+
 		self.ui.Cluster_button.connect("clicked(bool)", self.onClusterButton)
 		self.ui.ClusterThumbnail.connect("clicked(bool)", self.onClusterThumbnail)
 
@@ -483,11 +486,33 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 	def onPCAButton(self):
 		# displays the pca image
 		self.logic.pca_display()
-
+		
 		info = self.logic.LoadingsRank()
 		info = 'Global Contrast \n\n' + info
 		self.ui.LoadingsInfo.setText(info)
 
+	def onNLVisMethod(self, text):
+		if text=="UMAP":
+			self.ui.NLVisLabel1.setText("n_neighbors")
+			self.ui.NLVisLabel1.setToolTip("2 - 200")
+			self.ui.NLVisParam1.setText("15")
+			self.ui.NLVisLabel2.setText("min_dist")
+			self.ui.NLVisLabel2.setToolTip("0.0 - 0.99")
+			self.ui.NLVisParam2.setText("0.1")
+			
+		elif text=="t-SNE":
+			self.ui.NLVisLabel1.setText("perplexity")
+			self.ui.NLVisLabel1.setToolTip("5 - 50")
+			self.ui.NLVisParam1.setText("30")
+			self.ui.NLVisLabel2.setText("early_exaggeration")
+			self.ui.NLVisLabel2.setToolTip("4 - 20")
+			self.ui.NLVisParam2.setText("12")
+	
+	def onUMAPVis(self):
+		method = self.ui.NLVisMethod.currentText
+		param1 = float(self.ui.NLVisParam1.text)
+		param2 = float(self.ui.NLVisParam2.text)
+		self.logic.nonlinear_display(method, param1, param2)
   
 	def populateMzLists(self):
 		# adds the m/z values to m/z lists for the color channels
