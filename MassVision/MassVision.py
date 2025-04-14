@@ -151,6 +151,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.refIoncomboBox.setVisible(False)
 		self.ui.thresholdLabel.setVisible(False)
 		self.ui.thresholdValue.setVisible(False)
+
+		self.ui.MLlabel2.setVisible(False)
+		self.ui.MLparam2.setVisible(False)
 		
 		# Heatmap list singleIonHeatmapList
 		self.ui.singleIonHeatmapList.addItem('Inferno')
@@ -246,6 +249,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.trainModel.connect("clicked(bool)", self.onModelTrain)
 		self.onAllTrainSplit()
 		
+		self.ui.ModelSelectCombobox.currentTextChanged.connect(self.onMLMethod)
 
 		# Results
 		self.model_results = ''
@@ -1032,6 +1036,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		
 		self.logic.model_type = self.ui.ModelSelectCombobox.currentText
 		self.logic.train_balancing = self.ui.BalanceComBox.currentText
+
+		self.logic.model_param1 = float(self.ui.MLparam1.text)
+		self.logic.model_param2 = float(self.ui.MLparam2.text)
 		
 		accuracystring = self.logic.runModel(savepath)
 		if not accuracystring:
@@ -1042,6 +1049,44 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			self.ui.tabWidget.setCurrentIndex(6)
 
   
+	def onMLMethod(self, text):
+		if text=="PCA-LDA":
+			self.ui.MLlabel1.setText("n_components")
+			self.ui.MLlabel1.setToolTip("Number of components, or variance explained")
+			self.ui.MLparam1.setText("0.99")
+
+			self.ui.MLlabel2.setVisible(False)
+			self.ui.MLparam2.setVisible(False)
+		
+		elif text=="Linear SVC":
+			self.ui.MLlabel1.setText("C")
+			self.ui.MLlabel1.setToolTip("Regularization strength")
+			self.ui.MLparam1.setText("1.0")
+
+			self.ui.MLlabel2.setVisible(False)
+			self.ui.MLparam2.setVisible(False)
+
+		elif text=="Random Forest":
+			self.ui.MLlabel1.setText("n_estimators")
+			self.ui.MLlabel1.setToolTip("Number of trees in the forest")
+			self.ui.MLparam1.setText("100")
+
+			self.ui.MLlabel2.setVisible(False)
+			self.ui.MLparam2.setVisible(False)
+
+		elif text=="PLS-DA":
+			self.ui.MLlabel1.setText("n_components")
+			self.ui.MLlabel1.setToolTip("Number of components")
+			self.ui.MLparam1.setText("2")
+
+			self.ui.MLlabel2.setVisible(False)
+			self.ui.MLparam2.setVisible(False)
+			# self.ui.NLVisLabel2.setText("min_dist")
+			# self.ui.NLVisLabel2.setToolTip("0.0 - 0.99")
+			# self.ui.NLVisParam2.setText("0.1")
+			
+
+
 	### Model deployment tab
 	def onDeploySelect(self):
 		file_loc = self.logic.textFileSelect()

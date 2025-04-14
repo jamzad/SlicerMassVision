@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>412</width>
-    <height>1195</height>
+    <height>1273</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -32,7 +32,7 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>1</number>
+   <number>5</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
@@ -2572,7 +2572,7 @@ color: rgb(255, 255, 255);</string>
        <string notr="true"/>
       </property>
       <property name="text">
-       <string>Model training</string>
+       <string>Model training/validation</string>
       </property>
      </widget>
     </item>
@@ -2614,7 +2614,7 @@ color: rgb(255, 255, 255);</string>
       </item>
       <item>
        <property name="text">
-        <string>SVM</string>
+        <string>Linear SVC</string>
        </property>
       </item>
       <item>
@@ -2629,7 +2629,7 @@ color: rgb(255, 255, 255);</string>
       </item>
      </widget>
     </item>
-    <item row="17" column="0">
+    <item row="18" column="0">
      <widget class="QLabel" name="label_78">
       <property name="font">
        <font>
@@ -2645,7 +2645,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="17" column="1">
+    <item row="18" column="1">
      <widget class="QRadioButton" name="allTrain">
       <property name="text">
        <string>Training on whole dataset</string>
@@ -2661,7 +2661,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="18" column="1">
+    <item row="19" column="1">
      <widget class="QRadioButton" name="randomSplit">
       <property name="text">
        <string>Random train/test split</string>
@@ -2674,14 +2674,14 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="19" column="1">
+    <item row="20" column="1">
      <widget class="QRadioButton" name="customSplit">
       <property name="text">
        <string>Slide-based train/test customization</string>
       </property>
      </widget>
     </item>
-    <item row="20" column="0" colspan="2">
+    <item row="21" column="0" colspan="2">
      <widget class="QLabel" name="namesTableLabel">
       <property name="styleSheet">
        <string notr="true"/>
@@ -2691,7 +2691,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="21" column="0" colspan="2">
+    <item row="22" column="0" colspan="2">
      <widget class="QTableWidget" name="namesTable">
       <column>
        <property name="text">
@@ -2715,7 +2715,7 @@ color: rgb(255, 255, 255);</string>
       </column>
      </widget>
     </item>
-    <item row="22" column="0" colspan="2">
+    <item row="23" column="0" colspan="2">
      <spacer name="verticalSpacer_27">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -2731,7 +2731,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="23" column="0">
+    <item row="24" column="0">
      <widget class="QLabel" name="label_83">
       <property name="font">
        <font>
@@ -2747,7 +2747,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="23" column="1">
+    <item row="24" column="1">
      <widget class="QComboBox" name="BalanceComBox">
       <item>
        <property name="text">
@@ -2771,7 +2771,7 @@ color: rgb(255, 255, 255);</string>
       </item>
      </widget>
     </item>
-    <item row="24" column="0" colspan="2">
+    <item row="25" column="0" colspan="2">
      <spacer name="verticalSpacer_26">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -2787,7 +2787,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="25" column="0">
+    <item row="26" column="0">
      <widget class="QLabel" name="label_79">
       <property name="font">
        <font>
@@ -2803,7 +2803,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="25" column="1">
+    <item row="26" column="1">
      <widget class="QCheckBox" name="saveModelcheckBox">
       <property name="text">
        <string>Export model pipeline</string>
@@ -2813,7 +2813,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="26" column="0" colspan="2">
+    <item row="27" column="0" colspan="2">
      <spacer name="verticalSpacer_8">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -2829,7 +2829,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="27" column="1">
+    <item row="28" column="1">
      <widget class="QPushButton" name="trainModel">
       <property name="styleSheet">
        <string notr="true">background-color: #1769aa;
@@ -2837,6 +2837,70 @@ color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
        <string>Train and validate</string>
+      </property>
+     </widget>
+    </item>
+    <item row="15" column="0">
+     <widget class="QLabel" name="MLlabel1">
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>n_components or variance</string>
+      </property>
+     </widget>
+    </item>
+    <item row="15" column="1">
+     <widget class="QLineEdit" name="MLparam1">
+      <property name="text">
+       <string>0.99</string>
+      </property>
+     </widget>
+    </item>
+    <item row="17" column="0" colspan="2">
+     <spacer name="verticalSpacer_33">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="16" column="0">
+     <widget class="QLabel" name="MLlabel2">
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>n_components or variance</string>
+      </property>
+     </widget>
+    </item>
+    <item row="16" column="1">
+     <widget class="QLineEdit" name="MLparam2">
+      <property name="text">
+       <string>0.99</string>
       </property>
      </widget>
     </item>

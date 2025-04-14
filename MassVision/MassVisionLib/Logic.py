@@ -126,6 +126,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.pixel_clusters = None
 		self.peaks_pca = None
 		self.peak_start_col = 4
+		self.model_param1 = None
+		self.model_param2 = None
 		
 
 	def setDefaultParameters(self, parameterNode):
@@ -543,7 +545,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		if self.Dmodel_type=='PCA-LDA':
 			aligned_peaks_pca = self.Dpipeline[1].transform(aligned_peaks_norm)
 			aligned_peaks_preds = self.Dpipeline[2].predict(aligned_peaks_pca)
-		elif self.Dmodel_type in ['Random Forest', 'SVM']:
+		elif self.Dmodel_type in ['Random Forest', 'Linear SVC']:
 			aligned_peaks_preds = self.Dpipeline[1].predict(aligned_peaks_norm)
 		elif self.Dmodel_type=='PLS-DA':
 			aligned_peaks_prob = self.Dpipeline[1].predict(aligned_peaks_norm)
@@ -1711,8 +1713,9 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 	
 	def runLDA(self, X_train, X_test, y_train, y_test):
-		
-		pca_model = PCA(n_components=0.99)
+		n_components = self.model_param1
+		if n_components>=1: n_components = int(n_components)
+		pca_model = PCA(n_components=n_components)
 		pca_model.fit(X_train)
 		print('number of PC:',pca_model.n_components_)
 		X_train_pca = pca_model.transform(X_train)
@@ -1742,7 +1745,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	# 	return train_preds, test_preds
 	
 	def runRF(self, X_train, X_test, y_train, y_test):
-		rf_model = RandomForestClassifier()
+		n_estimators = int(self.model_param1)
+		rf_model = RandomForestClassifier(n_estimators=n_estimators)
 		rf_model.fit(X_train, y_train)
 		y_train_preds = rf_model.predict(X_train)
 		y_train_prob = rf_model.predict_proba(X_train)
@@ -1752,7 +1756,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return y_train_preds, y_train_prob, y_test_preds, y_test_prob, class_order, [rf_model] 
 		
 	def runSVM(self, X_train, X_test, y_train, y_test):
-		svm_model = LinearSVC(dual='auto')
+		C = self.model_param1
+		svm_model = LinearSVC(dual='auto', C=C)
 		svm_model.fit(X_train, y_train)
 		class_order = svm_model.classes_
 
@@ -1783,7 +1788,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		class_order = label_encoder.categories_[0]
 		n_class = len(class_order)
 
-		plsda = PLSRegression(n_components = n_class)
+		n_components = int(self.model_param1)
+		plsda = PLSRegression(n_components = n_components)
 		plsda.fit(X_train, y_train_oh)
 		# X_train_plsda = plsda.transform(X_train)
 		y_train_prob= plsda.predict(X_train)
@@ -1863,7 +1869,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			MODEL = self.runLDA
 		if self.model_type == 'Random Forest':
 			MODEL = self.runRF
-		if self.model_type == 'SVM':
+		if self.model_type == 'Linear SVC':
 			MODEL = self.runSVM
 		if self.model_type == 'PLS-DA':
 			MODEL = self.runPLS
