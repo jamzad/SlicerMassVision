@@ -167,6 +167,14 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			data = self.ui.singleIonHeatmapList.itemData(i)
 			self.ui.RawImgHeatmap.addItem(text, data)
 
+		# Quick access
+		self.ui.Go2tab1.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(1))
+		self.ui.Go2tab2.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(2))
+		self.ui.Go2tab3.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(3))
+		self.ui.Go2tab4.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(4))
+		self.ui.Go2tab5.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(5))
+		self.ui.Go2tab6.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(7))
+
 		# Data Import
 		self.ui.clearReloadPush.connect("clicked(bool)", self.onClearReload)
 		self.ui.loadScenePush.connect("clicked(bool)", self.onLoadScene)
