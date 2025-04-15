@@ -1673,7 +1673,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return all_string
 	
-	
+
 	def plot_latent_pca_interactive(self, plot="Class"):
 		# Extract data from the dataframe
 		peaks = self.df.iloc[:, 4:].values
@@ -1763,10 +1763,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 				if label[i] == label_val:
 					pc1Array.InsertNextValue(peaks_pca[i, 0])
 					pc2Array.InsertNextValue(peaks_pca[i, 1])
-					if plot == 'Slide':
-						fill = f"\nX: {col_X.GetValue(i)}\nY: {col_Y.GetValue(i)}\nClass: {col_class.GetValue(i)}"
-					elif plot == 'Class':
-						fill = f"\nX: {col_X.GetValue(i)}\nY: {col_Y.GetValue(i)}\nSlide: {col_slide.GetValue(i)}"
+					fill = f"\nSlide: {col_slide.GetValue(i)}\nPixel Location: ({col_X.GetValue(i)}, {col_Y.GetValue(i)})\nClass: {col_class.GetValue(i)}"
 					labelArrayNew.InsertNextValue(fill)
 
 			filteredTable.AddColumn(pc1Array)
