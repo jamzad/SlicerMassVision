@@ -250,6 +250,15 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.modellingFile.connect("clicked(bool)", self.onModellingLoad)
 		self.ui.distributionPCA.connect("clicked(bool)", self.onPlotDIstribution)
 
+		self.ui.FRankMethod.currentTextChanged.connect(self.onRankMethodChange)
+		self.ui.FRankApply.clicked.connect(self.onFeatureRank)
+		
+		self.ui.FSelManualUpload.setVisible(False)
+		self.ui.FnumberLabel.setVisible(False)
+		self.ui.FnumberValue.setVisible(False)
+		self.ui.FSelMethod.currentTextChanged.connect(self.onSelMethodChange)
+		self.ui.FSelManualUpload.clicked.connect(self.onFeatureListUpload)
+
 		self.ui.randomSplit.connect("clicked(bool)", self.onRandomSplit) # random
 		self.ui.customSplit.connect("clicked(bool)", self.onCustomSplit)  # custom
 		self.ui.allTrain.connect("clicked(bool)", self.onAllTrainSplit)  # all train
@@ -919,6 +928,38 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 	def onPlotDIstribution(self):
 		self.logic.plot_latent_pca()
+
+	def onRankMethodChange(self, text):
+		if text == "Linear SVC":
+			self.ui.FRankParamLab.setText("C")
+			self.ui.FRankParamLab.setToolTip("Regularization strength")
+			self.ui.FRankParamVal.setText("1.0")
+		elif text == "PLS-DA":
+			self.ui.FRankParamLab.setText("n_components")
+			self.ui.FRankParamLab.setToolTip("Number of components")
+			self.ui.FRankParamVal.setText("2")
+
+	def onFeatureRank(self):
+		rankMethod = self.ui.FRankMethod.currentText
+		rankParam = float(self.ui.FRankParamVal.text)
+		df = self.logic.feature_ranking(rankMethod, rankParam)
+
+	def onSelMethodChange(self, text):
+		if text == "Top ranked":
+			self.ui.FnumberLabel.setVisible(True)
+			self.ui.FnumberValue.setVisible(True)
+			self.ui.FSelManualUpload.setVisible(False)
+		elif text == "Manual":
+			self.ui.FnumberLabel.setVisible(False)
+			self.ui.FnumberValue.setVisible(False)
+			self.ui.FSelManualUpload.setVisible(True)
+		elif text == "None":
+			self.ui.FnumberLabel.setVisible(False)
+			self.ui.FnumberValue.setVisible(False)
+			self.ui.FSelManualUpload.setVisible(False)
+
+	def onFeatureListUpload(self):
+		pass
 
 	def onSelectModelData(self):
 		fileExplorer = qt.QFileDialog()

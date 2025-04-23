@@ -1675,6 +1675,92 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return retstr
 
 
+	def feature_ranking(self, method, param):
+		peaks = self.df.iloc[0:, self.peak_start_col:].values
+		peaks = np.nan_to_num(peaks)
+		classes =  self.df["Class"].values
+		mz = np.array(self.df.columns[self.peak_start_col:], dtype='float')
+
+		if method=="Linear SVC":
+			from sklearn.svm import LinearSVC
+
+			model = LinearSVC(dual=True, C=param)
+			model.fit(peaks, classes)
+
+			coefs = np.abs(model.coef_)
+			feature_scores = coefs.max(axis=0)  # or use mean(axis=0)
+
+		elif method=="PLS-DA":
+			from sklearn.cross_decomposition import PLSRegression
+			from sklearn.preprocessing import LabelBinarizer, StandardScaler
+
+			scaler = StandardScaler()
+			X_scaled = scaler.fit_transform(peaks)
+			
+			# Convert class labels to one-hot encoding
+			lb = LabelBinarizer()
+			Y = lb.fit_transform(classes)
+
+			# Handle binary class case (PLSRegression requires 2D y)
+			if Y.ndim == 1:
+				Y = Y.reshape(-1, 1)
+
+			# Fit PLS-DA model
+			pls = PLSRegression(n_components=int(param))
+			pls.fit(X_scaled, Y)
+
+			# Compute VIP scores
+			feature_scores = compute_vip(pls, X_scaled)
+
+		ranked = pd.DataFrame({
+			'm/z': mz,
+			'score': feature_scores,
+			'index': np.arange(len(mz))
+		})
+
+		# 6. Filter and sort
+		ranked = ranked.sort_values(by='score', ascending=False).reset_index(drop=True)
+		# ranked.to_csv('rank.csv', index=True, index_label='ranked')
+
+		## set the tanle view
+		# customLayoutId = 503
+		# customLayout = """
+		# <layout type="vertical">
+		# <item>
+		# 	<view class="vtkMRMLTableViewNode"/>
+		# </item>
+		# </layout>
+		# """
+		# layoutManager = slicer.app.layoutManager()
+		# layoutManager.layoutLogic().GetLayoutNode().AddLayoutDescription(customLayoutId, customLayout)
+		# layoutManager.setLayout(customLayoutId)
+
+		## create a table node
+		tableNode = slicer.mrmlScene.GetFirstNodeByName("Ranking")
+		if not tableNode:
+			tableNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTableNode', 'Ranking')
+		else:
+			tableNode.RemoveAllColumns()
+
+		for col in ranked.columns:
+			array = vtk.vtkVariantArray()
+			array.SetName(str(col))
+			for val in ranked[col]:
+				array.InsertNextValue(vtk.vtkVariant(str(val)))
+			tableNode.AddColumn(array)
+
+		## show the table
+		tableViewNodes = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
+		if tableViewNodes:
+			tableViewNode = tableViewNodes[0]
+			tableViewNode.SetTableNodeID(tableNode.GetID())
+
+		## lock table to prevent modification
+		tableNode.SetUseColumnTitleAsColumnHeader(True)
+		tableNode.SetLocked(True)
+		
+		return ranked
+	
 	def balanceData(self, X_train, y_train, track_info_train):
 
 		balanceType = self.train_balancing
@@ -2826,6 +2912,29 @@ def latent2color(xy):
 
 	return rgb
 
+def compute_vip(pls, X):
+    """Compute VIP scores for multi-class PLS-DA"""
+    t = pls.x_scores_            # (N, n_components)
+    w = pls.x_weights_           # (n_features, n_components)
+    q = pls.y_loadings_          # (n_components, n_classes)
+
+    p, h = w.shape               # p: number of features, h: components
+    s = np.zeros((h,))
+    
+    # Sum of squares explained by each component over all response variables
+    for i in range(h):
+        s[i] = np.sum(t[:, i] ** 2 * np.sum(q[i, :] ** 2))
+
+    total_s = np.sum(s)
+    vip = np.zeros((p,))
+    
+    for i in range(p):  # for each feature
+        weight = np.array([
+            (w[i, j] / np.linalg.norm(w[:, j]))**2 if np.linalg.norm(w[:, j]) != 0 else 0.0
+            for j in range(h)
+        ])
+        vip[i] = np.sqrt(p * np.dot(s, weight) / total_s)
+    return vip
 
 # Low Coefficient of Variation (CV) Across Spectra for selection of normalization 
 # cv = np.std(data, axis=0) / np.mean(data, axis=0)

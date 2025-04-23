@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>414</width>
+    <width>489</width>
     <height>1273</height>
    </rect>
   </property>
@@ -32,7 +32,7 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>0</number>
+   <number>5</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
@@ -2616,22 +2616,6 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="11" column="0" colspan="2">
-     <spacer name="verticalSpacer_23">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Fixed</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
     <item row="12" column="0">
      <widget class="QLabel" name="label_86">
       <property name="font">
@@ -2645,7 +2629,7 @@ color: rgb(255, 255, 255);</string>
        <string notr="true"/>
       </property>
       <property name="text">
-       <string>Feature selection</string>
+       <string>Feature ranking</string>
       </property>
      </widget>
     </item>
@@ -2663,11 +2647,11 @@ color: rgb(255, 255, 255);</string>
      </spacer>
     </item>
     <item row="13" column="0">
-     <widget class="QLabel" name="FselLabel">
+     <widget class="QLabel" name="FRankLabel">
       <property name="font">
        <font>
-        <weight>75</weight>
-        <bold>true</bold>
+        <weight>50</weight>
+        <bold>false</bold>
        </font>
       </property>
       <property name="styleSheet">
@@ -2679,17 +2663,7 @@ color: rgb(255, 255, 255);</string>
      </widget>
     </item>
     <item row="13" column="1">
-     <widget class="QComboBox" name="FSelMethod">
-      <item>
-       <property name="text">
-        <string>LASSO</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>PLS-DA</string>
-       </property>
-      </item>
+     <widget class="QComboBox" name="FRankMethod">
       <item>
        <property name="text">
         <string>Linear SVC</string>
@@ -2697,12 +2671,12 @@ color: rgb(255, 255, 255);</string>
       </item>
       <item>
        <property name="text">
-        <string>Manual</string>
+        <string>PLS-DA</string>
        </property>
       </item>
      </widget>
     </item>
-    <item row="15" column="0" colspan="2">
+    <item row="22" column="0" colspan="2">
      <spacer name="verticalSpacer_34">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -2718,7 +2692,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="16" column="0">
+    <item row="23" column="0">
      <widget class="QLabel" name="label_63">
       <property name="font">
        <font>
@@ -2735,7 +2709,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="16" column="1">
+    <item row="23" column="1">
      <spacer name="horizontalSpacer_16">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -2748,7 +2722,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="18" column="0">
+    <item row="25" column="0">
      <widget class="QLabel" name="label_71">
       <property name="font">
        <font>
@@ -2764,7 +2738,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="18" column="1">
+    <item row="25" column="1">
      <widget class="QComboBox" name="ModelSelectCombobox">
       <item>
        <property name="text">
@@ -2788,7 +2762,7 @@ color: rgb(255, 255, 255);</string>
       </item>
      </widget>
     </item>
-    <item row="19" column="0">
+    <item row="26" column="0">
      <widget class="QLabel" name="MLlabel1">
       <property name="font">
        <font>
@@ -2805,14 +2779,14 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="19" column="1">
+    <item row="26" column="1">
      <widget class="QLineEdit" name="MLparam1">
       <property name="text">
        <string>0.99</string>
       </property>
      </widget>
     </item>
-    <item row="20" column="0">
+    <item row="27" column="0">
      <widget class="QLabel" name="MLlabel2">
       <property name="font">
        <font>
@@ -2829,14 +2803,14 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="20" column="1">
+    <item row="27" column="1">
      <widget class="QLineEdit" name="MLparam2">
       <property name="text">
        <string>0.99</string>
       </property>
      </widget>
     </item>
-    <item row="21" column="0" colspan="2">
+    <item row="28" column="0" colspan="2">
      <spacer name="verticalSpacer_33">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -2852,7 +2826,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="22" column="0">
+    <item row="29" column="0">
      <widget class="QLabel" name="label_78">
       <property name="font">
        <font>
@@ -2868,7 +2842,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="22" column="1">
+    <item row="29" column="1">
      <widget class="QRadioButton" name="allTrain">
       <property name="text">
        <string>Training on whole dataset</string>
@@ -2884,7 +2858,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="23" column="1">
+    <item row="30" column="1">
      <widget class="QRadioButton" name="randomSplit">
       <property name="text">
        <string>Random train/test split</string>
@@ -2897,14 +2871,14 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="24" column="1">
+    <item row="31" column="1">
      <widget class="QRadioButton" name="customSplit">
       <property name="text">
        <string>Slide-based train/test customization</string>
       </property>
      </widget>
     </item>
-    <item row="25" column="0" colspan="2">
+    <item row="32" column="0" colspan="2">
      <widget class="QLabel" name="namesTableLabel">
       <property name="styleSheet">
        <string notr="true"/>
@@ -2914,7 +2888,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="26" column="0" colspan="2">
+    <item row="33" column="0" colspan="2">
      <widget class="QTableWidget" name="namesTable">
       <column>
        <property name="text">
@@ -2938,7 +2912,7 @@ color: rgb(255, 255, 255);</string>
       </column>
      </widget>
     </item>
-    <item row="27" column="0" colspan="2">
+    <item row="34" column="0" colspan="2">
      <spacer name="verticalSpacer_27">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -2954,7 +2928,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="28" column="0">
+    <item row="35" column="0">
      <widget class="QLabel" name="label_83">
       <property name="font">
        <font>
@@ -2970,7 +2944,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="28" column="1">
+    <item row="35" column="1">
      <widget class="QComboBox" name="BalanceComBox">
       <item>
        <property name="text">
@@ -2994,7 +2968,7 @@ color: rgb(255, 255, 255);</string>
       </item>
      </widget>
     </item>
-    <item row="29" column="0" colspan="2">
+    <item row="36" column="0" colspan="2">
      <spacer name="verticalSpacer_26">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -3010,7 +2984,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="30" column="0">
+    <item row="37" column="0">
      <widget class="QLabel" name="label_79">
       <property name="font">
        <font>
@@ -3026,7 +3000,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="30" column="1">
+    <item row="37" column="1">
      <widget class="QCheckBox" name="saveModelcheckBox">
       <property name="text">
        <string>Export model pipeline</string>
@@ -3036,7 +3010,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="31" column="0" colspan="2">
+    <item row="38" column="0" colspan="2">
      <spacer name="verticalSpacer_8">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -3052,7 +3026,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="32" column="1">
+    <item row="39" column="1">
      <widget class="QPushButton" name="trainModel">
       <property name="styleSheet">
        <string notr="true">background-color: #1769aa;
@@ -3063,10 +3037,164 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="14" column="1">
+    <item row="17" column="0">
+     <widget class="QLabel" name="label_87">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Feature selection</string>
+      </property>
+     </widget>
+    </item>
+    <item row="17" column="1">
+     <spacer name="horizontalSpacer_28">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="18" column="0">
+     <widget class="QLabel" name="FselLabel">
+      <property name="font">
+       <font>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Method</string>
+      </property>
+     </widget>
+    </item>
+    <item row="18" column="1">
+     <widget class="QComboBox" name="FSelMethod">
+      <item>
+       <property name="text">
+        <string>None</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Top ranked</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Manual</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+    <item row="20" column="1">
      <widget class="QPushButton" name="FSelManualUpload">
       <property name="text">
-       <string>Upload feature list</string>
+       <string>Upload feature list...</string>
+      </property>
+     </widget>
+    </item>
+    <item row="19" column="0">
+     <widget class="QLabel" name="FnumberLabel">
+      <property name="font">
+       <font>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Number of features</string>
+      </property>
+     </widget>
+    </item>
+    <item row="19" column="1">
+     <widget class="QLineEdit" name="FnumberValue">
+      <property name="text">
+       <string>100</string>
+      </property>
+     </widget>
+    </item>
+    <item row="16" column="0" colspan="2">
+     <spacer name="verticalSpacer_23">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="15" column="1">
+     <widget class="QPushButton" name="FRankApply">
+      <property name="styleSheet">
+       <string notr="true">background-color: #1769aa;
+color: rgb(255, 255, 255);</string>
+      </property>
+      <property name="text">
+       <string>Rank features</string>
+      </property>
+     </widget>
+    </item>
+    <item row="11" column="0" colspan="2">
+     <spacer name="verticalSpacer_12">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="14" column="1">
+     <widget class="QLineEdit" name="FRankParamVal">
+      <property name="text">
+       <string>1.0</string>
+      </property>
+     </widget>
+    </item>
+    <item row="14" column="0">
+     <widget class="QLabel" name="FRankParamLab">
+      <property name="font">
+       <font>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>C</string>
       </property>
      </widget>
     </item>
