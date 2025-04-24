@@ -953,9 +953,20 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		df = self.logic.feature_ranking(rankMethod, rankParam)
 
 		## show the table
-		slicer.app.layoutManager().setLayout(35)
-		tableViewNode = slicer.util.getNodesByClass("vtkMRMLTableViewNode")[0]
-		slicer.app.layoutManager().addMaximizedViewNode(tableViewNode)
+		# slicer.app.layoutManager().setLayout(35)
+		# tableViewNode = slicer.util.getNodesByClass("vtkMRMLTableViewNode")[0]
+		# slicer.app.layoutManager().addMaximizedViewNode(tableViewNode)
+
+		customLayoutId = 70
+		customLayout = """
+		<layout type="vertical">
+		<item>
+			<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+		</item>
+		</layout>
+		"""
+		slicer.app.layoutManager().layoutLogic().GetLayoutNode().AddLayoutDescription(customLayoutId, customLayout)
+		slicer.app.layoutManager().setLayout(customLayoutId)
 
 	def onSelMethodChange(self, text):
 		if text == "Top ranked":

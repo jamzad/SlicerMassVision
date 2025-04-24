@@ -1747,19 +1747,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		# ranked.to_csv('rank.csv', index=True, index_label='ranked')
 
-		## set the tanle view
-		# customLayoutId = 503
-		# customLayout = """
-		# <layout type="vertical">
-		# <item>
-		# 	<view class="vtkMRMLTableViewNode"/>
-		# </item>
-		# </layout>
-		# """
-		# layoutManager = slicer.app.layoutManager()
-		# layoutManager.layoutLogic().GetLayoutNode().AddLayoutDescription(customLayoutId, customLayout)
-		# layoutManager.setLayout(customLayoutId)
-
 		## create a table node
 		tableNode = slicer.mrmlScene.GetFirstNodeByName("Ranking")
 		if not tableNode:
