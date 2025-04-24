@@ -2674,6 +2674,11 @@ color: rgb(255, 255, 255);</string>
         <string>PLS-DA</string>
        </property>
       </item>
+      <item>
+       <property name="text">
+        <string>LDA</string>
+       </property>
+      </item>
      </widget>
     </item>
     <item row="22" column="0" colspan="2">

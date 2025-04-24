@@ -128,7 +128,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.peak_start_col = 4
 		self.model_param1 = None
 		self.model_param2 = None
-		
+		self.ranked_features_indices = None
+		self.manual_features_indices = None 
+		self.selected_features_indices = None
+
 
 	def setDefaultParameters(self, parameterNode):
 		"""
@@ -1712,14 +1715,36 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			# Compute VIP scores
 			feature_scores = compute_vip(pls, X_scaled)
 
+		elif method=='LDA':
+			from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+			import warnings
+
+			warnings.filterwarnings('ignore')
+
+			feature_scores = np.zeros((len(mz),))
+			for ind in range(len(mz)):
+				try:
+					X = peaks[:,ind].reshape((-1,1))
+					lda = LDA().fit(X,classes)
+					y_pred = lda.predict(X)
+					feature_scores[ind] = np.mean(y_pred==classes)
+
+				except:
+					pass
+
+			warnings.filterwarnings('default')
+
 		ranked = pd.DataFrame({
 			'm/z': mz,
 			'score': feature_scores,
 			'index': np.arange(len(mz))
 		})
 
-		# 6. Filter and sort
 		ranked = ranked.sort_values(by='score', ascending=False).reset_index(drop=True)
+		
+		## save the ranked indices
+		self.ranked_features_indices = [int(x) for x in ranked['index'].values]
+
 		# ranked.to_csv('rank.csv', index=True, index_label='ranked')
 
 		## set the tanle view
@@ -1749,13 +1774,13 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 				array.InsertNextValue(vtk.vtkVariant(str(val)))
 			tableNode.AddColumn(array)
 
-		## show the table
+		## set the table view node
 		tableViewNodes = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
 		if tableViewNodes:
 			tableViewNode = tableViewNodes[0]
 			tableViewNode.SetTableNodeID(tableNode.GetID())
 
-		## lock table to prevent modification
+		## lock the table
 		tableNode.SetUseColumnTitleAsColumnHeader(True)
 		tableNode.SetLocked(True)
 		
@@ -1941,7 +1966,15 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# balancing the data
 		if self.train_balancing != "None":
 			X_train, y_train, track_info_train = self.balanceData(X_train, y_train, track_info_train)
-
+		
+		reference_mz = np.array(self.df.columns[4:], dtype='float')
+		# Feature selection
+		if self.selected_features_indices:
+			X_train = X_train[:,self.selected_features_indices]
+			X_test = X_test[:,self.selected_features_indices]
+			X_val = X_val[:,self.selected_features_indices]
+			reference_mz = reference_mz[self.selected_features_indices]
+		
 		# Ion-based normalization
 		ion_normalizer = MinMaxScaler()
 		X_train = ion_normalizer.fit_transform(X_train)
@@ -1979,7 +2012,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		# save the model
 		model_pipeline = [ion_normalizer] + models
-		reference_mz = np.array(self.df.columns[4:], dtype='float')
 
 		if modelSavename!=None:
 			with open(modelSavename,'wb') as f:

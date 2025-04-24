@@ -931,18 +931,31 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 	def onRankMethodChange(self, text):
 		if text == "Linear SVC":
+			self.ui.FRankParamLab.setVisible(True)
+			self.ui.FRankParamVal.setVisible(True)
 			self.ui.FRankParamLab.setText("C")
 			self.ui.FRankParamLab.setToolTip("Regularization strength")
 			self.ui.FRankParamVal.setText("1.0")
 		elif text == "PLS-DA":
+			self.ui.FRankParamLab.setVisible(True)
+			self.ui.FRankParamVal.setVisible(True)
 			self.ui.FRankParamLab.setText("n_components")
 			self.ui.FRankParamLab.setToolTip("Number of components")
 			self.ui.FRankParamVal.setText("2")
+		elif text == 'LDA':
+			self.ui.FRankParamLab.setVisible(False)
+			self.ui.FRankParamVal.setVisible(False)
+
 
 	def onFeatureRank(self):
 		rankMethod = self.ui.FRankMethod.currentText
 		rankParam = float(self.ui.FRankParamVal.text)
 		df = self.logic.feature_ranking(rankMethod, rankParam)
+
+		## show the table
+		slicer.app.layoutManager().setLayout(35)
+		tableViewNode = slicer.util.getNodesByClass("vtkMRMLTableViewNode")[0]
+		slicer.app.layoutManager().addMaximizedViewNode(tableViewNode)
 
 	def onSelMethodChange(self, text):
 		if text == "Top ranked":
@@ -959,7 +972,13 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			self.ui.FSelManualUpload.setVisible(False)
 
 	def onFeatureListUpload(self):
-		pass
+		fileExplorer = qt.QFileDialog()
+		featureFiles = fileExplorer.getOpenFileName(None, "Upload feature indices", "", "CSV Files (*.csv);;All Files (*)")
+		if featureFiles:
+			df = pd.read_csv(featureFiles, header=None)
+			self.logic.manual_features_indices = [int(x) for x in df.values.ravel()]
+			print("Manual feature load compeleted")
+			print(self.logic.manual_features_indices)
 
 	def onSelectModelData(self):
 		fileExplorer = qt.QFileDialog()
@@ -1088,6 +1107,16 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		self.logic.model_param1 = float(self.ui.MLparam1.text)
 		self.logic.model_param2 = float(self.ui.MLparam2.text)
+
+		## feature selection
+		feature_select_method = self.ui.FSelMethod.currentText
+		if feature_select_method == "None":
+			self.logic.selected_features_indices = None
+		elif feature_select_method == "Top ranked":
+			n_features = int(self.ui.FnumberValue.text)
+			self.logic.selected_features_indices = self.logic.ranked_features_indices[:n_features]
+		elif feature_select_method == "Manual":
+			self.logic.selected_features_indices = self.logic.manual_features_indices
 		
 		accuracystring = self.logic.runModel(savepath)
 		if not accuracystring:
