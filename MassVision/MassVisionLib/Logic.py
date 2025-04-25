@@ -1190,7 +1190,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			slicer.mrmlScene.RemoveNode(existingPlotTableNodes.GetItemAsObject(i))
 		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
 		slicer.app.processEvents()
-		print("Cleared all plots.")
 
 
 	def fiducial_to_index(self, position):
@@ -1672,22 +1671,21 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 				pd.DataFrame(result_test, columns=result_header).to_csv(modelSavename[:-4]+'_testTrack.csv', index=False)
 
 		return all_string
-	
+
 
 	def plot_latent_pca_interactive(self, plot="Class"):
-		# Extract data from the dataframe
+		"""Plot PCA of the data with interactive labels."""
+		#
+		self.clear_all_plots()
+		# Prepare data
 		peaks = self.df.iloc[:, 4:].values
 		labels = self.df.iloc[:, 0:4].values
 		peaks = np.nan_to_num(peaks)
-		
-		# MinMax normalize the data and apply PCA
 		pca = PCA(n_components=2)
 		mm1 = MinMaxScaler()
 		peaks_pca = pca.fit_transform(mm1.fit_transform(peaks))
 		mm2 = MinMaxScaler()
 		peaks_pca = mm2.fit_transform(peaks_pca)
-
-		# Assign label based the designated distribution
 		if plot == 'Slide':
 			title = 'Slide distribution'
 			label = labels[:, 0]
@@ -1702,18 +1700,15 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		plotWidget = layoutManager.plotWidget(0)
 		plotViewNode = plotWidget.mrmlPlotViewNode()
 
-		# Create a new plot chart node
 		plotChartNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotChartNode", f"PlotChart1")
 		plotChartNode.SetTitle(title)
 		plotChartNode.SetXAxisTitle("PC1")
 		plotChartNode.SetYAxisTitle("PC2")
 		plotChartNode.SetLegendVisibility(True)
 
-		# Create a new table node
 		tableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode", "PCA_Table")
 		table = tableNode.GetTable()
 
-		# Create columns for the table
 		col_PC1 = vtk.vtkFloatArray()
 		col_PC1.SetName("PC1")
 		col_PC2 = vtk.vtkFloatArray()
@@ -1726,8 +1721,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		col_X.SetName("X")
 		col_Y = vtk.vtkFloatArray()
 		col_Y.SetName("Y")
-		
-		# Populate the columns with data
+
 		for i in range(len(peaks_pca)):
 			col_PC1.InsertNextValue(peaks_pca[i, 0])
 			col_PC2.InsertNextValue(peaks_pca[i, 1])
@@ -1745,12 +1739,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		# Split by label and create separate series
 		unique_labels = np.unique(label)
+
 		for idx, label_val in enumerate(unique_labels):
-			# Create a new table node for each unique label
 			filteredTableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode", f"Table_{label_val}")
 			filteredTable = filteredTableNode.GetTable()
 
-			# Create columns for the filtered table
 			pc1Array = vtk.vtkFloatArray()
 			pc1Array.SetName("PC1")
 			pc2Array = vtk.vtkFloatArray()
@@ -1758,7 +1751,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			labelArrayNew = vtk.vtkStringArray()
 			labelArrayNew.SetName("Labels")
 			
-			# Populate columns with data for the filtered table
 			for i in range(len(label)):
 				if label[i] == label_val:
 					pc1Array.InsertNextValue(peaks_pca[i, 0])
@@ -1770,7 +1762,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			filteredTable.AddColumn(pc2Array)
 			filteredTable.AddColumn(labelArrayNew)
 
-			# Create a new plot series node for the filtered table
 			plotSeriesNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotSeriesNode", f"{label_val}")
 			plotSeriesNode.SetAndObserveTableNodeID(filteredTableNode.GetID())
 			plotSeriesNode.SetXColumnName("PC1")
@@ -1778,7 +1769,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			plotSeriesNode.SetLabelColumnName("Labels")
 			plotSeriesNode.SetPlotType(slicer.vtkMRMLPlotSeriesNode.PlotTypeScatter)
 			plotSeriesNode.SetMarkerStyle(slicer.vtkMRMLPlotSeriesNode.MarkerStyleCross)
-			plotSeriesNode.SetMarkerSize(5)
+			plotSeriesNode.SetMarkerSize(10)
 			plotSeriesNode.SetLineStyle(slicer.vtkMRMLPlotSeriesNode.LineStyleNone)
 			colour = cm.get_cmap("tab10")(idx % 10)[:3]
 			plotSeriesNode.SetColor(*colour)
