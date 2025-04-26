@@ -225,11 +225,14 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
 		# Multi-slide alignment
-		self.ui.pushButton_11.connect("clicked(bool)", self.onMerge)
-		self.ui.textFileLoad_2.connect("clicked(bool)", self.onCSVmerge)
 		self.files = set()
-  
+		self.ui.selectToAlign.connect("clicked(bool)", self.onSelectToAlign)
+		self.ui.loadToAlign.connect("clicked(bool)", self.onLoadToAlign)
 
+		self.ui.alignPreview.connect("clicked(bool)", self.onAlignPreview)
+
+		self.ui.alignButton.connect("clicked(bool)", self.onMerge)
+		
 		# Dataset post-processing
 		self.ui.csvSelect.connect("clicked(bool)", self.onCsvSelect)
 		self.ui.csvLoad.connect("clicked(bool)", self.onCsvLoad)
@@ -743,17 +746,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
 	### Multi-slide alignment tab
- 
-	def onMerge(self):
-		# Merge csv files added by the user
-		fileExplorer = qt.QFileDialog()
-		defaultSave = list(self.files)[-1][:-4]+'_aligned'
-		savepath = fileExplorer.getSaveFileName(None, "Save aligned dataset", defaultSave, "CSV Files (*.csv);;All Files (*)")
-		print('save path:',savepath)
-		retstr = self.logic.batch_peak_alignment(list(self.files), savepath)
-		self.ui.alignmentTextBrowser.setText(retstr)
-	
-	def onCSVmerge(self):
+
+	def onSelectToAlign(self):
 		# gets the list of files they are trying to merge and shows them in the viewer
 		fileExplorer = qt.QFileDialog()
 		filePaths = fileExplorer.getOpenFileNames(None, "Open CSV datasets", "", "CSV Files (*.csv);;All Files (*)")
@@ -766,8 +760,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 				delete_btn.clicked.connect(self.createDeleteButtonClickedHandler(filePath))
 				self.ui.filesTable.setItem(i, 0, qt.QTableWidgetItem(filePath))
 				self.ui.filesTable.setCellWidget(i, 1, delete_btn)
-	
-		# Wrapper functions to let us pass the filenames to the button press handler
+
+	# Wrapper functions to let us pass the filenames to the button press handler
 	def createDeleteButtonClickedHandler(self, path):
 		def deleteButtonPressed(checked):
 			self.handleDeleteButtonClicked(checked, path)
@@ -782,7 +776,42 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 				self.ui.filesTable.setRowCount(len(self.files))
 				numRows -= 1
 			r += 1
-   
+
+	def onLoadToAlign(self):
+		info = self.logic.load_alignment_files(list(self.files))
+		self.ui.fileInfoAlign.setText(info)
+	
+	def onAlignPreview(self):
+		params = {}
+		params['mz_bandwidth'] = float(self.ui.KDEbandwidthVal.text)
+		params['abundance_threshold'] = 1 - float(self.ui.sparsityVal.text)
+		params['mz_resolution'] = params['mz_bandwidth']/2
+		params['ion_count_method'] = self.ui.sparsityLevel.currentText
+		params['preview'] = [float(self.ui.alignPreviewStart.text), float(self.ui.alignPreviewEnd.text)]
+		params['savepath'] = None
+		params['file_names'] = [os.path.splitext(os.path.basename(x))[0] for x in list(self.files)]
+
+		self.logic.batch_peak_alignment(params)
+
+	def onMerge(self):
+		# Merge csv files added by the user
+		fileExplorer = qt.QFileDialog()
+		defaultSave = list(self.files)[-1][:-4]+'_aligned'
+		savepath = fileExplorer.getSaveFileName(None, "Save aligned dataset", defaultSave, "CSV Files (*.csv);;All Files (*)")
+		print('save path:',savepath)
+
+		params = {}
+		params['mz_bandwidth'] = float(self.ui.KDEbandwidthVal.text)
+		params['abundance_threshold'] = 1 - float(self.ui.sparsityVal.text)
+		params['mz_resolution'] = params['mz_bandwidth']/2
+		params['ion_count_method'] = self.ui.sparsityLevel.currentText
+		params['savepath'] = savepath
+		params['preview'] = None
+
+		retstr = self.logic.batch_peak_alignment(params)
+		self.ui.alignmentTextBrowser.setText(retstr)
+
+
 	### Dataset post-processing
 	def onCsvSelect(self):
 		fileExplorer = qt.QFileDialog()

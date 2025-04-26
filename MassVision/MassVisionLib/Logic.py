@@ -2432,8 +2432,38 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	# def getSelectedMz(self):
 	# 	return self.selectedmz
 		
-	 # Define function to align peaks and merge csv file 
-	def batch_peak_alignment(self, files, csv_save_name):
+	def load_alignment_files(self, files):
+		mz, peaks, labels = [],[],[]
+		classes = []
+		for file in files:
+			print(file)
+			df = pd.read_csv(file)
+			
+			mz.append( np.array(df.columns[self.peak_start_col:], dtype='float') )
+			peaks.append( df[df.columns[self.peak_start_col:]].values )
+			labels.append( df[df.columns[0:self.peak_start_col]].values )
+			classes.append(df["Class"].values)
+			labels_headers = df.columns[0:self.peak_start_col]
+		
+		self.mz = mz
+		self.peaks = peaks
+		self.labels = labels
+		self.labels_headers = labels_headers
+
+		classes = np.concatenate(classes)
+
+		retstr = f'Number of slides:  \t{len(mz)}\n'
+		retstr += f'Number of spectra:\t{len(classes)}\n'
+		retstr += f'Number of classes:\t{len(set(classes))}\n'
+		retstr += f'Range of m/z:     \t{(np.concatenate(mz)).min()} to {(np.concatenate(mz)).max()}\n'
+		class_names,class_lens = np.unique(classes, return_counts=1)
+		for x,y in zip(class_names,class_lens):
+			retstr += f'  {str(y)}: {x} \n'
+
+		return retstr
+	
+	# Define function to align peaks and merge csv file 
+	def batch_peak_alignment(self, params):
 		""""
 		OBJECTIVE:
 		to align m/z values from muliple MSI slides
@@ -2446,40 +2476,38 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		@Moon
 		"""
 
-		## list the csv files
-		for file in files: 
-			print(file)
-		## read the files
-		print('reading the csv files...')
-		#################################
-		peak_start_col = 4 # all info other than peak intensities
-		#################################
-				
-		mz, peaks, labels = [],[],[]
-		for file in files:
-			df = pd.read_csv(file)
-
-			mz.append( np.array(df.columns[peak_start_col:], dtype='float') )
-			peaks.append( df[df.columns[peak_start_col:]].values )
-			labels.append( df[df.columns[0:peak_start_col]].values )
-
-			labels_headers = df.columns[0:peak_start_col]
-			# print(labels_headers)
-
-		mz_all = np.sort(np.concatenate(mz)).astype('float64')
-		
-		## cluster m/z values that are close to eachother
-		print('accumulating m/z values...')
-		mz_bandwidth = 0.01 #std of the estimated mz clusters
-		abundance_threshold = 0.4 #eliminate the least abundant peaks between slides
-		mz_resolution = 0.01 # m/z resolution for peak clustering
+		mz_bandwidth = params['mz_bandwidth']
+		abundance_threshold = params['abundance_threshold']
+		ion_count_method = params['ion_count_method']
+		mz_resolution = params['mz_resolution']
 		nsig = 4 # number of std in kernel width
 
-		# subband_start = 50
-		# subband_stop = 1200 
-		subband_start = np.round(mz_all.min()-nsig*mz_bandwidth, -1)-10  # 50 m/z range minimum
-		subband_stop = np.round(mz_all.max()+nsig*mz_bandwidth, -1)+10  # 1200 m/z range maximum
-		
+		csv_save_name = params['savepath']
+		preview_mode = params['preview']
+
+		mz = self.mz.copy()
+		print(mz)
+		if preview_mode:
+			preview_start = preview_mode[0]
+			preview_stop = preview_mode[1]
+			mz_preview_ind = []
+			for i, mz_i in enumerate(mz):
+				ind = (mz_i>= preview_start) * (mz_i<= preview_stop)
+				mz[i] = mz_i[ind]
+				mz_preview_ind.append(ind)
+		print(mz)
+		mz_all = np.sort(np.concatenate(mz)).astype('float64')
+		print(mz_all)
+		## cluster m/z values that are close to eachother
+		print('accumulating m/z values...')
+
+		if preview_mode:
+			subband_start = mz_all.min() - nsig*mz_bandwidth - mz_resolution
+			subband_stop = mz_all.max() + nsig*mz_bandwidth + mz_resolution
+		else:
+			subband_start = np.round(mz_all.min()-nsig*mz_bandwidth, -1)-10 
+			subband_stop = np.round(mz_all.max()+nsig*mz_bandwidth, -1)+10
+
 		# generate sample Gaussian kernel
 		x = np.arange(-nsig*mz_bandwidth,nsig*mz_bandwidth+1e-5,mz_resolution)
 		x = np.round(x, decimals=4)
@@ -2522,16 +2550,24 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		mz_df = pd.DataFrame(new_mz, columns=selected_mz)
 		
 		# eliminate the least repeated mz 
-		num_sample_per_slide = np.array([x.shape[0] for x in peaks]).T
+		if ion_count_method=='Spectra':
+			num_sample_per_slide = np.array([x.shape[0] for x in self.peaks]).T
+			num_nonnan_mz = []
+			for j in range(n_mz):
+				x=0
+				for i in range(n_csv):
+					x += ( len(new_mz[i][j])>0 )*num_sample_per_slide[i]
+				num_nonnan_mz.append(x)
+			nonnan_threshold = int(abundance_threshold*np.sum(num_sample_per_slide))
 
-		num_nonnan_mz = []
-		for j in range(n_mz):
-			x=0
-			for i in range(n_csv):
-				x += ( len(new_mz[i][j])>0 )*num_sample_per_slide[i]
-			num_nonnan_mz.append(x)
-
-		nonnan_threshold = int(abundance_threshold*np.sum(num_sample_per_slide))
+		elif ion_count_method=='Slides':
+			num_nonnan_mz = []
+			for j in range(n_mz):
+				x=0
+				for i in range(n_csv):
+					x += ( len(new_mz[i][j])>0 )
+				num_nonnan_mz.append(x)
+			nonnan_threshold = int(abundance_threshold*n_csv)
 
 		kept_mz_ind = np.array(num_nonnan_mz) > nonnan_threshold
 		n_mz = kept_mz_ind.sum()
@@ -2543,7 +2579,13 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		final_mz_df = pd.DataFrame(np.nan*np.ones([n_csv,n_mz]), columns=new_mz_df.columns)
 		for i in range(n_csv):
 			mz_old = mz[i]
-			pmean = peaks[i].mean(axis=0)/peaks[i].mean(axis=0).max()
+
+			if preview_mode:
+				peaks_i = self.peaks[i][:,mz_preview_ind[i]]
+				pmean = peaks_i.mean(axis=0)/peaks_i.mean(axis=0).max()
+			else:
+				pmean = self.peaks[i].mean(axis=0)/self.peaks[i].mean(axis=0).max()
+
 			for j in range(n_mz):
 				mz_cell = new_mz_df.loc[i, new_mz_df.columns[j]]
 				if len(mz_cell)==0:
@@ -2569,46 +2611,75 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		corrected_mz = np.array(corrected_mz)
 		final_mz_df.columns = corrected_mz
 
-		# add label and save the m/z alignment results
+		# add label 
 		labeled_mz_df = final_mz_df.copy()
-		#################################
-		# ll = [labels[i][0][1] for i in range(n_csv)]
-		ll = [labels[i][0][0] for i in range(n_csv)]
-		#################################
+		ll = [self.labels[i][0][0] for i in range(n_csv)]
 		labeled_mz_df.insert(0, 'selected m/z', ll)
 
-		print('saving the aligned m/z csv...')
-		labeled_mz_df.to_csv(csv_save_name[:-4]+'_MZLIST.csv', index=False)
-		
-		# align peaks
-		aligned_peaks = []
-		for i in range(n_csv):
-			mz_old = mz[i]
-			newp = np.nan*np.ones([len(peaks[i]),n_mz])
-			for j,col in enumerate(corrected_mz):
-				mz_val = final_mz_df[col][i]
-				if ~np.isnan(mz_val):
-					p_ind = np.where(mz_old == mz_val)[0]
-					newp[:,j] = peaks[i][:,p_ind].flat
-			aligned_peaks.append(newp)
+		if preview_mode:
+			plt.figure(figsize=(10, 4))
+			for i,mz_i in enumerate(mz):
+				markerline, stemlines, baseline = plt.stem(mz_i, np.ones_like(mz_i))
+				markerline.set_color(f"C{i}")
+				markerline.set_markersize(5)
+				stemlines.set_color(f"C{i}")
+				baseline.set_visible(False)
+			plt.legend(params['file_names'])
 
-		del peaks
-		aligned_peaks = np.concatenate(aligned_peaks, axis=0)
-		aligned_peaks_labels = np.concatenate(labels, axis=0)
+			plt.plot(mz_grid, kde_grid, 'k')
+			plt.plot(mz_grid[locs], kde_grid[locs], 'bx')
+			plt.plot(corrected_mz, kde_grid[locs[kept_mz_ind]]+kde_grid.max()/30, 'rv', markersize=10)
+			plt.xlim([preview_start, preview_stop])
 
-		# add label and save aligned peaks
-		aligned_peaks = np.concatenate( [aligned_peaks_labels, aligned_peaks] , axis=1)
-		csv_column = labels_headers.tolist()+list(corrected_mz)
-		df = pd.DataFrame(aligned_peaks, columns=csv_column)
-		print('saving the aligned peaks csv...')
-		df.to_csv(csv_save_name, index=False)
-		print('alignment done!')
+			# save plot
+			filename = os.path.join(os.getcwd(), r"alighnment_preview.jpg")
+			plt.savefig(filename, bbox_inches='tight', dpi=600)
+			plt.close()
 
-		### report information
-		retstr = 'Dataset successfully aligned! \n'
-		retstr += f'Aligned dataset:\t {csv_save_name} \n'
-		retstr += self.datasetInfo(df)
-		return retstr
+			# display plot
+			YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
+			YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
+
+			volumeNode = slicer.util.loadVolume(filename, {"singleFile": True})
+			slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
+
+			YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
+			YellowNode.SetOrientation("Axial")
+			slicer.util.resetSliceViews()
+
+		else:
+			print('saving the aligned m/z csv...')
+			labeled_mz_df.to_csv(csv_save_name[:-4]+'_MZLIST.csv', index=False)
+			
+			# align peaks
+			aligned_peaks = []
+			for i in range(n_csv):
+				mz_old = mz[i]
+				newp = np.nan*np.ones([len(self.peaks[i]),n_mz])
+				for j,col in enumerate(corrected_mz):
+					mz_val = final_mz_df[col][i]
+					if ~np.isnan(mz_val):
+						p_ind = np.where(mz_old == mz_val)[0]
+						newp[:,j] = self.peaks[i][:,p_ind].flat
+				aligned_peaks.append(newp)
+
+			aligned_peaks = np.concatenate(aligned_peaks, axis=0)
+			aligned_peaks_labels = np.concatenate(self.labels, axis=0)
+
+			# add label and save aligned peaks
+			aligned_peaks = np.concatenate( [aligned_peaks_labels, aligned_peaks] , axis=1)
+			csv_column = self.labels_headers.tolist()+list(corrected_mz)
+			df = pd.DataFrame(aligned_peaks, columns=csv_column)
+			print('saving the aligned peaks csv...')
+			df.to_csv(csv_save_name, index=False)
+			print('alignment done!')
+
+			### report information
+			retstr = 'Dataset successfully aligned! \n'
+			retstr += f'Aligned dataset:\t {csv_save_name} \n'
+			retstr += f'Number of ions:   \t {len(corrected_mz)} \n'
+			retstr += self.datasetInfo(df)
+			return retstr
 
 
 	# generates and displays the pca image
