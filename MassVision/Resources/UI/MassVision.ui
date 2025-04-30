@@ -1955,6 +1955,56 @@ p, li { white-space: pre-wrap; }
       </column>
      </widget>
     </item>
+    <item row="4" column="1">
+     <widget class="QPushButton" name="loadToAlign">
+      <property name="styleSheet">
+       <string notr="true">background-color: #1769aa;
+color: rgb(255, 255, 255);</string>
+      </property>
+      <property name="text">
+       <string>Load files</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="0" colspan="2">
+     <widget class="QTextBrowser" name="fileInfoAlign">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>120</height>
+       </size>
+      </property>
+      <property name="html">
+       <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Aligned dataset info&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="0" colspan="2">
+     <spacer name="verticalSpacer_38">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Preferred</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
     <item row="7" column="0">
      <widget class="QLabel" name="label_2">
       <property name="font">
@@ -2030,7 +2080,23 @@ p, li { white-space: pre-wrap; }
       </item>
      </widget>
     </item>
-    <item row="11" column="0">
+    <item row="11" column="0" colspan="2">
+     <spacer name="verticalSpacer_37">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Preferred</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="12" column="0">
      <widget class="QLabel" name="label_6">
       <property name="font">
        <font>
@@ -2043,7 +2109,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="11" column="1">
+    <item row="12" column="1">
      <spacer name="horizontalSpacer_32">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -2056,7 +2122,108 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="16" column="1">
+    <item row="13" column="0">
+     <widget class="QLabel" name="label_14">
+      <property name="text">
+       <string>visualization range start (m/z)</string>
+      </property>
+     </widget>
+    </item>
+    <item row="13" column="1">
+     <widget class="QLineEdit" name="alignPreviewStart">
+      <property name="text">
+       <string/>
+      </property>
+     </widget>
+    </item>
+    <item row="14" column="0">
+     <widget class="QLabel" name="label_10">
+      <property name="text">
+       <string>visualization range end (m/z)</string>
+      </property>
+     </widget>
+    </item>
+    <item row="14" column="1">
+     <widget class="QLineEdit" name="alignPreviewEnd">
+      <property name="text">
+       <string/>
+      </property>
+     </widget>
+    </item>
+    <item row="15" column="1">
+     <widget class="QPushButton" name="alignPreview">
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Visualize</string>
+      </property>
+     </widget>
+    </item>
+    <item row="16" column="0" colspan="2">
+     <spacer name="verticalSpacer_35">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Preferred</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="17" column="0">
+     <widget class="QLabel" name="label_24">
+      <property name="font">
+       <font>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Peak Matching</string>
+      </property>
+     </widget>
+    </item>
+    <item row="17" column="1">
+     <spacer name="horizontalSpacer_33">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="18" column="0">
+     <widget class="QLabel" name="label_22">
+      <property name="text">
+       <string>Method</string>
+      </property>
+     </widget>
+    </item>
+    <item row="19" column="0">
+     <widget class="QLabel" name="AlignTolLabel">
+      <property name="text">
+       <string>Tolerance</string>
+      </property>
+     </widget>
+    </item>
+    <item row="19" column="1">
+     <widget class="QLineEdit" name="AlignTolVal">
+      <property name="text">
+       <string>0.001</string>
+      </property>
+     </widget>
+    </item>
+    <item row="21" column="1">
      <widget class="QPushButton" name="alignButton">
       <property name="styleSheet">
        <string notr="true">background-color: #1769aa;
@@ -2067,7 +2234,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="17" column="0" colspan="2">
+    <item row="22" column="0" colspan="2">
      <widget class="QTextBrowser" name="alignmentTextBrowser">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -2090,7 +2257,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="18" column="1">
+    <item row="23" column="1">
      <spacer name="verticalSpacer_14">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -2103,108 +2270,54 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="12" column="1">
-     <widget class="QLineEdit" name="alignPreviewStart">
+    <item row="20" column="0">
+     <widget class="QLabel" name="AlignBinLab">
       <property name="text">
-       <string/>
+       <string>Bin function</string>
       </property>
      </widget>
     </item>
-    <item row="12" column="0">
-     <widget class="QLabel" name="label_14">
-      <property name="text">
-       <string>visualization range start (m/z)</string>
-      </property>
+    <item row="18" column="1">
+     <widget class="QComboBox" name="AlignMatchMethod">
+      <item>
+       <property name="text">
+        <string>Cluster</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Tolerance</string>
+       </property>
+      </item>
      </widget>
     </item>
-    <item row="13" column="1">
-     <widget class="QLineEdit" name="alignPreviewEnd">
-      <property name="text">
-       <string/>
-      </property>
-     </widget>
-    </item>
-    <item row="13" column="0">
-     <widget class="QLabel" name="label_10">
-      <property name="text">
-       <string>visualization range end (m/z)</string>
-      </property>
-     </widget>
-    </item>
-    <item row="14" column="1">
-     <widget class="QPushButton" name="alignPreview">
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>Visualize</string>
-      </property>
-     </widget>
-    </item>
-    <item row="15" column="0" colspan="2">
-     <spacer name="verticalSpacer_35">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Preferred</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>40</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="4" column="1">
-     <widget class="QPushButton" name="loadToAlign">
-      <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
-color: rgb(255, 255, 255);</string>
-      </property>
-      <property name="text">
-       <string>Load files</string>
-      </property>
-     </widget>
-    </item>
-    <item row="6" column="0" colspan="2">
-     <spacer name="verticalSpacer_36">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Preferred</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>40</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="5" column="0" colspan="2">
-     <widget class="QTextBrowser" name="fileInfoAlign">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>16777215</width>
-        <height>120</height>
-       </size>
-      </property>
-      <property name="html">
-       <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Aligned dataset info&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-      </property>
+    <item row="20" column="1">
+     <widget class="QComboBox" name="AlignBinVal">
+      <item>
+       <property name="text">
+        <string>Mean</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Median</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Sum</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Max</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Global max</string>
+       </property>
+      </item>
      </widget>
     </item>
    </layout>

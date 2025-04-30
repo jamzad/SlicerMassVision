@@ -708,6 +708,33 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return aligned_peaks, final_mz
 
 
+	def peak_matching(self, mz, peaks, mz_ref, tol, method):
+
+		# check if there's only one spectrum
+		if len(peaks.shape)==1:
+			peaks = peaks.reshape(1, -1)
+			
+		pmean = peaks.sum(0)
+		mz_aligned = [None]*len(mz_ref)
+		peaks_aligned = np.zeros( (len(peaks), len(mz_ref)) )
+		
+		for i, mz_ref_i in enumerate(mz_ref):
+			ind = (mz<=(mz_ref_i+tol))*(mz>=(mz_ref_i-tol))
+			if np.any(ind):
+				if method in ['sum', 'mean', 'median', 'max']:
+					np_func = getattr(np, method)
+					peaks_i = np_func(peaks[:,ind], axis=1)
+					mz_i = list(mz[ind])
+				elif method=='global max':
+					sub = np.where(ind)[0]
+					# print(sub, len(pmean))
+					sub_selected = np.argmax(pmean[sub])
+					peaks_i = peaks[:,sub[sub_selected]]
+					mz_i = mz[sub[sub_selected]]
+				mz_aligned[i] = mz_i
+				peaks_aligned[:,i] = peaks_i
+		return peaks_aligned, mz_aligned
+
 	## if used as .T it will normalize based on spectra
 	#.t = transpose if transpose and do this instead of ion will use the spectral
 	# if 2d array can decide which way i want sum and std to be 1
@@ -2455,12 +2482,13 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		retstr = f'Number of slides:  \t{len(mz)}\n'
 		retstr += f'Number of spectra:\t{len(classes)}\n'
 		retstr += f'Number of classes:\t{len(set(classes))}\n'
-		retstr += f'Range of m/z:     \t{(np.concatenate(mz)).min()} to {(np.concatenate(mz)).max()}\n'
+		mz_range = [np.concatenate(mz).min(), np.concatenate(mz).max()]
+		retstr += f'Range of m/z:     \t{mz_range[0]} to {mz_range[1]}\n'
 		class_names,class_lens = np.unique(classes, return_counts=1)
 		for x,y in zip(class_names,class_lens):
 			retstr += f'  {str(y)}: {x} \n'
 
-		return retstr
+		return retstr, mz_range
 	
 	# Define function to align peaks and merge csv file 
 	def batch_peak_alignment(self, params):
@@ -2486,7 +2514,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		preview_mode = params['preview']
 
 		mz = self.mz.copy()
-		print(mz)
 		if preview_mode:
 			preview_start = preview_mode[0]
 			preview_stop = preview_mode[1]
@@ -2495,9 +2522,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 				ind = (mz_i>= preview_start) * (mz_i<= preview_stop)
 				mz[i] = mz_i[ind]
 				mz_preview_ind.append(ind)
-		print(mz)
 		mz_all = np.sort(np.concatenate(mz)).astype('float64')
-		print(mz_all)
 		## cluster m/z values that are close to eachother
 		print('accumulating m/z values...')
 
@@ -2598,7 +2623,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 					final_mz_df.loc[i, final_mz_df.columns[j]] = mz_cell[i_abundant]
 								
 
-		# correct the selected mz
+		# correct the calculated mz list to existing values
 		mz_list = final_mz_df.to_numpy()
 		mz_selected_old = final_mz_df.columns
 		corrected_mz = []
@@ -2617,6 +2642,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		labeled_mz_df.insert(0, 'selected m/z', ll)
 
 		if preview_mode:
+			print(corrected_mz)
 			plt.figure(figsize=(10, 4))
 			for i,mz_i in enumerate(mz):
 				markerline, stemlines, baseline = plt.stem(mz_i, np.ones_like(mz_i))
@@ -2652,16 +2678,26 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			labeled_mz_df.to_csv(csv_save_name[:-4]+'_MZLIST.csv', index=False)
 			
 			# align peaks
-			aligned_peaks = []
-			for i in range(n_csv):
-				mz_old = mz[i]
-				newp = np.nan*np.ones([len(self.peaks[i]),n_mz])
-				for j,col in enumerate(corrected_mz):
-					mz_val = final_mz_df[col][i]
-					if ~np.isnan(mz_val):
-						p_ind = np.where(mz_old == mz_val)[0]
-						newp[:,j] = self.peaks[i][:,p_ind].flat
-				aligned_peaks.append(newp)
+			if params['matching_method'] == "Cluster":
+				aligned_peaks = []
+				for i in range(n_csv):
+					mz_old = mz[i]
+					newp = np.nan*np.ones([len(self.peaks[i]),n_mz])
+					for j,col in enumerate(corrected_mz):
+						mz_val = final_mz_df[col][i]
+						if ~np.isnan(mz_val):
+							p_ind = np.where(mz_old == mz_val)[0]
+							newp[:,j] = self.peaks[i][:,p_ind].flat
+					aligned_peaks.append(newp)
+			
+			elif params['matching_method'] == "Tolerance":
+				tolerance = params['matching_tol']
+				bin_method = params['matching_bin']
+				aligned_peaks = []
+				for i in range(n_csv):
+					aligned_peaks_i, _ = self.peak_matching(mz[i], self.peaks[i], corrected_mz, tolerance, bin_method)
+					# aligned_peaks_i, _ = self.peak_alignemnt_to_reference(mz[i], self.peaks[i], corrected_mz, thresh=tolerance)
+					aligned_peaks.append(aligned_peaks_i)
 
 			aligned_peaks = np.concatenate(aligned_peaks, axis=0)
 			aligned_peaks_labels = np.concatenate(self.labels, axis=0)

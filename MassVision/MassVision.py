@@ -154,6 +154,11 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		self.ui.MLlabel2.setVisible(False)
 		self.ui.MLparam2.setVisible(False)
+
+		self.ui.AlignTolLabel.setVisible(False)
+		self.ui.AlignTolVal.setVisible(False)
+		self.ui.AlignBinLab.setVisible(False)
+		self.ui.AlignBinVal.setVisible(False)
 		
 		# Heatmap list singleIonHeatmapList
 		self.ui.singleIonHeatmapList.addItem('Inferno')
@@ -230,6 +235,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.loadToAlign.connect("clicked(bool)", self.onLoadToAlign)
 
 		self.ui.alignPreview.connect("clicked(bool)", self.onAlignPreview)
+		
+		self.ui.AlignMatchMethod.currentTextChanged.connect(self.onAlignMatchMethod)
 
 		self.ui.alignButton.connect("clicked(bool)", self.onMerge)
 		
@@ -778,8 +785,11 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			r += 1
 
 	def onLoadToAlign(self):
-		info = self.logic.load_alignment_files(list(self.files))
+		info, mz_range = self.logic.load_alignment_files(list(self.files))
 		self.ui.fileInfoAlign.setText(info)
+
+		self.ui.alignPreviewStart.setText(mz_range[0])
+		self.ui.alignPreviewEnd.setText(mz_range[1])
 	
 	def onAlignPreview(self):
 		params = {}
@@ -792,6 +802,18 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		params['file_names'] = [os.path.splitext(os.path.basename(x))[0] for x in list(self.files)]
 
 		self.logic.batch_peak_alignment(params)
+
+	def onAlignMatchMethod(self, text):
+		if text == "Cluster":
+			self.ui.AlignTolLabel.setVisible(False)
+			self.ui.AlignTolVal.setVisible(False)
+			self.ui.AlignBinLab.setVisible(False)
+			self.ui.AlignBinVal.setVisible(False)
+		elif text == "Tolerance":
+			self.ui.AlignTolLabel.setVisible(True)
+			self.ui.AlignTolVal.setVisible(True)
+			self.ui.AlignBinLab.setVisible(True)
+			self.ui.AlignBinVal.setVisible(True)
 
 	def onMerge(self):
 		# Merge csv files added by the user
@@ -807,11 +829,15 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		params['ion_count_method'] = self.ui.sparsityLevel.currentText
 		params['savepath'] = savepath
 		params['preview'] = None
+		params['matching_method'] = self.ui.AlignMatchMethod.currentText
+		if params['matching_method'] == "Tolerance":
+			params['matching_tol'] = float(self.ui.AlignTolVal.text)
+			params['matching_bin'] = self.ui.AlignBinVal.currentText.lower()
 
 		retstr = self.logic.batch_peak_alignment(params)
 		self.ui.alignmentTextBrowser.setText(retstr)
 
-
+	
 	### Dataset post-processing
 	def onCsvSelect(self):
 		fileExplorer = qt.QFileDialog()
