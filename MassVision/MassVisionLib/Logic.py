@@ -80,6 +80,28 @@ from scipy.stats import ttest_ind
 from MassVisionLib.Utils import *
 
 
+def show_wait_message(func):
+	def wrapper(*args, **kwargs):
+		messageBox = qt.QMessageBox()
+		messageBox.setIcon(qt.QMessageBox.NoIcon) 
+		# messageBox.setWindowTitle("Please wait ⏳")
+		messageBox.setText("      Please wait. the operation is in progress...      \n")
+		messageBox.setStandardButtons(qt.QMessageBox.NoButton)
+		messageBox.setModal(True)
+		messageBox.resize(400, 200)
+		font = qt.QFont()
+		font.setPointSize(14)
+		messageBox.setFont(font)
+		messageBox.show()
+		qt.QApplication.processEvents()
+
+		try:
+			return func(*args, **kwargs)
+		finally:
+			messageBox.close()
+
+	return wrapper
+
 class MassVisionLogic(ScriptedLoadableModuleLogic):
 	"""This class should implement all the actual
 	computation done by your module.  The interface
@@ -2370,6 +2392,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return True
 
+
+	@show_wait_message
 	def RawFileLoad(self, filePath):
 		self.saveFolder = os.path.dirname(filePath)
 		self.slideName = os.path.splitext( os.path.basename(filePath) )[0]
@@ -3061,6 +3085,9 @@ def compute_vip(pls, X):
         ])
         vip[i] = np.sqrt(p * np.dot(s, weight) / total_s)
     return vip
+
+
+
 
 # Low Coefficient of Variation (CV) Across Spectra for selection of normalization 
 # cv = np.std(data, axis=0) / np.mean(data, axis=0)
