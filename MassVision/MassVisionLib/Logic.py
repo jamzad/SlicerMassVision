@@ -84,8 +84,8 @@ def show_wait_message(func):
 	def wrapper(*args, **kwargs):
 		messageBox = qt.QMessageBox()
 		messageBox.setIcon(qt.QMessageBox.NoIcon) 
-		# messageBox.setWindowTitle("Please wait ⏳")
-		messageBox.setText("      Please wait. the operation is in progress...      \n")
+		messageBox.setWindowTitle("MassVision")
+		messageBox.setText("      Please wait, the operation is in progress...      \n")
 		messageBox.setStandardButtons(qt.QMessageBox.NoButton)
 		messageBox.setModal(True)
 		messageBox.resize(400, 200)
@@ -97,8 +97,11 @@ def show_wait_message(func):
 
 		try:
 			return func(*args, **kwargs)
+		except Exception as e:
+			print("Exception occurred:", str(e))
 		finally:
 			messageBox.close()
+			qt.QApplication.processEvents()
 
 	return wrapper
 

@@ -178,7 +178,14 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.Go2tab3.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(3))
 		self.ui.Go2tab4.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(4))
 		self.ui.Go2tab5.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(5))
-		self.ui.Go2tab6.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(7))
+		self.ui.Go2tab6.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(6))
+		self.ui.Go2tab7.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(7))
+		self.ui.Go2tab8.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(8))
+
+		self.ui.userManual.clicked.connect(
+			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://slicermassvision.readthedocs.io/")))
+		self.ui.sampleData.clicked.connect(
+			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://github.com/jamzad/SlicerMassVision/releases/tag/test-data")))
 
 		# Data Import
 		self.ui.clearReloadPush.connect("clicked(bool)", self.onClearReload)
@@ -333,9 +340,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 	def onRawSelect(self):
 		fileExplorer = qt.QFileDialog()
 		filePath = fileExplorer.getOpenFileName(None, "Import raw MSI data", "", "imzML (*.imzml);;All Files (*)")
-		self.ui.rawLineEdit.setText(filePath)
-		info = self.logic.RawFileLoad(filePath)
-		self.ui.rawInfo.setText(info)
+		if filePath:
+			self.ui.rawLineEdit.setText(filePath)
+			info = self.logic.RawFileLoad(filePath)
+			self.ui.rawInfo.setText(info)
 
 	def onPutFiducial(self, listName):
 		# Try to get or create the fiducial node
@@ -712,10 +720,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 	def onTabChange(self, index):
 		print('selected tab:',index, self.ui.tabWidget.tabText(index))
-		if index==7:
+		if index==8:
 			self.updateDepVisList()
 			self.updateDepSegList()
-		elif index==2:
+		elif index==3:
 			self.updateVolumeList()
 	
 	def onModuleChange(self):
@@ -1190,7 +1198,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		else:
 			self.ui.textBrowser.setText(accuracystring)
 			self.model_results = accuracystring
-			self.ui.tabWidget.setCurrentIndex(6)
+			self.ui.tabWidget.setCurrentIndex(7)
 
   
 	def onMLMethod(self, text):
@@ -1305,7 +1313,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.depSegListCombo.setEnabled(state)
 
 	def onDepGoVis(self):
-		self.ui.tabWidget.setCurrentIndex(1)
+		self.ui.tabWidget.setCurrentIndex(2)
 
 	def onDepGoSeg(self):
 		sourceVolumeNode = slicer.util.getNode( self.ui.depVisListCombo.currentText )
