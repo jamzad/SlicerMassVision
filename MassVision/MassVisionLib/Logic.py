@@ -72,8 +72,7 @@ except ModuleNotFoundError:
 	slicer.util.pip_install("h5py")
 	import h5py
 
-		
-
+import traceback		
 
 from scipy.stats import ttest_ind
 
@@ -156,6 +155,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.ranked_features_indices = None
 		self.manual_features_indices = None 
 		self.selected_features_indices = None
+		self.parser = None
+		self.raw_range = None
 
 
 	def setDefaultParameters(self, parameterNode):
@@ -2396,12 +2397,12 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return True
 
 
-	@show_wait_message
 	def RawFileLoad(self, filePath):
 		self.saveFolder = os.path.dirname(filePath)
 		self.slideName = os.path.splitext( os.path.basename(filePath) )[0]
 		self.savenameBase = os.path.splitext(filePath)[0]
 		
+		# import imzml
 		try:
 			from pyimzml.ImzMLParser import ImzMLParser
 		except ModuleNotFoundError:
@@ -2448,8 +2449,9 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.dim_y = dim_y
 		self.dim_x = dim_x
 		self.parser = parser
-
-		return info
+		self.raw_range = mz_range
+	
+		return info, mz_range
 
 
 		# dim_x, dim_y, *_ = np.array(parser.coordinates).max(0)
@@ -2460,6 +2462,145 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# 	peaks[y-1, x-1,:] = intensities
 		# peaks = peaks.reshape((dim_y*dim_x,-1),order='C')
 		# return peaks, mz, dim_y, dim_x
+
+	@show_wait_message
+	def raw_processing(self, params):
+		status = True
+		try:
+			mz_select, calibration_shifts, peaks_select, mz_grid, peaks_aggregated = self.raw_mzList_picking(self.parser, params)
+			peak_list, dim_x, dim_y = self.raw_peakList_alignment(self.parser, mz_select, calibration_shifts, params)
+			
+			self.peaks = peak_list
+			self.mz = mz_select
+			self.dim_y = dim_y
+			self.dim_x = dim_x
+		except Exception as e:
+			print("An error occurred:")
+			traceback.print_exc()
+			status = False
+
+		return status
+
+	def raw_mzList_picking(self, parser, params):
+		vis_range = np.round([ params["range"][0] - 1, params["range"][1] + 1], params["decimal_ions"])
+		mz_res = 10**-params["decimal_ions"]
+		mz_grid = np.arange(vis_range[0], vis_range[1], mz_res)
+		
+		peaks_aggregated = 0
+		calibration_shifts = []
+		
+		n_spectra = len(parser.coordinates)
+		for i in tqdm(range(n_spectra)):
+			mz_raw, peaks_raw = parser.getspectrum(i)
+			
+			# lockmass
+			if params["lockmass"]:
+				calibration_shift = self.lockmass_shift_prediction(mz_raw, peaks_raw, lockmass_peak=params["lockmass"], lockmass_range=0.1, method="nearest_peak")
+				mz_raw = mz_raw + calibration_shift
+				calibration_shifts.append(calibration_shift)
+
+			# filter range
+			raw_range = (mz_raw>=vis_range[0])*(mz_raw<=vis_range[1])
+			mz_raw = mz_raw[raw_range]
+			peaks_raw = peaks_raw[raw_range]
+		
+			# interpolate
+			peaks_interp = np.interp(mz_grid, mz_raw, peaks_raw, left=0, right=0)
+
+			# smoothing
+			if params["smoothing"]:
+				peaks_interp = self.smoothing(mz_grid, peaks_interp, kernel_nstd=4, kernel_bandwidth=params["smoothing"])
+
+			# aggregate
+			peaks_aggregated += peaks_interp
+
+		mz_grid, peaks_aggregated
+
+		# peak picking
+		if params["smoothing"]:
+			locs, _= find_peaks(peaks_aggregated, width=params["smoothing"]/mz_res)
+		else:
+			locs, _= find_peaks(peaks_aggregated)
+		mz_cent, peaks_cent = mz_grid[locs], peaks_aggregated[locs]
+		
+		# peak selection
+		select_ind = np.sort(np.argsort(-peaks_cent)[:params["n_ions"]])
+		mz_select, peaks_select = mz_cent[select_ind], peaks_cent[select_ind]
+
+		mz_select = np.round(mz_select, params["decimal_ions"])
+
+		return mz_select, calibration_shifts, peaks_select, mz_grid, peaks_aggregated
+
+	def smoothing(self, x_interp, y_interp, kernel_nstd, kernel_bandwidth):
+		mz_resolution = np.diff(x_interp)[0]
+		kernel_width = int(kernel_nstd * kernel_bandwidth / mz_resolution)
+		kernel = np.exp(-0.5 * (np.arange(-kernel_width, kernel_width + 1)*mz_resolution / kernel_bandwidth) ** 2)
+		kernel = kernel/kernel.sum()
+		y_smoothed = np.convolve(y_interp, kernel, mode='same')
+		return y_smoothed
+
+	def lockmass_shift_prediction(self, mz, peaks, lockmass_peak=554.2615, lockmass_range=0.1, method="highest_peak"):
+		mz_range = (mz>(lockmass_peak-lockmass_range))*(mz<(lockmass_peak+lockmass_range))
+		mz_sub, peak_sub = mz[mz_range], peaks[mz_range]
+		
+		if mz_sub.size>0:
+			if method == 'nearest_mz':
+				locmass_loc = np.abs(mz_sub-lockmass_peak).argmin()
+				
+			elif method == 'highest_peak':
+				locmass_loc = peak_sub.argmax()
+				
+			elif method == 'nearest_peak':
+				locs, _= find_peaks(peak_sub)
+				if locs.size>0:
+					mz_sub, peak_sub = mz_sub[locs], peak_sub[locs]
+				locmass_loc = np.abs(mz_sub-lockmass_peak).argmin()
+				
+			else:
+				raise ValueError('unknown lockmass method')
+				
+			calibration_shift = lockmass_peak - mz_sub[locmass_loc]
+		
+		else:
+			calibration_shift = 0
+		
+		return calibration_shift
+
+	def raw_peakList_alignment(self, parser, mz_ref, calibration_shifts, params):
+		
+		vis_range = np.round([ mz_ref.min() - 1, mz_ref.max() + 1], params["decimal_ions"])
+		mz_res = 10**-params["decimal_ions"]
+		mz_grid = np.arange(vis_range[0], vis_range[1], mz_res)
+		
+		n_spectra = len(parser.coordinates)
+		n_ions = len(mz_ref)
+
+		dim_x, dim_y, *_ = np.array(parser.coordinates).max(0)
+		peak_list = np.zeros((dim_y, dim_x, n_ions))
+		for i, (x, y, *_) in tqdm(enumerate(parser.coordinates), total=n_spectra):
+			mz_raw, peaks_raw = parser.getspectrum(i)
+			
+			# lockmass
+			if params["lockmass"]:
+				mz_raw = mz_raw + calibration_shifts[i]
+
+			# filter range
+			raw_range = (mz_raw>=vis_range[0])*(mz_raw<=vis_range[1])
+			mz_raw = mz_raw[raw_range]
+			peaks_raw = peaks_raw[raw_range]
+		
+			# smoothing
+			if params["smoothing"]:
+				peaks_raw = np.interp(mz_grid, mz_raw, peaks_raw, left=0, right=0)
+				peaks_raw = self.smoothing(mz_grid, peaks_raw, kernel_nstd=4, kernel_bandwidth=params["smoothing"])
+				mz_raw = mz_grid
+
+			# peak match
+			peaks_aligned, _ = self.peak_matching(mz_raw, peaks_raw, mz_ref, tol=5*mz_res, method='max')
+			peak_list[y-1, x-1] = peaks_aligned
+
+		peak_list = peak_list.reshape((dim_y*dim_x,-1),order='C')
+		return peak_list, dim_x, dim_y
 
 	def MSIExport(self, savepath):
 		file_type = os.path.splitext(savepath)[-1]
@@ -3046,7 +3187,7 @@ def imzML_TIC(parser):
     return tic_img
 
 def imzML_ionImg(parser, mz, tol):
-    dim_x, dim_y, *_ = spatial_dims = np.array(parser.coordinates).max(0)
+    dim_x, dim_y, *_ = np.array(parser.coordinates).max(0)
     ion_img = np.zeros((dim_y, dim_x))
     for i, (x, y, *_) in enumerate(parser.coordinates):
         mzs, intensities = parser.getspectrum(i)

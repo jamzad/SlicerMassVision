@@ -160,6 +160,15 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.AlignBinLab.setVisible(False)
 		self.ui.AlignBinVal.setVisible(False)
 		
+		self.ui.lockmassLab.setVisible(False)
+		self.ui.lockmassVal.setVisible(False)
+		self.ui.rawrangeStLab.setVisible(False)
+		self.ui.rawrangeStVal.setVisible(False)
+		self.ui.rawrangeEnLab.setVisible(False)
+		self.ui.rawrangeEnVal.setVisible(False)
+		self.ui.rawsmoothLab.setVisible(False)
+		self.ui.rawsmoothVal.setVisible(False)
+
 		# Heatmap list singleIonHeatmapList
 		self.ui.singleIonHeatmapList.addItem('Inferno')
 		self.ui.singleIonHeatmapList.addItem('DivergingBlueRed')
@@ -172,7 +181,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			data = self.ui.singleIonHeatmapList.itemData(i)
 			self.ui.RawImgHeatmap.addItem(text, data)
 
-		# Quick access
+		# Home
+		self.ui.clearReloadPush.connect("clicked(bool)", self.onClearReload)
+		self.ui.loadScenePush.connect("clicked(bool)", self.onLoadScene)
+
 		self.ui.Go2tab1.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(1))
 		self.ui.Go2tab2.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(2))
 		self.ui.Go2tab3.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(3))
@@ -188,9 +200,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://github.com/jamzad/SlicerMassVision/releases/tag/test-data")))
 
 		# Data Import
-		self.ui.clearReloadPush.connect("clicked(bool)", self.onClearReload)
-		self.ui.loadScenePush.connect("clicked(bool)", self.onLoadScene)
-
 		self.ui.textFileSelect.connect("clicked(bool)", self.onTextFileSelect)
 
 		self.ui.histoFileSelect.connect("clicked(bool)",self.onHistoSelect)
@@ -198,8 +207,11 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.rawSelect.connect("clicked(bool)", self.onRawSelect)
 		self.ui.RAWplaceFiducial.connect("clicked(bool)", lambda checked: self.onPutFiducial("raw-spectrum"))
 		self.ui.RAWplotSpectra.connect("clicked(bool)", self.onRawPlotSpectra)
-
 		self.ui.RawPlotImg.connect("clicked(bool)", self.onRawPlotImg)
+		self.ui.rawsmoothCheck.connect("clicked(bool)", self.onRawsmoothCheck)
+		self.ui.lockmassCheck.connect("clicked(bool)", self.onLockmassCheck)
+		self.ui.rawrangeCheck.connect("clicked(bool)", self.onRawrangCheck)
+		self.ui.rawProcess.connect("clicked(bool)", self.onRawProcess)
 
 		self.ui.ExportPushBotton.connect("clicked(bool)",self.onExport)
 
@@ -342,8 +354,13 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		filePath = fileExplorer.getOpenFileName(None, "Import raw MSI data", "", "imzML (*.imzml);;All Files (*)")
 		if filePath:
 			self.ui.rawLineEdit.setText(filePath)
-			info = self.logic.RawFileLoad(filePath)
-			self.ui.rawInfo.setText(info)
+			info, mz_range = self.logic.RawFileLoad(filePath)
+			if info:
+				self.ui.rawInfo.setText(info)
+				self.ui.rawrangeStVal.setText( np.round(mz_range[0]) )
+				self.ui.rawrangeEnVal.setText( np.round(mz_range[1]) )
+				self.logic.saveFolder = os.path.dirname(filePath)
+				self.logic.slideName = os.path.basename(filePath)
 
 	def onPutFiducial(self, listName):
 		# Try to get or create the fiducial node
@@ -364,7 +381,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 	def onRawPlotSpectra(self):
 		self.logic.RawPlotSpectra()
-		return True
 
 	def onRawPlotImg(self):
 		ion_mz = float(self.ui.RawImgIon.text)
@@ -372,6 +388,49 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		img_heatmap = self.ui.RawImgHeatmap.currentText
 		self.logic.RawPlotImg(ion_mz, tol_mz, img_heatmap)
 	
+	def onRawsmoothCheck(self):
+		currentState = self.ui.rawsmoothCheck.isChecked()
+		self.ui.rawsmoothLab.setVisible(currentState)
+		self.ui.rawsmoothVal.setVisible(currentState)
+
+	def onLockmassCheck(self):
+		currentState = self.ui.lockmassCheck.isChecked()
+		self.ui.lockmassLab.setVisible(currentState)
+		self.ui.lockmassVal.setVisible(currentState)
+
+	def onRawrangCheck(self):
+		currentState = self.ui.rawrangeCheck.isChecked()
+		self.ui.rawrangeStLab.setVisible(currentState)
+		self.ui.rawrangeStVal.setVisible(currentState)
+		self.ui.rawrangeEnLab.setVisible(currentState)
+		self.ui.rawrangeEnVal.setVisible(currentState)
+
+	def onRawProcess(self):
+		params = {}
+		params["smoothing"] = None
+		if self.ui.rawsmoothCheck.isChecked():
+			params["smoothing"] = float(self.ui.rawsmoothVal.text)
+
+		params["lockmass"] = None
+		if self.ui.lockmassCheck.isChecked():
+			params["lockmass"] = float(self.ui.lockmassVal.text)
+
+		params["range"] = [self.logic.raw_range[0], self.logic.raw_range[1]]
+		if self.ui.rawrangeCheck.isChecked():
+			params["range"] = [float(self.ui.rawrangeStVal.text), float(self.ui.rawrangeEnVal.text)]
+
+		params["n_ions"] = int(self.ui.rawNIonVal.text)
+		params["decimal_ions"] = int(self.ui.rawmzResVal.text)
+
+		process_done = self.logic.raw_processing(params)
+		if process_done:
+			self.logic.normalize()
+			self.logic.heatmap_display()
+			self.populateMzLists()
+			info = self.logic.getDataInformation()
+			self.ui.rawProcessInfo.setText(info)
+
+
 	def onTextFileSelect(self):
 		file_info = self.logic.textFileSelect()
 		if file_info!=('',''):
