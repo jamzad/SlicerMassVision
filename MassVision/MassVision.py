@@ -169,6 +169,15 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.rawsmoothLab.setVisible(False)
 		self.ui.rawsmoothVal.setVisible(False)
 
+		# Set the logo text
+		logo_path = self.resourcePath('Icons/UI_nameM.png')
+		self.ui.logo.setPixmap(qt.QPixmap(logo_path))
+
+		# Collapse the Data Probe
+		dataProbeWidget = slicer.util.mainWindow().findChild(qt.QWidget, "DataProbeCollapsibleWidget")
+		if dataProbeWidget and hasattr(dataProbeWidget, "collapsed"):
+			dataProbeWidget.collapsed = True
+
 		# Heatmap list singleIonHeatmapList
 		self.ui.singleIonHeatmapList.addItem('Inferno')
 		self.ui.singleIonHeatmapList.addItem('DivergingBlueRed')
