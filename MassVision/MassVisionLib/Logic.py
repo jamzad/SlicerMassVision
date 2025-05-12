@@ -1043,7 +1043,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return cluster_colors
 
-	def dice_score(self, segmentation_mask):
+	def dice_score(self, segmentation_mask, ion_ind):
 		# Define thresholds
 		thresholds = np.linspace(0.1, 0.9, 9)  # 9 thresholds
 
@@ -1051,7 +1051,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		mask_sum = np.sum(segmentation_mask)  # Total pixels in the mask
 
 		# Precompute thresholded data for all thresholds (vectorized)
-		thresholded_data = np.expand_dims(self.peaks_norm, axis=2) > thresholds  # Shape: (pixels, ions, thresholds)
+		thresholded_data = np.expand_dims(self.peaks_norm[:,ion_ind], axis=2) > thresholds  # Shape: (pixels, ions, thresholds)
 
 		# Calculate intersection and union for Dice score using einsum
 		intersection = np.einsum('p, pit -> it', segmentation_mask, thresholded_data)  # Shape: (ions, thresholds)
@@ -1084,12 +1084,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	def ViewClusterThumbnail(self, cluster_id):
 		segmentation_mask = (self.pixel_clusters == cluster_id).astype(int)
 
-		max_dice_scores, max_thresholds = self.dice_score(segmentation_mask)
 		pearson_corrs = self.pearson_corr(segmentation_mask)
 
 		sorted_indices = np.argsort(-pearson_corrs)
 
-		# Get top 5 ions and their scores for thumbnail
+		# Get top ions and their scores for thumbnail
 		top_n = 10 
 		top_ions = sorted_indices[:top_n]
 
@@ -1140,11 +1139,12 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		YellowNode.SetOrientation("Axial")
 		slicer.util.resetSliceViews()
 		
-		top_n_table = 10 
+		top_n_table = 20 
 		top_ions_table = sorted_indices[:top_n_table]
+		max_dice_scores, max_thresholds = self.dice_score(segmentation_mask, top_ions_table)
 		volcano_fc, volcano_pval = self.volcano_table(segmentation_mask>0, top_ions_table)
 
-		return self.mz[top_ions_table], max_dice_scores[top_ions_table], volcano_fc, volcano_pval, pearson_corrs[top_ions_table]
+		return self.mz[top_ions_table], max_dice_scores, volcano_fc, volcano_pval, pearson_corrs[top_ions_table]
 	
 	def volcano_table(self, mask, top_ind):
 		inside_segment = self.peaks_norm[mask][:, top_ind]

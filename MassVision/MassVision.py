@@ -140,6 +140,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.pcaExtendCheckbox.hide()
 		self.ui.roiCintrastExtend.hide()
 		self.ClearClusterTable()
+		## hide the in-ui table view
+		self.ui.ClusterTable.setVisible(False)
 
 		self.ui.csvLoad.hide()
 		self.ui.modellingFile.hide()
@@ -177,6 +179,11 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		dataProbeWidget = slicer.util.mainWindow().findChild(qt.QWidget, "DataProbeCollapsibleWidget")
 		if dataProbeWidget and hasattr(dataProbeWidget, "collapsed"):
 			dataProbeWidget.collapsed = True
+
+		# Collapse Python console
+		# pythonConsoleDock = slicer.util.mainWindow().findChild(qt.QDockWidget, "PythonConsoleDockWidget")
+		# if pythonConsoleDock:
+		# 	pythonConsoleDock.setVisible(False)
 
 		# Heatmap list singleIonHeatmapList
 		self.ui.singleIonHeatmapList.addItem('Inferno')
@@ -700,21 +707,71 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		volcano_mz, dice_score, volcano_fc, volcano_pval, pearson_corr = self.logic.ViewClusterThumbnail(cluster_ind)
 		
 		self.ClearClusterTable()
-		nRows = len(volcano_mz)
-		self.ui.ClusterTable.setRowCount(nRows)
+		# nRows = len(volcano_mz)
+		# self.ui.ClusterTable.setRowCount(nRows)
 
-		for i in range(nRows):
-			self.ui.ClusterTable.setItem(i, 0, qt.QTableWidgetItem(str(volcano_mz[i])))
-			self.ui.ClusterTable.setItem(i, 1, qt.QTableWidgetItem(str(np.round(pearson_corr[i],4))))
-			self.ui.ClusterTable.setItem(i, 2, qt.QTableWidgetItem(str( np.round(volcano_fc[i],4))))
-			item = str(np.round(volcano_pval[i],4))
-			if volcano_pval[i]>=300:
-				item = '>300'
-			self.ui.ClusterTable.setItem(i, 3, qt.QTableWidgetItem(item))
-			self.ui.ClusterTable.setItem(i, 4, qt.QTableWidgetItem(str(np.round(dice_score[i],4))))
+		# for i in range(nRows):
+		# 	self.ui.ClusterTable.setItem(i, 0, qt.QTableWidgetItem(str(volcano_mz[i])))
+		# 	self.ui.ClusterTable.setItem(i, 1, qt.QTableWidgetItem(str(np.round(pearson_corr[i],4))))
+		# 	self.ui.ClusterTable.setItem(i, 2, qt.QTableWidgetItem(str( np.round(volcano_fc[i],4))))
+		# 	item = str(np.round(volcano_pval[i],4))
+		# 	if volcano_pval[i]>=300:
+		# 		item = '>300'
+		# 	self.ui.ClusterTable.setItem(i, 3, qt.QTableWidgetItem(item))
+		# 	self.ui.ClusterTable.setItem(i, 4, qt.QTableWidgetItem(str(np.round(dice_score[i],4))))
 		
-		self.ui.ClusterTable.resizeColumnsToContents()  # Adjust column widths
-		self.ui.ClusterTable.resizeRowsToContents()     # Adjust row heights
+		# self.ui.ClusterTable.resizeColumnsToContents()  # Adjust column widths
+		# self.ui.ClusterTable.resizeRowsToContents()     # Adjust row heights
+
+		# Add ranking as slicer table
+		clusterIons = pd.DataFrame({
+			'm/z': volcano_mz,
+			'Pearson correlation': np.round(pearson_corr,4),
+			'FC [log]': np.round(volcano_fc,4),
+			'p-value [-log]': np.round(volcano_pval,4),
+			'Dice score': np.round(dice_score,4)
+		})		
+
+		# create a table node
+		tableNode = slicer.mrmlScene.GetFirstNodeByName("ClusterIons")
+		if not tableNode:
+			tableNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTableNode', 'ClusterIons')
+		else:
+			tableNode.RemoveAllColumns()
+
+		for col in clusterIons.columns:
+			array = vtk.vtkVariantArray()
+			array.SetName(str(col))
+			for val in clusterIons[col]:
+				array.InsertNextValue(vtk.vtkVariant(str(val)))
+			tableNode.AddColumn(array)
+
+		# lock the table
+		tableNode.SetUseColumnTitleAsColumnHeader(True)
+		tableNode.SetLocked(True)
+
+		# set the table view node
+		tableViewNodes = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
+		if tableViewNodes:
+			tableViewNode = tableViewNodes[0]
+			tableViewNode.SetTableNodeID(tableNode.GetID())
+		
+		# view the table below the ion images
+		customLayoutId = 80
+		customLayout = """
+		<layout type="vertical" split="true">
+		<item>
+			<view class="vtkMRMLSliceNode" singletontag="Yellow"/>
+		</item>
+		<item>
+			<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+		</item>
+		</layout>
+		"""
+		# yellowViewNode = slicer.mrmlScene.GetNodeByID("vtkMRMLSliceNodeYellow")
+		# yellowViewNode.SetLayoutColor((0.9294117647058824, 0.8352941176470589, 0.2980392156862745))
+		slicer.app.layoutManager().layoutLogic().GetLayoutNode().AddLayoutDescription(customLayoutId, customLayout)
+		slicer.app.layoutManager().setLayout(customLayoutId)
 
 	### Dataset generation
 
