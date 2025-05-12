@@ -32,7 +32,7 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>0</number>
+   <number>8</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
@@ -475,40 +475,6 @@ p, li { white-space: pre-wrap; }
             </property>
            </spacer>
           </item>
-          <item row="25" column="1" colspan="2">
-           <widget class="QLineEdit" name="rawrangeEnVal">
-            <property name="font">
-             <font>
-              <pointsize>8</pointsize>
-              <weight>50</weight>
-              <bold>false</bold>
-             </font>
-            </property>
-            <property name="text">
-             <string>900</string>
-            </property>
-            <property name="readOnly">
-             <bool>false</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="24" column="1" colspan="2">
-           <widget class="QLineEdit" name="rawrangeStVal">
-            <property name="font">
-             <font>
-              <pointsize>8</pointsize>
-              <weight>50</weight>
-              <bold>false</bold>
-             </font>
-            </property>
-            <property name="text">
-             <string>600</string>
-            </property>
-            <property name="readOnly">
-             <bool>false</bool>
-            </property>
-           </widget>
-          </item>
           <item row="9" column="0">
            <widget class="QLabel" name="label_84">
             <property name="font">
@@ -528,11 +494,14 @@ p, li { white-space: pre-wrap; }
           </item>
           <item row="6" column="0">
            <widget class="QPushButton" name="RAWplaceFiducial">
+            <property name="autoFillBackground">
+             <bool>false</bool>
+            </property>
             <property name="styleSheet">
              <string notr="true"/>
             </property>
             <property name="text">
-             <string>Place points</string>
+             <string>Select spectra</string>
             </property>
            </widget>
           </item>
@@ -550,23 +519,6 @@ p, li { white-space: pre-wrap; }
             </property>
             <property name="text">
              <string>Kernel bandwidth</string>
-            </property>
-           </widget>
-          </item>
-          <item row="28" column="1" colspan="2">
-           <widget class="QLineEdit" name="rawmzResVal">
-            <property name="font">
-             <font>
-              <pointsize>8</pointsize>
-              <weight>50</weight>
-              <bold>false</bold>
-             </font>
-            </property>
-            <property name="text">
-             <string>3</string>
-            </property>
-            <property name="readOnly">
-             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -744,8 +696,11 @@ p, li { white-space: pre-wrap; }
           </item>
           <item row="29" column="1" colspan="2">
            <widget class="QPushButton" name="rawProcess">
+            <property name="cursor">
+             <cursorShape>ArrowCursor</cursorShape>
+            </property>
             <property name="styleSheet">
-             <string notr="true">background-color: #1769aa;
+             <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
             </property>
             <property name="text">
@@ -774,23 +729,6 @@ color: rgb(255, 255, 255);</string>
             </property>
             <property name="text">
              <string>Number of ions  </string>
-            </property>
-           </widget>
-          </item>
-          <item row="27" column="1" colspan="2">
-           <widget class="QLineEdit" name="rawNIonVal">
-            <property name="font">
-             <font>
-              <pointsize>8</pointsize>
-              <weight>50</weight>
-              <bold>false</bold>
-             </font>
-            </property>
-            <property name="text">
-             <string>1000</string>
-            </property>
-            <property name="readOnly">
-             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -908,7 +846,7 @@ color: rgb(255, 255, 255);</string>
             </property>
            </widget>
           </item>
-          <item row="15" column="1" colspan="2">
+          <item row="15" column="2">
            <widget class="QLineEdit" name="lockmassVal">
             <property name="font">
              <font>
@@ -919,6 +857,74 @@ color: rgb(255, 255, 255);</string>
             </property>
             <property name="text">
              <string>554.2615</string>
+            </property>
+            <property name="readOnly">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="24" column="2">
+           <widget class="QLineEdit" name="rawrangeStVal">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>600</string>
+            </property>
+            <property name="readOnly">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="25" column="2">
+           <widget class="QLineEdit" name="rawrangeEnVal">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>900</string>
+            </property>
+            <property name="readOnly">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="27" column="2">
+           <widget class="QLineEdit" name="rawNIonVal">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>1000</string>
+            </property>
+            <property name="readOnly">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="28" column="2">
+           <widget class="QLineEdit" name="rawmzResVal">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>3</string>
             </property>
             <property name="readOnly">
              <bool>false</bool>
@@ -967,7 +973,7 @@ color: rgb(255, 255, 255);</string>
     <item row="10" column="1">
      <widget class="QPushButton" name="ExportPushBotton">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1126,7 +1132,7 @@ p, li { white-space: pre-wrap; }
     <item row="6" column="1">
      <widget class="QPushButton" name="singleIonButton">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1144,7 +1150,7 @@ color: rgb(255, 255, 255);</string>
     <item row="7" column="1">
      <widget class="QPushButton" name="AbundanceThumbnail">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1343,7 +1349,7 @@ color: rgb(255, 0, 0);</string>
     <item row="17" column="1">
      <widget class="QPushButton" name="multiIonButton">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1397,7 +1403,7 @@ color: rgb(255, 255, 255);</string>
     <item row="20" column="1">
      <widget class="QPushButton" name="PCA_button">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1408,7 +1414,7 @@ color: rgb(255, 255, 255);</string>
     <item row="21" column="1">
      <widget class="QPushButton" name="partialPCA">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1443,7 +1449,7 @@ color: rgb(255, 255, 255);</string>
     <item row="23" column="1">
      <widget class="QPushButton" name="ContrastThumbnail">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1621,7 +1627,7 @@ p, li { white-space: pre-wrap; }
     <item row="29" column="1">
      <widget class="QPushButton" name="Cluster_button">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1649,7 +1655,7 @@ color: rgb(255, 255, 255);</string>
     <item row="31" column="1">
      <widget class="QPushButton" name="ClusterThumbnail">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1771,7 +1777,7 @@ color: rgb(255, 255, 255);</string>
     <item row="42" column="1">
      <widget class="QPushButton" name="spectrumPlot">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1824,7 +1830,7 @@ color: rgb(255, 255, 255);</string>
     <item row="42" column="0">
      <widget class="QPushButton" name="placeFiducial">
       <property name="text">
-       <string>Place points</string>
+       <string>Select spectra</string>
       </property>
      </widget>
     </item>
@@ -1931,11 +1937,42 @@ color: rgb(255, 255, 255);</string>
     <item row="39" column="1">
      <widget class="QPushButton" name="UmapButton">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
        <string>Global contrast</string>
+      </property>
+     </widget>
+    </item>
+    <item row="21" column="0">
+     <widget class="QPushButton" name="ROIforLocalContrast">
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>16777215</height>
+       </size>
+      </property>
+      <property name="cursor">
+       <cursorShape>ArrowCursor</cursorShape>
+      </property>
+      <property name="text">
+       <string>Select region</string>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>16</width>
+        <height>16</height>
+       </size>
+      </property>
+      <property name="autoDefault">
+       <bool>false</bool>
+      </property>
+      <property name="default">
+       <bool>false</bool>
+      </property>
+      <property name="flat">
+       <bool>false</bool>
       </property>
      </widget>
     </item>
@@ -1979,7 +2016,7 @@ color: rgb(255, 255, 255);</string>
     <item row="1" column="1">
      <widget class="QPushButton" name="gotoRegistration">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -2088,7 +2125,7 @@ color: rgb(255, 255, 255);</string>
     <item row="6" column="1">
      <widget class="QPushButton" name="segmentEditor">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -2145,7 +2182,7 @@ color: rgb(255, 255, 255);</string>
     <item row="9" column="1">
      <widget class="QPushButton" name="roiContrast">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -2156,7 +2193,7 @@ color: rgb(255, 255, 255);</string>
     <item row="10" column="1">
      <widget class="QPushButton" name="roiContrastLDA">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -2230,7 +2267,7 @@ color: rgb(255, 255, 255);</string>
     <item row="15" column="1">
      <widget class="QPushButton" name="createCSVbutton">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -2426,7 +2463,7 @@ p, li { white-space: pre-wrap; }
     <item row="4" column="1">
      <widget class="QPushButton" name="loadToAlign">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -2694,7 +2731,7 @@ p, li { white-space: pre-wrap; }
     <item row="21" column="1">
      <widget class="QPushButton" name="alignButton">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -2842,7 +2879,7 @@ p, li { white-space: pre-wrap; }
     <item row="12" column="1">
      <widget class="QPushButton" name="csvLoad">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -3229,7 +3266,7 @@ p, li { white-space: pre-wrap; }
     <item row="43" column="1">
      <widget class="QPushButton" name="applyProcessingButton">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -3314,7 +3351,7 @@ p, li { white-space: pre-wrap; }
     <item row="5" column="1">
      <widget class="QPushButton" name="modellingFile">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -3394,7 +3431,7 @@ p, li { white-space: pre-wrap; }
     <item row="10" column="1">
      <widget class="QPushButton" name="distributionPCA">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -3820,7 +3857,7 @@ color: rgb(255, 255, 255);</string>
     <item row="39" column="1">
      <widget class="QPushButton" name="trainModel">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -3942,7 +3979,7 @@ color: rgb(255, 255, 255);</string>
     <item row="15" column="1">
      <widget class="QPushButton" name="FRankApply">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -4084,7 +4121,7 @@ color: rgb(255, 255, 255);</string>
     <item row="2" column="1">
      <widget class="QPushButton" name="deployImport">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -4169,7 +4206,7 @@ p, li { white-space: pre-wrap; }
     <item row="7" column="1">
      <widget class="QPushButton" name="deployModelImport">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -4462,7 +4499,7 @@ p, li { white-space: pre-wrap; }
     <item row="22" column="1">
      <widget class="QPushButton" name="deployRun">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">

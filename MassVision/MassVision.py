@@ -175,6 +175,14 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		logo_path = self.resourcePath('Icons/UI_nameM.png')
 		self.ui.logo.setPixmap(qt.QPixmap(logo_path))
 
+		# Set icons
+		icon_path = self.resourcePath('Icons/roi.png')
+		self.ui.ROIforLocalContrast.setIcon(qt.QIcon(icon_path))
+
+		icon_path = self.resourcePath('Icons/marker.png')
+		self.ui.RAWplaceFiducial.setIcon(qt.QIcon(icon_path))
+		self.ui.placeFiducial.setIcon(qt.QIcon(icon_path))
+
 		# Collapse the Data Probe
 		dataProbeWidget = slicer.util.mainWindow().findChild(qt.QWidget, "DataProbeCollapsibleWidget")
 		if dataProbeWidget and hasattr(dataProbeWidget, "collapsed"):
@@ -245,6 +253,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.multiIonButton.connect("clicked(bool)", self.selectedMultiIon)
 		self.ui.PCA_button.connect("clicked(bool)", self.onPCAButton)
 		self.ui.partialPCA.connect("clicked(bool)", self.onPartialPCAButton)
+		self.ui.ROIforLocalContrast.connect("clicked(bool)", self.onROIforLocalContrast)
 		self.dataInfo = ''
 		self.ui.ContrastThumbnail.connect("clicked(bool)", self.onContrastThumbnail)
 
@@ -540,6 +549,30 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		info = self.logic.LoadingsRank()
 		info = f'Local Contrast \nregion ({int(min_y[0])},{int(max_y[0])}), ({int(min_x[0])},{int(max_x[0])})\n\n' + info
 		self.ui.LoadingsInfo.setText(info)
+
+	def onROIforLocalContrast(self):
+		# Remove any existing ROI for local contrast
+		for node in slicer.util.getNodesByClass("vtkMRMLMarkupsROINode"):
+			if node.GetName() == " ":
+				slicer.mrmlScene.RemoveNode(node)
+				break  # assuming only one exists
+
+		# Create a new Markups ROI node
+		roiNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsROINode", " ")
+
+		# Configure display properties (transparent faces, visible edges)
+		roiDisplayNode = roiNode.GetDisplayNode()
+		roiDisplayNode.SetHandlesInteractive(True)
+		roiDisplayNode.SetFillOpacity(0.0)      # Transparent box
+		roiDisplayNode.SetOutlineOpacity(1.0)   # Visible edges
+
+		# Set it as the active list for placement
+		slicer.modules.markups.logic().SetActiveListID(roiNode)
+
+		# Enable placement mode
+		interactionNode = slicer.app.applicationLogic().GetInteractionNode()
+		interactionNode.SetCurrentInteractionMode(interactionNode.Place)
+		interactionNode.SwitchToSinglePlaceMode()
 
 	def onROIContrast(self):
 		# get all ROIs
