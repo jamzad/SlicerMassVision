@@ -32,7 +32,7 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>8</number>
+   <number>0</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
@@ -66,6 +66,10 @@
       <layout class="QGridLayout" name="gridLayout">
        <item row="8" column="0">
         <widget class="QPushButton" name="Go2tab2">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
          <property name="text">
           <string>Visualization</string>
          </property>
@@ -73,6 +77,10 @@
        </item>
        <item row="9" column="0">
         <widget class="QPushButton" name="Go2tab3">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
          <property name="text">
           <string>Dataset curation</string>
          </property>
@@ -87,6 +95,10 @@
        </item>
        <item row="11" column="1">
         <widget class="QPushButton" name="Go2tab8">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
          <property name="text">
           <string>AI model deployment</string>
          </property>
@@ -94,6 +106,10 @@
        </item>
        <item row="7" column="0">
         <widget class="QPushButton" name="Go2tab1">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
          <property name="text">
           <string>Data import/export</string>
          </property>
@@ -101,6 +117,10 @@
        </item>
        <item row="8" column="1">
         <widget class="QPushButton" name="Go2tab6">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
          <property name="text">
           <string>AI model training</string>
          </property>
@@ -138,6 +158,10 @@
        </item>
        <item row="7" column="1">
         <widget class="QPushButton" name="Go2tab5">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
          <property name="text">
           <string>Dataset preprocessing</string>
          </property>
@@ -145,8 +169,12 @@
        </item>
        <item row="9" column="1">
         <widget class="QPushButton" name="Go2tab7">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
          <property name="text">
-          <string>AI validation result</string>
+          <string>AI performance report</string>
          </property>
         </widget>
        </item>
@@ -189,6 +217,10 @@
        </item>
        <item row="11" column="0">
         <widget class="QPushButton" name="Go2tab4">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
          <property name="text">
           <string>Multi-dataset alignment</string>
          </property>
@@ -501,7 +533,7 @@ p, li { white-space: pre-wrap; }
              <string notr="true"/>
             </property>
             <property name="text">
-             <string>Select spectra</string>
+             <string>select spectra</string>
             </property>
            </widget>
           </item>
@@ -1830,7 +1862,7 @@ color: rgb(255, 255, 255);</string>
     <item row="42" column="0">
      <widget class="QPushButton" name="placeFiducial">
       <property name="text">
-       <string>Select spectra</string>
+       <string>select spectra</string>
       </property>
      </widget>
     </item>
@@ -1957,7 +1989,7 @@ color: rgb(255, 255, 255);</string>
        <cursorShape>ArrowCursor</cursorShape>
       </property>
       <property name="text">
-       <string>Select region</string>
+       <string>select region</string>
       </property>
       <property name="iconSize">
        <size>
@@ -2076,7 +2108,7 @@ color: rgb(255, 255, 255);</string>
        <string notr="true"/>
       </property>
       <property name="text">
-       <string>Main visualization for ROI selection</string>
+       <string>Main visualization</string>
       </property>
      </widget>
     </item>
@@ -2102,7 +2134,7 @@ color: rgb(255, 255, 255);</string>
        <string notr="true"/>
       </property>
       <property name="text">
-       <string>Guide visualization for ROI selection</string>
+       <string>Guide visualization</string>
       </property>
      </widget>
     </item>

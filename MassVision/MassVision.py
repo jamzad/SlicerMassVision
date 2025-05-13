@@ -171,17 +171,30 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.rawsmoothLab.setVisible(False)
 		self.ui.rawsmoothVal.setVisible(False)
 
-		# Set the logo text
+		# Set logo in UI
 		logo_path = self.resourcePath('Icons/UI_nameM.png')
+		# logo_path = self.resourcePath('Icons/UI_logoS.png')
 		self.ui.logo.setPixmap(qt.QPixmap(logo_path))
 
-		# Set icons
+		# Set pushbutton icons
 		icon_path = self.resourcePath('Icons/roi.png')
 		self.ui.ROIforLocalContrast.setIcon(qt.QIcon(icon_path))
 
 		icon_path = self.resourcePath('Icons/marker.png')
 		self.ui.RAWplaceFiducial.setIcon(qt.QIcon(icon_path))
 		self.ui.placeFiducial.setIcon(qt.QIcon(icon_path))
+
+		# Set tab widget tooltip and icons
+		icon_names = ['home', 'file', 'visualization', 'dataset', 'alignment', 'preprocess', 'train', 'report', 'inference']
+		for i in range(self.ui.tabWidget.count):
+			tabText = self.ui.tabWidget.tabText(i)
+			self.ui.tabWidget.setTabText(i, "")            
+			self.ui.tabWidget.tabBar().setTabToolTip(i, tabText)  
+			icon_path = self.resourcePath(f'Icons/{icon_names[i]}.png')
+			self.ui.tabWidget.setTabIcon(i, qt.QIcon(icon_path))
+
+		self.ui.tabWidget.setTabText(0, 'Home') 
+		self.ui.tabWidget.tabBar().setIconSize(qt.QSize(25, 25))
 
 		# Collapse the Data Probe
 		dataProbeWidget = slicer.util.mainWindow().findChild(qt.QWidget, "DataProbeCollapsibleWidget")
@@ -205,7 +218,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			data = self.ui.singleIonHeatmapList.itemData(i)
 			self.ui.RawImgHeatmap.addItem(text, data)
 
-		# Home
+		# Home tab
 		self.ui.clearReloadPush.connect("clicked(bool)", self.onClearReload)
 		self.ui.loadScenePush.connect("clicked(bool)", self.onLoadScene)
 
@@ -877,6 +890,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
 	def onTabChange(self, index):
+		tab_names = ['Home', 'Data', 'Visualization', 'Dataset', 'Alignment', 'Preprocessing', 'AI train', 'Report', 'AI deployment']
+		for i in range(self.ui.tabWidget.count):
+			self.ui.tabWidget.setTabText(i, "")     
+		self.ui.tabWidget.setTabText(index, tab_names[index])
 		print('selected tab:',index, self.ui.tabWidget.tabText(index))
 		if index==8:
 			self.updateDepVisList()
