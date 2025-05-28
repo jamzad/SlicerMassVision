@@ -32,7 +32,7 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>0</number>
+   <number>8</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
@@ -3003,36 +3003,6 @@ p, li { white-space: pre-wrap; }
       <property name="enabled">
        <bool>true</bool>
       </property>
-      <item>
-       <property name="text">
-        <string>Total ion current (TIC)</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>Total signal current (TSC)</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>Root mean square (RMS)</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>Median</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>Mean</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>Reference ion</string>
-       </property>
-      </item>
      </widget>
     </item>
     <item row="21" column="0">
@@ -4336,36 +4306,57 @@ p, li { white-space: pre-wrap; }
      </spacer>
     </item>
     <item row="12" column="0">
-     <widget class="QRadioButton" name="depRadioTIC">
+     <widget class="QLabel" name="depNormMethLab">
       <property name="enabled">
        <bool>true</bool>
       </property>
       <property name="text">
-       <string>        total ion current (TIC)</string>
+       <string>              method</string>
       </property>
-      <property name="checked">
+     </widget>
+    </item>
+    <item row="12" column="1">
+     <widget class="QComboBox" name="depNormMethod">
+      <property name="enabled">
        <bool>true</bool>
       </property>
      </widget>
     </item>
     <item row="13" column="0">
-     <widget class="QRadioButton" name="depRadioIon">
+     <widget class="QLabel" name="depNormThreshLab">
       <property name="enabled">
        <bool>true</bool>
       </property>
       <property name="text">
-       <string>        reference ion</string>
+       <string>              threshold</string>
       </property>
      </widget>
     </item>
     <item row="13" column="1">
-     <widget class="QComboBox" name="depComboboxIon">
-      <property name="enabled">
-       <bool>false</bool>
+     <widget class="QLineEdit" name="depNormThresh">
+      <property name="text">
+       <string>0</string>
       </property>
      </widget>
     </item>
     <item row="14" column="0">
+     <widget class="QLabel" name="depRefIonLab">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="text">
+       <string>              reference ion</string>
+      </property>
+     </widget>
+    </item>
+    <item row="14" column="1">
+     <widget class="QComboBox" name="depComboboxIon">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="15" column="0">
      <widget class="QCheckBox" name="deployAGGcheck">
       <property name="font">
        <font>
@@ -4378,7 +4369,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="14" column="1">
+    <item row="15" column="1">
      <spacer name="horizontalSpacer_20">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -4391,7 +4382,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="15" column="0">
+    <item row="16" column="0">
      <widget class="QLabel" name="aggwLabel">
       <property name="enabled">
        <bool>false</bool>
@@ -4401,7 +4392,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="15" column="1">
+    <item row="16" column="1">
      <widget class="QLineEdit" name="aggW">
       <property name="enabled">
        <bool>false</bool>
@@ -4411,7 +4402,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="16" column="0">
+    <item row="17" column="0">
      <widget class="QLabel" name="aggmodeLabel">
       <property name="enabled">
        <bool>false</bool>
@@ -4421,7 +4412,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="16" column="1">
+    <item row="17" column="1">
      <widget class="QComboBox" name="aggMode_2">
       <property name="enabled">
        <bool>false</bool>
@@ -4448,7 +4439,7 @@ p, li { white-space: pre-wrap; }
       </item>
      </widget>
     </item>
-    <item row="17" column="0">
+    <item row="18" column="0">
      <widget class="QCheckBox" name="depMaskcheck">
       <property name="font">
        <font>
@@ -4461,7 +4452,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="17" column="1">
+    <item row="18" column="1">
      <spacer name="horizontalSpacer_29">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -4474,7 +4465,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="18" column="1">
+    <item row="19" column="1">
      <widget class="QPushButton" name="depGoVisButton">
       <property name="enabled">
        <bool>false</bool>
@@ -4484,7 +4475,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="19" column="0">
+    <item row="20" column="0">
      <widget class="QLabel" name="depVisSelLabel">
       <property name="enabled">
        <bool>false</bool>
@@ -4494,14 +4485,14 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="19" column="1">
+    <item row="20" column="1">
      <widget class="QComboBox" name="depVisListCombo">
       <property name="enabled">
        <bool>false</bool>
       </property>
      </widget>
     </item>
-    <item row="20" column="1">
+    <item row="21" column="1">
      <widget class="QPushButton" name="depGoSegEdButton">
       <property name="enabled">
        <bool>false</bool>
@@ -4511,7 +4502,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="21" column="0">
+    <item row="22" column="0">
      <widget class="QLabel" name="depSegListLabel">
       <property name="enabled">
        <bool>false</bool>
@@ -4521,14 +4512,14 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="21" column="1">
+    <item row="22" column="1">
      <widget class="QComboBox" name="depSegListCombo">
       <property name="enabled">
        <bool>false</bool>
       </property>
      </widget>
     </item>
-    <item row="22" column="1">
+    <item row="23" column="1">
      <widget class="QPushButton" name="deployRun">
       <property name="styleSheet">
        <string notr="true">background-color: #006666;
@@ -4539,7 +4530,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="23" column="0" colspan="2">
+    <item row="24" column="0" colspan="2">
      <spacer name="verticalSpacer_10">
       <property name="orientation">
        <enum>Qt::Vertical</enum>

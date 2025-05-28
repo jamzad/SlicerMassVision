@@ -148,11 +148,22 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.deployImport.hide()
 		self.ui.deployModelImport.hide()
 
+		norm_methods = ['Total ion current (TIC)', 'Total signal current (TSC)', 'Root mean square (RMS)', 'Median', 'Mean', 'Reference ion']
+		for method in norm_methods:
+			self.ui.normMethodComboBox.addItem(method)
 		self.ui.normMethodComboBox.setCurrentText("Total ion current (TIC)")
 		self.ui.refionLabel.setVisible(False)
 		self.ui.refIoncomboBox.setVisible(False)
 		self.ui.thresholdLabel.setVisible(False)
 		self.ui.thresholdValue.setVisible(False)
+
+		for method in norm_methods:
+			self.ui.depNormMethod.addItem(method)
+		self.ui.depNormMethod.setCurrentText("Total ion current (TIC)")
+		self.ui.depRefIonLab.setVisible(False)
+		self.ui.depComboboxIon.setVisible(False)
+		self.ui.depNormThreshLab.setVisible(False)
+		self.ui.depNormThresh.setVisible(False)
 
 		self.ui.MLlabel2.setVisible(False)
 		self.ui.MLparam2.setVisible(False)
@@ -285,7 +296,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.createCSVbutton.connect("clicked(bool)",self.onCSVconnect)
 		self.ui.saveScenePush.connect("clicked(bool)",self.onSaveScene)
 
-
 		# Multi-slide alignment
 		self.files = set()
 		self.ui.selectToAlign.connect("clicked(bool)", self.onSelectToAlign)
@@ -301,9 +311,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.csvSelect.connect("clicked(bool)", self.onCsvSelect)
 		self.ui.csvLoad.connect("clicked(bool)", self.onCsvLoad)
 		self.ui.normalizeCheckbox.connect("clicked(bool)", self.onNormalizationState)
-
-		# self.ui.refNorm.toggled.connect(self.onIonNorm)
-		# self.ui.normalizeTICoption.toggled.connect(self.onIonNorm)
 		
 		self.ui.normMethodComboBox.currentTextChanged.connect(self.onNormMethodChange)
 
@@ -346,8 +353,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.deployModelImport.connect("clicked(bool)", self.onDeployModelLoad)
 		self.ui.deployNormcheck.connect("clicked(bool)", self.onDeployNormCheck)
 
-		self.ui.depRadioTIC.toggled.connect(self.onDepNormRadioToggle)
-		self.ui.depRadioIon.toggled.connect(self.onDepNormRadioToggle)
+		# self.ui.depRadioTIC.toggled.connect(self.onDepNormRadioToggle)
+		# self.ui.depRadioIon.toggled.connect(self.onDepNormRadioToggle)
+
+		self.ui.depNormMethod.currentTextChanged.connect(self.onDepNormMethodChange)
 
 		self.ui.deployAGGcheck.connect("clicked(bool)", self.onDeployAggCheck)
 
@@ -1068,7 +1077,24 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			self.ui.refIoncomboBox.setVisible(False)
 			self.ui.thresholdLabel.setVisible(False)
 			self.ui.thresholdValue.setVisible(False)
-	
+
+	def onDepNormMethodChange(self, text):
+		if text == "Reference ion":
+			self.ui.depRefIonLab.setVisible(True)
+			self.ui.depComboboxIon.setVisible(True)
+			self.ui.depNormThreshLab.setVisible(False)
+			self.ui.depNormThresh.setVisible(False)
+		elif text == "Total signal current (TSC)":
+			self.ui.depRefIonLab.setVisible(False)
+			self.ui.depComboboxIon.setVisible(False)
+			self.ui.depNormThreshLab.setVisible(True)
+			self.ui.depNormThresh.setVisible(True)
+		else:
+			self.ui.depRefIonLab.setVisible(False)
+			self.ui.depComboboxIon.setVisible(False)
+			self.ui.depNormThreshLab.setVisible(False)
+			self.ui.depNormThresh.setVisible(False)
+
 	def onNormalizationState(self):
 		if self.ui.normalizeCheckbox.isChecked():
 			self.ui.normMethodLabel.setEnabled(True)
@@ -1128,6 +1154,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 				normalization_param = None
 		else:
 			spec_normalization = None
+			normalization_param = None
 		# if self.ui.normalizeCheckbox.isChecked():
 		# 	if self.ui.normalizeTICoption.isChecked():
 		# 		spec_normalization = 'tic'
@@ -1449,15 +1476,31 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		for mz in self.logic.DmzRef:
 			self.ui.depComboboxIon.addItem(mz)
 
+	# def onDeployNormCheck(self):
+	# 	if self.ui.deployNormcheck.isChecked():
+	# 		self.ui.depRadioTIC.setEnabled(True)
+	# 		self.ui.depRadioIon.setEnabled(True)
+	# 		self.onDepNormRadioToggle()
+	# 	else:
+	# 		self.ui.depRadioTIC.setEnabled(False)
+	# 		self.ui.depRadioIon.setEnabled(False)
+	# 		self.ui.depComboboxIon.setEnabled(False)
+
 	def onDeployNormCheck(self):
 		if self.ui.deployNormcheck.isChecked():
-			self.ui.depRadioTIC.setEnabled(True)
-			self.ui.depRadioIon.setEnabled(True)
-			self.onDepNormRadioToggle()
+			self.ui.depNormMethLab.setEnabled(True)
+			self.ui.depNormMethod.setEnabled(True)
+			self.ui.depRefIonLab.setEnabled(True)
+			self.ui.depComboboxIon.setEnabled(True)
+			self.ui.depNormThreshLab.setEnabled(True)
+			self.ui.depNormThresh.setEnabled(True)
 		else:
-			self.ui.depRadioTIC.setEnabled(False)
-			self.ui.depRadioIon.setEnabled(False)
+			self.ui.depNormMethLab.setEnabled(False)
+			self.ui.depNormMethod.setEnabled(False)
+			self.ui.depRefIonLab.setEnabled(False)
 			self.ui.depComboboxIon.setEnabled(False)
+			self.ui.depNormThreshLab.setEnabled(False)
+			self.ui.depNormThresh.setEnabled(False)
 
 	def onDepNormRadioToggle(self):
 		if self.ui.depRadioIon.isChecked():
@@ -1527,12 +1570,24 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 	def onApplyDeployment(self):
 		# spectrum normalization
 		if self.ui.deployNormcheck.isChecked():
-			if self.ui.depRadioTIC.isChecked():
-				spec_normalization = 'tic'
+			spec_normalization = self.ui.depNormMethod.currentText
+			if spec_normalization == "Reference ion":
+				normalization_param = float(self.ui.depComboboxIon.currentText)
+			elif spec_normalization == "Total signal current (TSC)":
+				normalization_param = float(self.ui.depNormThresh.text)
 			else:
-				spec_normalization = self.ui.depComboboxIon.currentText
+				normalization_param = None
 		else:
 			spec_normalization = None
+			normalization_param = None
+
+		# if self.ui.deployNormcheck.isChecked():
+		# 	if self.ui.depRadioTIC.isChecked():
+		# 		spec_normalization = 'tic'
+		# 	else:
+		# 		spec_normalization = self.ui.depComboboxIon.currentText
+		# else:
+		# 	spec_normalization = None
 	
 		# spectrum aggregation
 		if self.ui.deployAGGcheck.isChecked():
@@ -1544,7 +1599,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		if self.ui.depMaskcheck.isChecked():
 			dep_mask = self.ui.depSegListCombo.currentText
 
-		self.logic.model_deployment(spec_normalization, pixel_aggregation, dep_mask)
+		self.logic.model_deployment(spec_normalization, normalization_param, pixel_aggregation, dep_mask)
 
 	### Boilerplate functions from template
 			

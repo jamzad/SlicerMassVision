@@ -523,7 +523,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return retstr
 
-	def model_deployment(self, spec_normalization, pixel_aggregation, dep_mask):
+	def model_deployment(self, spec_normalization, normalization_param, pixel_aggregation, dep_mask):
 
 		# align peaks to the model referecne m/z list
 		if set(self.DmzRef) == set(self.mz):
@@ -535,13 +535,32 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		aligned_peaks = np.nan_to_num(aligned_peaks)
 
 		## pre-processing
+		# # spectrum nrmalization
+		# if spec_normalization != None:
+		# 	if spec_normalization == 'tic':
+		# 		aligned_peaks = self.tic_normalize(aligned_peaks)
+		# 	else:
+		# 		aligned_peaks = self.ref_normalize(peaks=aligned_peaks, mz=self.DmzRef, mz_ref=float(spec_normalization))
+		# 	print('mass spectra normalization done!')
+
 		# spectrum nrmalization
+		print("spec_normalization:",spec_normalization)
 		if spec_normalization != None:
-			if spec_normalization == 'tic':
-				aligned_peaks = self.tic_normalize(aligned_peaks)
-			else:
-				aligned_peaks = self.ref_normalize(peaks=aligned_peaks, mz=self.DmzRef, mz_ref=float(spec_normalization))
-			print('mass spectra normalization done!')
+			if spec_normalization == "Total ion current (TIC)":
+				aligned_peaks = dataset_normalization(aligned_peaks, "TIC")
+			elif spec_normalization == "Reference ion":
+				ion_index = self.DmzRef == normalization_param
+				aligned_peaks = dataset_normalization(aligned_peaks, "Reference", ion_index=ion_index)
+			elif spec_normalization == "Root mean square (RMS)":
+				aligned_peaks = dataset_normalization(aligned_peaks, "RMS")
+			elif spec_normalization == "Median":
+				aligned_peaks = dataset_normalization(aligned_peaks, "median")
+			elif spec_normalization == "Mean":
+				aligned_peaks = dataset_normalization(aligned_peaks, "mean")
+			elif spec_normalization == "Total signal current (TSC)":
+				threshold = normalization_param
+				aligned_peaks = dataset_normalization(aligned_peaks, "TUC", threshold=threshold)
+				
 
 		# pixel aggregation
 		if pixel_aggregation != None:
@@ -874,7 +893,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	def single_ion_display_colours(self, mz_r):
 		# generates and displays the single ion image
 		# ch_r = self.selectedmz.index(mz_r)
-		ch_r = list(self.mz).index(mz_r)
+		# ch_r = list(self.mz).index(mz_r)
+		ch_r = np.where(self.mz == mz_r)[0][0]
 		image_r = (self.peaks_norm[:,ch_r]).reshape((self.dim_y,self.dim_x,-1),order='C')
 
 		# displays the single ion image
