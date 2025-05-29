@@ -72,13 +72,13 @@ def get_performance_str(y_train, y_train_preds, y_train_prob, class_order):
 			# results_str += f"specificity: {np.round(100*recall_all[0],2)}\n"
 			# results_str += f"sensitivity: {np.round(100*recall_all[1],2)}\n"
 			for i in range(len(class_order)):
-				results_str += f"{class_order[i]} recall/sensitivity: {np.round(100*recall_all[i],2)}\n"
+				results_str += f"{class_order[i]} recall (sensitivity): {np.round(100*recall_all[i],2)}\n"
 			auc = roc_auc_score(y_train, y_train_prob[:,-1], average='macro')
 			results_str += f"AUC: {np.round(auc,2)}\n"
 		else:
 			recall_all = recall_score(y_train, y_train_preds, average=None)
 			for i in range(len(class_order)):
-				results_str += f"{class_order[i]} recall/sensitivity: {np.round(100*recall_all[i],2)}\n"
+				results_str += f"{class_order[i]} recall (sensitivity): {np.round(100*recall_all[i],2)}\n"
 			auc = roc_auc_score(y_train, y_train_prob, average='macro', multi_class='ovr')
 			results_str += f"AUC: {np.round(auc,2)}\n"
 
@@ -86,7 +86,7 @@ def get_performance_str(y_train, y_train_preds, y_train_prob, class_order):
 
 		for lab in np.sort(list(set(y_train))):
 			class_recall = recall_score(y_train, y_train_preds, labels=[lab], average=None)
-			results_str += f"{lab} recall/sensitivity: {np.round(100*class_recall[0],2)}\n"
+			results_str += f"{lab} recall (sensitivity): {np.round(100*class_recall[0],2)}\n"
 
 	# if len(set(y_train)) == len(set(class_order)):
 
