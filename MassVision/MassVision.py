@@ -212,10 +212,21 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		if dataProbeWidget and hasattr(dataProbeWidget, "collapsed"):
 			dataProbeWidget.collapsed = True
 
+		# Hide additional toolbars
+		for child in slicer.util.mainWindow().findChildren(qt.QToolBar):
+			visible_toolbars = ['ModuleSelectorToolBar', 'ViewToolBar', 'MouseModeToolBar', 'DialogToolBar']
+			if child.objectName in visible_toolbars:
+				child.setVisible(True)
+			else:
+				child.setVisible(False)
+
 		# Collapse Python console
 		# pythonConsoleDock = slicer.util.mainWindow().findChild(qt.QDockWidget, "PythonConsoleDockWidget")
 		# if pythonConsoleDock:
 		# 	pythonConsoleDock.setVisible(False)
+
+		# Layout to red view
+		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
 
 		# Heatmap list singleIonHeatmapList
 		self.ui.singleIonHeatmapList.addItem('Inferno')
