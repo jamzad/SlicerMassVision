@@ -257,6 +257,13 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://slicermassvision.readthedocs.io/")))
 		self.ui.sampleData.clicked.connect(
 			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://github.com/jamzad/SlicerMassVision/releases/tag/test-data")))
+		self.ui.codeBase.clicked.connect(
+			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://github.com/jamzad/SlicerMassVision")))
+
+		self.ui.database1.clicked.connect(
+			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://hmdb.ca/")))
+		self.ui.database2.clicked.connect(
+			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://www.lipidmaps.org/")))
 
 		# Data Import
 		self.ui.textFileSelect.connect("clicked(bool)", self.onTextFileSelect)
