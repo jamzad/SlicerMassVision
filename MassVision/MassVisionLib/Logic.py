@@ -45,6 +45,8 @@ from sklearn.svm import LinearSVC
 from sklearn.cross_decomposition import PLSRegression, PLSCanonical
 from sklearn.utils import resample
 from sklearn.cluster import KMeans
+from sklearn.metrics import confusion_matrix, balanced_accuracy_score, accuracy_score, roc_auc_score, recall_score
+
 
 try:
 	import pandas as pd
@@ -2012,7 +2014,95 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			X_test, y_test = test_data.iloc[0:, 4:].values, test_data.iloc[0:, 1].values
 			X_val, y_val = val_data.iloc[0:, 4:].values, val_data.iloc[0:, 1].values
 			track_info_train, track_info_test = train_data.iloc[0:, 0:4].values, test_data.iloc[0:, 0:4].values
+
+		######################################################
+		elif self.split == 'cross_val':
+			ACC, BAC = [], []
+			ACC_tr, BAC_tr = [], []
+			print(self.split)
+			for test_slide in np.unique(self.df['Slide']):
+
+				ind_test = self.df['Slide'].isin([test_slide])
+				ind_train = ~ind_test
+
+				if ind_test.sum()==0:
+					ind_test = ind_train
+
+				ind_val = ind_test
+				
+				X_train, X_test, X_val = X[ind_train], X[ind_test], X[ind_val]
+				y_train, y_test, y_val = y[ind_train], y[ind_test], y[ind_val]
+				track_info_train, track_info_test, track_info_val = track_info[ind_train], track_info[ind_test], track_info[ind_val]
+
+				X_train = np.nan_to_num(X_train)
+				X_test = np.nan_to_num(X_test)
+				X_val = np.nan_to_num(X_val)
 			
+				print(X_train.shape, X_test.shape)
+
+				# balancing the data
+				if self.train_balancing != "None":
+					X_train, y_train, track_info_train = self.balanceData(X_train, y_train, track_info_train)
+				
+				reference_mz = np.array(self.df.columns[4:], dtype='float')
+				# Feature selection
+				if self.selected_features_indices:
+					X_train = X_train[:,self.selected_features_indices]
+					X_test = X_test[:,self.selected_features_indices]
+					X_val = X_val[:,self.selected_features_indices]
+					reference_mz = reference_mz[self.selected_features_indices]
+				
+				# Ion-based normalization
+				ion_normalizer = MinMaxScaler()
+				X_train = ion_normalizer.fit_transform(X_train)
+				X_test = ion_normalizer.transform(X_test)
+				X_test = np.clip(X_test, 0, 1)
+				X_val = ion_normalizer.transform(X_val)
+				X_val = np.clip(X_val, 0, 1)
+			
+				# Train the model corresponding to model_type
+				if self.model_type == 'PCA-LDA':
+					MODEL = self.runLDA
+				if self.model_type == 'Random Forest':
+					MODEL = self.runRF
+				if self.model_type == 'Linear SVC':
+					MODEL = self.runSVM
+				if self.model_type == 'PLS-DA':
+					MODEL = self.runPLS
+				
+				y_train_preds, y_train_prob, y_test_preds, y_test_prob, class_order, models = MODEL(X_train, X_test,y_train, y_test)
+
+				acc, bac = get_performance(y_test, y_test_preds, y_test_prob, class_order)
+				ACC.append(acc)
+				BAC.append(bac)
+
+				acc, bac = get_performance(y_train, y_train_preds, y_train_prob, class_order)
+				ACC_tr.append(acc)
+				BAC_tr.append(bac)
+
+			print(ACC)
+			print(BAC)
+
+			# Get data information to relay to the user
+			filename = self.modellingFile.split('/')[-1]
+			confirmation_string = f'Model successfully trained\n'
+			confirmation_string += f'model type:\t{self.model_type}\n'
+			confirmation_string += f'dataset:\t{filename}\n'
+			confirmation_string += f'data split:\t{self.split}\n\n'
+
+			perf_string = '#### MODEL PERFORMANCE ####################\n'
+			perf_string += '#### train set: \n'
+			perf_string += f'accuracy: {np.round(100*np.mean(ACC_tr),2)} ± {np.round(100*np.std(ACC_tr),2)}\n'
+			perf_string += f'balanced accuracy: {np.round(100*np.mean(BAC_tr),2)} ± {np.round(100*np.std(BAC_tr),2)}\n'
+			perf_string += '\n#### test set: \n'
+			perf_string += f'accuracy: {np.round(100*np.mean(ACC),2)} ± {np.round(100*np.std(ACC),2)}\n'
+			perf_string += f'balanced accuracy: {np.round(100*np.mean(BAC),2)} ± {np.round(100*np.std(BAC),2)}\n'
+
+			all_string = confirmation_string + "\n\n" + perf_string
+
+			return all_string
+		######################################################
+
 		print(self.split)
 		print(X_train.shape, X_test.shape)
 
@@ -3250,6 +3340,23 @@ def compute_vip(pls, X):
         vip[i] = np.sqrt(p * np.dot(s, weight) / total_s)
     return vip
 
+
+def get_performance(y_train, y_train_preds, y_train_prob, class_order):
+	acc = accuracy_score(y_train, y_train_preds)
+	bac = balanced_accuracy_score(y_train, y_train_preds)
+	# if len(set(y_train)) == len(set(class_order)):
+	# 	if len(class_order)==2: #binary
+	# 		recall_all = recall_score(y_train, y_train_preds, average=None)
+	# 		auc = roc_auc_score(y_train, y_train_prob[:,-1], average='macro')
+	# 	else:
+	# 		recall_all = recall_score(y_train, y_train_preds, average=None)
+	# 		auc = roc_auc_score(y_train, y_train_prob, average='macro', multi_class='ovr')
+	# else:
+	# 	for lab in np.sort(list(set(y_train))):
+	# 		class_recall = recall_score(y_train, y_train_preds, labels=[lab], average=None)
+	# 		results_str += f"{lab} recall (sensitivity): {np.round(100*class_recall[0],2)}\n"
+	
+	return acc, bac
 
 
 

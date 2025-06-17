@@ -354,6 +354,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.randomSplit.connect("clicked(bool)", self.onRandomSplit) # random
 		self.ui.customSplit.connect("clicked(bool)", self.onCustomSplit)  # custom
 		self.ui.allTrain.connect("clicked(bool)", self.onAllTrainSplit)  # all train
+		self.ui.XVall.connect("clicked(bool)", self.onCrossVal)  # all train
 
 		self.ui.trainModel.connect("clicked(bool)", self.onModelTrain)
 		self.onAllTrainSplit()
@@ -1315,6 +1316,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			self.logic.set_split('random')
 		elif self.ui.allTrain.isChecked():
 			self.logic.set_split('all_train')
+		elif self.ui.XVall.isChecked():
+			self.logic.set_split('cross_val')
 		
 
 	
@@ -1340,6 +1343,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.namesTable.hide()
 		self.ui.namesTableLabel.hide()
 		self.logic.set_split('random')
+		self.ui.saveModelcheckBox.setVisible(True)
 
 	def onAllTrainSplit(self):
 		"""
@@ -1348,6 +1352,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.namesTable.hide()
 		self.ui.namesTableLabel.hide()
 		self.logic.set_split('all_train')
+		self.ui.saveModelcheckBox.setVisible(True)
 
 	def onCustomSplit(self):
 		"""
@@ -1359,7 +1364,17 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.namesTable.show()
 		self.ui.namesTableLabel.show()
 		self.logic.set_split('custom')
+		self.ui.saveModelcheckBox.setVisible(True)
 			
+	def onCrossVal(self):
+		"""
+  		Let logic keep track of what split is being used.
+		"""
+		self.ui.namesTable.hide()
+		self.ui.namesTableLabel.hide()
+		self.logic.set_split('cross_val')
+		self.ui.saveModelcheckBox.setChecked(False)
+		self.ui.saveModelcheckBox.setVisible(False)
 	# Wrapper functions to let us pass the buttons to the function,
 	# making the checkboxes exclusive. 
 
