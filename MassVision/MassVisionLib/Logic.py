@@ -45,6 +45,8 @@ from sklearn.svm import LinearSVC
 from sklearn.cross_decomposition import PLSRegression, PLSCanonical
 from sklearn.utils import resample
 from sklearn.cluster import KMeans
+from sklearn.metrics import confusion_matrix, balanced_accuracy_score, accuracy_score, roc_auc_score, recall_score
+
 
 try:
 	import pandas as pd
@@ -72,10 +74,37 @@ except ModuleNotFoundError:
 	slicer.util.pip_install("h5py")
 	import h5py
 
+import traceback		
+
 from scipy.stats import ttest_ind
 
 from MassVisionLib.Utils import *
 
+
+def show_wait_message(func):
+	def wrapper(*args, **kwargs):
+		messageBox = qt.QMessageBox()
+		messageBox.setIcon(qt.QMessageBox.NoIcon) 
+		messageBox.setWindowTitle("MassVision")
+		messageBox.setText("      Please wait, the operation is in progress...      \n")
+		messageBox.setStandardButtons(qt.QMessageBox.NoButton)
+		messageBox.setModal(True)
+		messageBox.resize(400, 200)
+		font = qt.QFont()
+		font.setPointSize(14)
+		messageBox.setFont(font)
+		messageBox.show()
+		qt.QApplication.processEvents()
+
+		try:
+			return func(*args, **kwargs)
+		except Exception as e:
+			print("Exception occurred:", str(e))
+		finally:
+			messageBox.close()
+			qt.QApplication.processEvents()
+
+	return wrapper
 
 class MassVisionLogic(ScriptedLoadableModuleLogic):
 	"""This class should implement all the actual
@@ -122,7 +151,15 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.contrast_thumbnail_inds = None
 		self.pixel_clusters = None
 		self.peaks_pca = None
-		
+		self.peak_start_col = 4
+		self.model_param1 = None
+		self.model_param2 = None
+		self.ranked_features_indices = None
+		self.manual_features_indices = None 
+		self.selected_features_indices = None
+		self.parser = None
+		self.raw_range = None
+
 
 	def setDefaultParameters(self, parameterNode):
 		"""
@@ -165,6 +202,46 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		stopTime = time.time()
 		logging.info(f'Processing completed in {stopTime-startTime:.2f} seconds')
 
+	
+	def MSI_contImzML2numpy(self, imzml_file):
+		try:
+			from pyimzml.ImzMLParser import ImzMLParser
+		except ModuleNotFoundError:
+			slicer.util.pip_install("pyimzml")
+			from pyimzml.ImzMLParser import ImzMLParser
+
+		parser = ImzMLParser(imzml_file)
+
+		formatError = False
+		if len(set(parser.mzOffsets))==1:
+			formatError = False
+		elif len(set(parser.mzLengths))!=1:
+			formatError = True
+		else:
+			n_all = len(parser.coordinates)
+			n_sample = 5
+			inds = np.random.choice(range(n_all), n_sample, replace=False)
+			mz_ref, _ = parser.getspectrum(inds[0])
+			cond = True
+			for ind in inds:
+				mz_rand, _ = parser.getspectrum(ind)
+				cond *= np.all(mz_rand == mz_ref)
+			if not cond:
+				formatError = True
+
+		if formatError:
+			slicer.util.errorDisplay("Only continuous-mode imzML files with a common m/z axis (i.e., cubical data) are supported for direct import. Please use 'Raw Import' for MSI data with per-spectrum m/z arrays.", windowTitle="Import Error")
+			raise ValueError("Only continuous-mode imzML files with a common m/z axis (i.e., cubical data) are supported for direct import. Please use 'Raw Import' for MSI data with per-spectrum m/z arrays. ")
+		else: 
+			dim_x, dim_y, *_ = np.array(parser.coordinates).max(0)
+			mz, _ = parser.getspectrum(0)
+			peaks = np.zeros((dim_y, dim_x, len(mz)))
+			for i, (x, y, *_) in enumerate(parser.coordinates):
+				_, intensities = parser.getspectrum(i)
+				peaks[y-1, x-1,:] = intensities
+			peaks = peaks.reshape((dim_y*dim_x,-1),order='C')
+			return peaks, mz, dim_y, dim_x
+	
 	def MSI_h52numpy(self, h5_file):
 		with h5py.File(h5_file, 'r') as h5file:
 			peaks = h5file['peaks'][:]
@@ -338,8 +415,17 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return roi_reconstruct_num, roi_reconstruct
 
+	def getTUSthreshold(self):
+		### automatic detection
+		# all_values = self.peaks.flatten()
+		# mean_val = np.mean(all_values)
+		# std_val = np.std(all_values)
+		# threshold = mean_val + 2 * std_val
+		# return np.round(threshold, 2)
+		return 0
+
 	# the whole postporocessing fuction including nomalization, band filtering, and pixel aggregation
-	def dataset_post_processing(self, spec_normalization, subband_selection, pixel_aggregation, processed_dataset_name):
+	def dataset_post_processing(self, spec_normalization, normalization_param, subband_selection, pixel_aggregation, processed_dataset_name):
 		"""
 		the whole postporocessing fuction including nomalization, band filtering, and pixel aggregation
 		author: @moon
@@ -349,7 +435,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		df = self.csv_processing
 
 		# extract information
-		peak_start_col = 4
+		peak_start_col = self.peak_start_col
 		mz = np.array(df.columns[peak_start_col:], dtype='float')
 		peaks = df[df.columns[peak_start_col:]].values
 		labels =  df[df.columns[0:peak_start_col]].values 
@@ -358,13 +444,30 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		peaks = np.nan_to_num(peaks)
 
 		# spectrum nrmalization
-		print("spec_normalization",spec_normalization)
+		print("spec_normalization:",spec_normalization)
 		if spec_normalization != None:
-			if spec_normalization == 'tic':
-				peaks = self.tic_normalize(peaks)
-			else:
-				peaks = self.ref_normalize(peaks=peaks, mz=mz, mz_ref=float(spec_normalization))
+			if spec_normalization == "Total ion current (TIC)":
+				peaks = dataset_normalization(peaks, "TIC")
+			elif spec_normalization == "Reference ion":
+				ion_index = mz == normalization_param
+				peaks = dataset_normalization(peaks, "Reference", ion_index=ion_index)
+			elif spec_normalization == "Root mean square (RMS)":
+				peaks = dataset_normalization(peaks, "RMS")
+			elif spec_normalization == "Median":
+				peaks = dataset_normalization(peaks, "median")
+			elif spec_normalization == "Mean":
+				peaks = dataset_normalization(peaks, "mean")
+			elif spec_normalization == "Total signal current (TSC)":
+				threshold = normalization_param
+				peaks = dataset_normalization(peaks, "TUC", threshold=threshold)
+				
+
 			print('mass spectra normalization done!')
+			# if spec_normalization == 'tic':
+			# 	peaks = self.tic_normalize(peaks)
+			# else:
+			# 	peaks = self.ref_normalize(peaks=peaks, mz=mz, mz_ref=float(spec_normalization))
+			# print('mass spectra normalization done!')
 
 		# spectrum range filtering
 		if subband_selection != None:
@@ -422,7 +525,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return retstr
 
-	def model_deployment(self, spec_normalization, pixel_aggregation, dep_mask):
+	def model_deployment(self, spec_normalization, normalization_param, pixel_aggregation, dep_mask):
 
 		# align peaks to the model referecne m/z list
 		if set(self.DmzRef) == set(self.mz):
@@ -434,13 +537,32 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		aligned_peaks = np.nan_to_num(aligned_peaks)
 
 		## pre-processing
+		# # spectrum nrmalization
+		# if spec_normalization != None:
+		# 	if spec_normalization == 'tic':
+		# 		aligned_peaks = self.tic_normalize(aligned_peaks)
+		# 	else:
+		# 		aligned_peaks = self.ref_normalize(peaks=aligned_peaks, mz=self.DmzRef, mz_ref=float(spec_normalization))
+		# 	print('mass spectra normalization done!')
+
 		# spectrum nrmalization
+		print("spec_normalization:",spec_normalization)
 		if spec_normalization != None:
-			if spec_normalization == 'tic':
-				aligned_peaks = self.tic_normalize(aligned_peaks)
-			else:
-				aligned_peaks = self.ref_normalize(peaks=aligned_peaks, mz=self.DmzRef, mz_ref=float(spec_normalization))
-			print('mass spectra normalization done!')
+			if spec_normalization == "Total ion current (TIC)":
+				aligned_peaks = dataset_normalization(aligned_peaks, "TIC")
+			elif spec_normalization == "Reference ion":
+				ion_index = self.DmzRef == normalization_param
+				aligned_peaks = dataset_normalization(aligned_peaks, "Reference", ion_index=ion_index)
+			elif spec_normalization == "Root mean square (RMS)":
+				aligned_peaks = dataset_normalization(aligned_peaks, "RMS")
+			elif spec_normalization == "Median":
+				aligned_peaks = dataset_normalization(aligned_peaks, "median")
+			elif spec_normalization == "Mean":
+				aligned_peaks = dataset_normalization(aligned_peaks, "mean")
+			elif spec_normalization == "Total signal current (TSC)":
+				threshold = normalization_param
+				aligned_peaks = dataset_normalization(aligned_peaks, "TUC", threshold=threshold)
+				
 
 		# pixel aggregation
 		if pixel_aggregation != None:
@@ -473,7 +595,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		if self.Dmodel_type=='PCA-LDA':
 			aligned_peaks_pca = self.Dpipeline[1].transform(aligned_peaks_norm)
 			aligned_peaks_preds = self.Dpipeline[2].predict(aligned_peaks_pca)
-		elif self.Dmodel_type in ['Random Forest', 'SVM']:
+		elif self.Dmodel_type in ['Random Forest', 'Linear SVC']:
 			aligned_peaks_preds = self.Dpipeline[1].predict(aligned_peaks_norm)
 		elif self.Dmodel_type=='PLS-DA':
 			aligned_peaks_prob = self.Dpipeline[1].predict(aligned_peaks_norm)
@@ -633,6 +755,33 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return aligned_peaks, final_mz
 
 
+	def peak_matching(self, mz, peaks, mz_ref, tol, method):
+
+		# check if there's only one spectrum
+		if len(peaks.shape)==1:
+			peaks = peaks.reshape(1, -1)
+			
+		pmean = peaks.sum(0)
+		mz_aligned = [None]*len(mz_ref)
+		peaks_aligned = np.zeros( (len(peaks), len(mz_ref)) )
+		
+		for i, mz_ref_i in enumerate(mz_ref):
+			ind = (mz<=(mz_ref_i+tol))*(mz>=(mz_ref_i-tol))
+			if np.any(ind):
+				if method in ['sum', 'mean', 'median', 'max']:
+					np_func = getattr(np, method)
+					peaks_i = np_func(peaks[:,ind], axis=1)
+					mz_i = list(mz[ind])
+				elif method=='global max':
+					sub = np.where(ind)[0]
+					# print(sub, len(pmean))
+					sub_selected = np.argmax(pmean[sub])
+					peaks_i = peaks[:,sub[sub_selected]]
+					mz_i = mz[sub[sub_selected]]
+				mz_aligned[i] = mz_i
+				peaks_aligned[:,i] = peaks_i
+		return peaks_aligned, mz_aligned
+
 	## if used as .T it will normalize based on spectra
 	#.t = transpose if transpose and do this instead of ion will use the spectral
 	# if 2d array can decide which way i want sum and std to be 1
@@ -664,6 +813,37 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			self.peaks_norm = self.ion_minmax_normalize(self.tic_normalize(self.peaks))
 			return True
 		
+	def nonlinear_display(self, method, param1, param2):
+		if method=="UMAP":
+			try:
+				from umap import UMAP
+			except ModuleNotFoundError:
+				slicer.util.pip_install("umap-learn")
+				from umap import UMAP
+			
+			dim_reduction = UMAP(n_components=3, n_neighbors=param1, min_dist=param2)
+			peaks_reduced = dim_reduction.fit_transform(self.peaks_norm)
+			peaks_reduced = MinMaxScaler().fit_transform( peaks_reduced )
+
+		elif method=="t-SNE":
+			try:
+				from openTSNE import TSNE
+			except ModuleNotFoundError:
+				slicer.util.pip_install("opentsne")
+				from openTSNE import TSNE
+			
+			dim_reduction = TSNE(n_components=2, perplexity=param1, early_exaggeration=param2)
+			peaks_reduced = dim_reduction.fit(self.peaks_norm)
+			peaks_reduced = MinMaxScaler().fit_transform( peaks_reduced )
+			peaks_reduced = latent2color(peaks_reduced)
+		
+		self.peaks_pca = peaks_reduced
+		peaks_reduced_img = peaks_reduced.reshape((self.dim_y,self.dim_x,-1),order='C')
+		peaks_reduced_img = np.expand_dims(peaks_reduced_img, axis=0)*255
+		
+		self.visualizationRunHelper(peaks_reduced_img, peaks_reduced_img.shape, visualization_type=method)
+	
+	
 	# generates and displays the pca image
 	def pca_display(self):
 		# generates and displays the pca image
@@ -715,7 +895,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	def single_ion_display_colours(self, mz_r):
 		# generates and displays the single ion image
 		# ch_r = self.selectedmz.index(mz_r)
-		ch_r = list(self.mz).index(mz_r)
+		# ch_r = list(self.mz).index(mz_r)
+		ch_r = np.where(self.mz == mz_r)[0][0]
 		image_r = (self.peaks_norm[:,ch_r]).reshape((self.dim_y,self.dim_x,-1),order='C')
 
 		# displays the single ion image
@@ -884,7 +1065,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return cluster_colors
 
-	def dice_score(self, segmentation_mask):
+	def dice_score(self, segmentation_mask, ion_ind):
 		# Define thresholds
 		thresholds = np.linspace(0.1, 0.9, 9)  # 9 thresholds
 
@@ -892,7 +1073,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		mask_sum = np.sum(segmentation_mask)  # Total pixels in the mask
 
 		# Precompute thresholded data for all thresholds (vectorized)
-		thresholded_data = np.expand_dims(self.peaks_norm, axis=2) > thresholds  # Shape: (pixels, ions, thresholds)
+		thresholded_data = np.expand_dims(self.peaks_norm[:,ion_ind], axis=2) > thresholds  # Shape: (pixels, ions, thresholds)
 
 		# Calculate intersection and union for Dice score using einsum
 		intersection = np.einsum('p, pit -> it', segmentation_mask, thresholded_data)  # Shape: (ions, thresholds)
@@ -925,12 +1106,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	def ViewClusterThumbnail(self, cluster_id):
 		segmentation_mask = (self.pixel_clusters == cluster_id).astype(int)
 
-		max_dice_scores, max_thresholds = self.dice_score(segmentation_mask)
 		pearson_corrs = self.pearson_corr(segmentation_mask)
 
 		sorted_indices = np.argsort(-pearson_corrs)
 
-		# Get top 5 ions and their scores for thumbnail
+		# Get top ions and their scores for thumbnail
 		top_n = 10 
 		top_ions = sorted_indices[:top_n]
 
@@ -981,11 +1161,12 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		YellowNode.SetOrientation("Axial")
 		slicer.util.resetSliceViews()
 		
-		top_n_table = 10 
+		top_n_table = 20 
 		top_ions_table = sorted_indices[:top_n_table]
+		max_dice_scores, max_thresholds = self.dice_score(segmentation_mask, top_ions_table)
 		volcano_fc, volcano_pval = self.volcano_table(segmentation_mask>0, top_ions_table)
 
-		return self.mz[top_ions_table], max_dice_scores[top_ions_table], volcano_fc, volcano_pval, pearson_corrs[top_ions_table]
+		return self.mz[top_ions_table], max_dice_scores, volcano_fc, volcano_pval, pearson_corrs[top_ions_table]
 	
 	def volcano_table(self, mask, top_ind):
 		inside_segment = self.peaks_norm[mask][:, top_ind]
@@ -1008,6 +1189,136 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return fold_changes, p_values
 	
+	def RawPlotImg(self, ion_mz, tol_mz, img_heatmap):
+		ion_img = imzML_ionImg(self.parser, ion_mz, tol_mz)
+		ion_img = np.expand_dims(ion_img, axis=0)
+		self.visualizationRunHelper(ion_img, ion_img.shape, 'single', heatmap=img_heatmap)
+		return True
+	
+	def RawPlotSpectra(self):
+		self.clear_all_plots()
+		fiducialNode = slicer.util.getNode("raw-spectrum")
+		numPoints = fiducialNode.GetNumberOfControlPoints()
+		fnode_names = []
+		fnode_locs = []
+		for i in range(numPoints):
+			position = [0.0, 0.0, 0.0]
+			fiducialNode.GetNthControlPointPosition(i, position)
+			point_name = fiducialNode.GetNthControlPointLabel(i)
+			fnode_names.append(point_name)
+			fnode_locs.append(self.fiducial_to_index(position))
+		N = len(fnode_locs)
+		if N == 0:
+			print("No fiducials found.")
+			return False
+		print(f"Number of fiducials: {N}")
+		coord_to_index = {(x, y): i for i, (x, y, *_) in enumerate(self.parser.coordinates)}
+		# Create or update a plot for each fiducial
+		for i, (fnode_name, fnode_loc) in enumerate(zip(fnode_names, fnode_locs)):
+			fnode_ind = coord_to_index[(fnode_loc[1]+1, fnode_loc[0]+1)]
+			mz, spec = self.parser.getspectrum(fnode_ind)
+
+			plotViewNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotViewNode", f"Plot{i+1}")
+			plotViewNode.SetSingletonTag(f"Plot{i+1}")
+			plotViewNode.SetLayoutLabel(f"Plot{i+1}")
+		
+			plotChartNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotChartNode", f"PlotChart{i+1}")
+			plotChartNode.SetTitle(f"{fnode_name}")
+			plotChartNode.SetXAxisTitle("m/z")
+			plotChartNode.SetYAxisTitle("intensity")
+			plotChartNode.SetLegendVisibility(False)
+
+			# Create plot series and table
+			plotSeriesNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotSeriesNode", f"Fiducial {fnode_name}")
+			tableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode")
+			table = tableNode.GetTable()
+
+			# Populate table with data
+			col_mz = vtk.vtkFloatArray()
+			col_mz.SetName("m/z")
+			col_intensity = vtk.vtkFloatArray()
+			col_intensity.SetName("Intensity")
+			for mz_value, intensity in zip(mz, spec):
+				col_mz.InsertNextValue(mz_value)
+				col_intensity.InsertNextValue(intensity)
+			table.AddColumn(col_mz)
+			table.AddColumn(col_intensity)
+			
+			col_label = vtk.vtkStringArray()
+			col_label.SetName("Label")
+			for mz_value, intensity in zip(mz, spec):
+				label = f"\nm/z: {mz_value}\nintensity: {intensity:.2e}"
+				col_label.InsertNextValue(label)
+			table.AddColumn(col_label)
+			# Link data to series and chart
+			plotSeriesNode.SetAndObserveTableNodeID(tableNode.GetID())
+			plotSeriesNode.SetXColumnName("m/z")
+			plotSeriesNode.SetYColumnName("Intensity")
+			plotSeriesNode.SetLabelColumnName("Label")
+			plotSeriesNode.SetPlotType(slicer.vtkMRMLPlotSeriesNode.PlotTypeScatter)
+			plotSeriesNode.SetMarkerStyle(slicer.vtkMRMLPlotSeriesNode.MarkerStyleNone) 
+			plotSeriesNode.SetLineStyle(slicer.vtkMRMLPlotSeriesNode.LineStyleSolid)
+			colour = cm.get_cmap("tab10")(i % 10)[:3]  # Get RGB values from 'tab10' colormap
+			plotSeriesNode.SetColor(*colour)
+
+			plotChartNode.SetYAxisLogScale(False)
+			plotChartNode.AddAndObservePlotSeriesNodeID(plotSeriesNode.GetID())
+			
+			# Link chart to view
+			plotViewNode.SetPlotChartNodeID(plotChartNode.GetID())
+
+		# # Update layout dynamically
+		layoutXML = """
+		<layout type="horizontal">
+			<item>
+				<view class="vtkMRMLSliceNode" singletontag="Red">
+					<property name="orientation" action="default">Axial</property>
+					<property name="viewlabel" action="default">R</property>
+					<property name="viewcolor" action="default">#F34A4A</property>
+				</view>
+			</item>
+			<item>
+				<layout type="vertical">
+		"""
+		for i in range(N):
+			layoutXML += f"""
+				<item>
+					<view class="vtkMRMLPlotViewNode" singletontag="Plot{i+1}">
+						<property name="viewlabel" action="default">Plot{i+1}</property>
+					</view>
+				</item>
+			"""
+		layoutXML += """
+				</layout>
+			</item>
+		</layout>
+		"""
+
+		layoutNode = slicer.app.layoutManager().layoutLogic().GetLayoutNode()
+		customLayoutId = N * 500
+		layoutNode.AddLayoutDescription(customLayoutId, layoutXML)
+		layoutNode.SetViewArrangement(customLayoutId)
+		slicer.app.processEvents()
+		
+		# Clear old selections
+		for i in range(slicer.app.layoutManager().plotViewCount):
+			slicer.app.layoutManager().plotWidget(i).plotView().RemovePlotSelections()  
+		# Remove existing connections
+		for i in range(slicer.app.layoutManager().plotViewCount):
+			plotView = slicer.app.layoutManager().plotWidget(i).plotView()
+			try:
+				plotView.disconnect("dataSelected(vtkStringArray*, vtkCollection*)", self.get_data)  # Remove previous connections
+			except TypeError:
+				pass
+		# # Connect to data selection event
+		# for i in range(slicer.app.layoutManager().plotViewCount):
+		# 	plotView = slicer.app.layoutManager().plotWidget(i).plotView()
+		# 	plotView.connect("dataSelected(vtkStringArray*, vtkCollection*)", self.get_data)
+		# 	# slicer.app.layoutManager().plotWidget(i).plotView().fitToContent()
+		# # print("Interactive plot updated with fiducials.")
+		
+		return True
+
 	def spectrum_plot(self):
 		self.clear_all_plots()
 		# Collect fiducial information
@@ -1350,7 +1661,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		
 		# delete all current views as we will load a new volume
 		filename = f'{self.slideName}_{visualization_type}'
-		if not (visualization_type.endswith('pca') or visualization_type.endswith('lda') or visualization_type.endswith('cluster')) : filename += 'ion'
+		if (visualization_type == 'single'): filename += 'ion'
 		existingOverlays = slicer.util.getNodes(f'{filename}*')
 		for node in existingOverlays: slicer.mrmlScene.RemoveNode(existingOverlays[node])
 		
@@ -1442,6 +1753,101 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return retstr
 
 
+	def feature_ranking(self, method, param):
+		peaks = self.df.iloc[0:, self.peak_start_col:].values
+		peaks = np.nan_to_num(peaks)
+		classes =  self.df["Class"].values
+		mz = np.array(self.df.columns[self.peak_start_col:], dtype='float')
+
+		if method=="Linear SVC":
+			from sklearn.svm import LinearSVC
+
+			model = LinearSVC(dual=True, C=param)
+			model.fit(peaks, classes)
+
+			coefs = np.abs(model.coef_)
+			feature_scores = coefs.max(axis=0)  # or use mean(axis=0)
+
+		elif method=="PLS-DA":
+			from sklearn.cross_decomposition import PLSRegression
+			from sklearn.preprocessing import LabelBinarizer, StandardScaler
+
+			scaler = StandardScaler()
+			X_scaled = scaler.fit_transform(peaks)
+			
+			# Convert class labels to one-hot encoding
+			lb = LabelBinarizer()
+			Y = lb.fit_transform(classes)
+
+			# Handle binary class case (PLSRegression requires 2D y)
+			if Y.ndim == 1:
+				Y = Y.reshape(-1, 1)
+
+			# Fit PLS-DA model
+			pls = PLSRegression(n_components=int(param))
+			pls.fit(X_scaled, Y)
+
+			# Compute VIP scores
+			feature_scores = compute_vip(pls, X_scaled)
+
+		elif method=='LDA':
+			from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+			import warnings
+
+			warnings.filterwarnings('ignore')
+
+			feature_scores = np.zeros((len(mz),))
+			for ind in range(len(mz)):
+				try:
+					X = peaks[:,ind].reshape((-1,1))
+					lda = LDA().fit(X,classes)
+					y_pred = lda.predict(X)
+					feature_scores[ind] = np.mean(y_pred==classes)
+
+				except:
+					pass
+
+			warnings.filterwarnings('default')
+
+		ranked = pd.DataFrame({
+			'm/z': mz,
+			'score': feature_scores,
+			'index': np.arange(len(mz))
+		})
+
+		ranked = ranked.sort_values(by='score', ascending=False).reset_index(drop=True)
+		
+		## save the ranked indices
+		self.ranked_features_indices = [int(x) for x in ranked['index'].values]
+
+		# ranked.to_csv('rank.csv', index=True, index_label='ranked')
+
+		## create a table node
+		tableNode = slicer.mrmlScene.GetFirstNodeByName("Ranking")
+		if not tableNode:
+			tableNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTableNode', 'Ranking')
+		else:
+			tableNode.RemoveAllColumns()
+
+		for col in ranked.columns:
+			array = vtk.vtkVariantArray()
+			array.SetName(str(col))
+			for val in ranked[col]:
+				array.InsertNextValue(vtk.vtkVariant(str(val)))
+			tableNode.AddColumn(array)
+
+		## set the table view node
+		tableViewNodes = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
+		if tableViewNodes:
+			tableViewNode = tableViewNodes[0]
+			tableViewNode.SetTableNodeID(tableNode.GetID())
+
+		## lock the table
+		tableNode.SetUseColumnTitleAsColumnHeader(True)
+		tableNode.SetLocked(True)
+		
+		return ranked
+	
 	def balanceData(self, X_train, y_train, track_info_train):
 
 		balanceType = self.train_balancing
@@ -1480,8 +1886,9 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 	
 	def runLDA(self, X_train, X_test, y_train, y_test):
-		
-		pca_model = PCA(n_components=0.99)
+		n_components = self.model_param1
+		if n_components>=1: n_components = int(n_components)
+		pca_model = PCA(n_components=n_components)
 		pca_model.fit(X_train)
 		print('number of PC:',pca_model.n_components_)
 		X_train_pca = pca_model.transform(X_train)
@@ -1511,7 +1918,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	# 	return train_preds, test_preds
 	
 	def runRF(self, X_train, X_test, y_train, y_test):
-		rf_model = RandomForestClassifier()
+		n_estimators = int(self.model_param1)
+		rf_model = RandomForestClassifier(n_estimators=n_estimators)
 		rf_model.fit(X_train, y_train)
 		y_train_preds = rf_model.predict(X_train)
 		y_train_prob = rf_model.predict_proba(X_train)
@@ -1521,7 +1929,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return y_train_preds, y_train_prob, y_test_preds, y_test_prob, class_order, [rf_model] 
 		
 	def runSVM(self, X_train, X_test, y_train, y_test):
-		svm_model = LinearSVC(dual='auto')
+		C = self.model_param1
+		svm_model = LinearSVC(dual='auto', C=C)
 		svm_model.fit(X_train, y_train)
 		class_order = svm_model.classes_
 
@@ -1552,7 +1961,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		class_order = label_encoder.categories_[0]
 		n_class = len(class_order)
 
-		plsda = PLSRegression(n_components = n_class)
+		n_components = int(self.model_param1)
+		plsda = PLSRegression(n_components = n_components)
 		plsda.fit(X_train, y_train_oh)
 		# X_train_plsda = plsda.transform(X_train)
 		y_train_prob= plsda.predict(X_train)
@@ -1604,7 +2014,95 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			X_test, y_test = test_data.iloc[0:, 4:].values, test_data.iloc[0:, 1].values
 			X_val, y_val = val_data.iloc[0:, 4:].values, val_data.iloc[0:, 1].values
 			track_info_train, track_info_test = train_data.iloc[0:, 0:4].values, test_data.iloc[0:, 0:4].values
+
+		######################################################
+		elif self.split == 'cross_val':
+			ACC, BAC = [], []
+			ACC_tr, BAC_tr = [], []
+			print(self.split)
+			for test_slide in np.unique(self.df['Slide']):
+
+				ind_test = self.df['Slide'].isin([test_slide])
+				ind_train = ~ind_test
+
+				if ind_test.sum()==0:
+					ind_test = ind_train
+
+				ind_val = ind_test
+				
+				X_train, X_test, X_val = X[ind_train], X[ind_test], X[ind_val]
+				y_train, y_test, y_val = y[ind_train], y[ind_test], y[ind_val]
+				track_info_train, track_info_test, track_info_val = track_info[ind_train], track_info[ind_test], track_info[ind_val]
+
+				X_train = np.nan_to_num(X_train)
+				X_test = np.nan_to_num(X_test)
+				X_val = np.nan_to_num(X_val)
 			
+				print(X_train.shape, X_test.shape)
+
+				# balancing the data
+				if self.train_balancing != "None":
+					X_train, y_train, track_info_train = self.balanceData(X_train, y_train, track_info_train)
+				
+				reference_mz = np.array(self.df.columns[4:], dtype='float')
+				# Feature selection
+				if self.selected_features_indices:
+					X_train = X_train[:,self.selected_features_indices]
+					X_test = X_test[:,self.selected_features_indices]
+					X_val = X_val[:,self.selected_features_indices]
+					reference_mz = reference_mz[self.selected_features_indices]
+				
+				# Ion-based normalization
+				ion_normalizer = MinMaxScaler()
+				X_train = ion_normalizer.fit_transform(X_train)
+				X_test = ion_normalizer.transform(X_test)
+				X_test = np.clip(X_test, 0, 1)
+				X_val = ion_normalizer.transform(X_val)
+				X_val = np.clip(X_val, 0, 1)
+			
+				# Train the model corresponding to model_type
+				if self.model_type == 'PCA-LDA':
+					MODEL = self.runLDA
+				if self.model_type == 'Random Forest':
+					MODEL = self.runRF
+				if self.model_type == 'Linear SVC':
+					MODEL = self.runSVM
+				if self.model_type == 'PLS-DA':
+					MODEL = self.runPLS
+				
+				y_train_preds, y_train_prob, y_test_preds, y_test_prob, class_order, models = MODEL(X_train, X_test,y_train, y_test)
+
+				acc, bac = get_performance(y_test, y_test_preds, y_test_prob, class_order)
+				ACC.append(acc)
+				BAC.append(bac)
+
+				acc, bac = get_performance(y_train, y_train_preds, y_train_prob, class_order)
+				ACC_tr.append(acc)
+				BAC_tr.append(bac)
+
+			print(ACC)
+			print(BAC)
+
+			# Get data information to relay to the user
+			filename = self.modellingFile.split('/')[-1]
+			confirmation_string = f'Model successfully trained\n'
+			confirmation_string += f'model type:\t{self.model_type}\n'
+			confirmation_string += f'dataset:\t{filename}\n'
+			confirmation_string += f'data split:\t{self.split}\n\n'
+
+			perf_string = '#### MODEL PERFORMANCE ####################\n'
+			perf_string += '#### train set: \n'
+			perf_string += f'accuracy: {np.round(100*np.mean(ACC_tr),2)} ± {np.round(100*np.std(ACC_tr),2)}\n'
+			perf_string += f'balanced accuracy: {np.round(100*np.mean(BAC_tr),2)} ± {np.round(100*np.std(BAC_tr),2)}\n'
+			perf_string += '\n#### test set: \n'
+			perf_string += f'accuracy: {np.round(100*np.mean(ACC),2)} ± {np.round(100*np.std(ACC),2)}\n'
+			perf_string += f'balanced accuracy: {np.round(100*np.mean(BAC),2)} ± {np.round(100*np.std(BAC),2)}\n'
+
+			all_string = confirmation_string + "\n\n" + perf_string
+
+			return all_string
+		######################################################
+
 		print(self.split)
 		print(X_train.shape, X_test.shape)
 
@@ -1618,7 +2116,15 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# balancing the data
 		if self.train_balancing != "None":
 			X_train, y_train, track_info_train = self.balanceData(X_train, y_train, track_info_train)
-
+		
+		reference_mz = np.array(self.df.columns[4:], dtype='float')
+		# Feature selection
+		if self.selected_features_indices:
+			X_train = X_train[:,self.selected_features_indices]
+			X_test = X_test[:,self.selected_features_indices]
+			X_val = X_val[:,self.selected_features_indices]
+			reference_mz = reference_mz[self.selected_features_indices]
+		
 		# Ion-based normalization
 		ion_normalizer = MinMaxScaler()
 		X_train = ion_normalizer.fit_transform(X_train)
@@ -1632,7 +2138,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			MODEL = self.runLDA
 		if self.model_type == 'Random Forest':
 			MODEL = self.runRF
-		if self.model_type == 'SVM':
+		if self.model_type == 'Linear SVC':
 			MODEL = self.runSVM
 		if self.model_type == 'PLS-DA':
 			MODEL = self.runPLS
@@ -1656,7 +2162,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		# save the model
 		model_pipeline = [ion_normalizer] + models
-		reference_mz = np.array(self.df.columns[4:], dtype='float')
 
 		if modelSavename!=None:
 			with open(modelSavename,'wb') as f:
@@ -1804,7 +2309,17 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
   
 	def CsvLoad(self, filename):
-		self.csv_processing = pd.read_csv(filename)
+		df = pd.read_csv(filename)
+		peak_start_col = self.peak_start_col
+		mz = np.array(df.columns[peak_start_col:], dtype='float')
+		peaks = df[df.columns[peak_start_col:]].values
+		# handle missing values
+		peaks = np.nan_to_num(peaks)
+
+		self.csv_processing = df
+		self.peaks = peaks
+		self.mz = mz
+
 		self.csvFile = filename
 		retstr = 'Dataset successfully loaded! \n'
 		retstr += f'Dataset name:\t {filename} \n'
@@ -1812,7 +2327,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return retstr
 
 	def getCsvMzList(self):
-		return list(self.csv_processing.keys()[5:])
+		return list(self.csv_processing.columns[self.peak_start_col:])
+		# return list(self.mz)
 
 	def fileSelect(self):
 		# read and display image practise in juptyter
@@ -1873,14 +2389,13 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 	def textFileSelect(self):
 		fileExplorer = qt.QFileDialog()
-		# filePaths = fileExplorer.getOpenFileNames(None, "Open DESI text file", "", "Text Files (*.txt);;All Files (*)")
-		# data_path_temp = filePaths[0]
-		filePaths = fileExplorer.getOpenFileName(None, "Import MSI data", "", "Structured CSV (*.csv);;Hierarchical HDF5 (*.h5);;DESI Text (*.txt);;All Files (*)")
+		filePaths = fileExplorer.getOpenFileName(None, "Import MSI data", "", "Structured CSV (*.csv);;Hierarchical HDF5 (*.h5);;Waters DESI Text (*.txt);;Continuous imzML (*.imzml);;All Files (*)")
 		data_path_temp = filePaths
 		slide_name = data_path_temp.split('/')[-1]
 		lengthy = len(slide_name)
 		data_path = data_path_temp[:-lengthy]
 		return data_path, slide_name
+
 
 	def REIMSSelect(self):
 		fileExplorer = qt.QFileDialog()
@@ -1968,6 +2483,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			[peaks, mz, dim_y, dim_x] = self.MSI_csv2numpy(name)
 		elif data_extension == '.h5':
 			[peaks, mz, dim_y, dim_x] = self.MSI_h52numpy(name)
+		elif data_extension == '.imzml':
+			[peaks, mz, dim_y, dim_x] = self.MSI_contImzML2numpy(name)
 		else:
 			pass
 		
@@ -1989,11 +2506,270 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return True
 
+
+	def RawFileLoad(self, filePath):
+		self.saveFolder = os.path.dirname(filePath)
+		self.slideName = os.path.splitext( os.path.basename(filePath) )[0]
+		self.savenameBase = os.path.splitext(filePath)[0]
+		
+		# import imzml
+		try:
+			from pyimzml.ImzMLParser import ImzMLParser
+		except ModuleNotFoundError:
+			slicer.util.pip_install("pyimzml")
+			from pyimzml.ImzMLParser import ImzMLParser
+
+		parser = ImzMLParser(filePath)
+		tic_image = imzML_TIC(parser)
+
+		# save tic image
+		tic_image = sitk.GetImageFromArray(np.transpose(tic_image, [0, 1]))
+		tic_filename = os.path.splitext(filePath)[0]+'.nrrd'
+		sitk.WriteImage(tic_image, tic_filename)
+		# load tic image
+		volumeNode = slicer.util.loadVolume(tic_filename, {"singleFile": True})
+		# set the colormap
+		displayNode = volumeNode.GetDisplayNode()
+		colorNode = slicer.util.getNode('Inferno')
+		displayNode.SetAndObserveColorNodeID(colorNode.GetID())
+		# set the layout
+		lm = slicer.app.layoutManager()
+		lm.setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
+		# delete the tic file
+		os.remove(tic_filename)
+
+		dim_x, dim_y, *_ = np.array(parser.coordinates).max(0)
+		n_spectra = len(parser.coordinates)
+		mzLengths = parser.mzLengths
+		mz_range = [np.inf, -np.inf]
+		for ind in range(n_spectra):
+			mz, _ = parser.getspectrum(ind)
+			mz_range[0] = np.min([mz_range[0], np.min(mz)])
+			mz_range[1] = np.max([mz_range[1], np.max(mz)])
+
+		info = os.path.basename(filePath) +'\n'
+		info += f'spatial:\t {dim_y} x {dim_x} pixels \n'
+		info += f'spectra:\t {n_spectra} \n'
+		if len(set(mzLengths))==1:
+			info += f'm/z per pixel:\t {mzLengths[0]} \n'
+		else:
+			info += f'm/z per pixel:\t {min(mzLengths)} - {max(mzLengths)} \n'
+		info += f'm/z range: \t {mz_range[0]} - {mz_range[1]} \n'
+		
+		self.dim_y = dim_y
+		self.dim_x = dim_x
+		self.parser = parser
+		self.raw_range = mz_range
+	
+		return info, mz_range
+
+
+		# dim_x, dim_y, *_ = np.array(parser.coordinates).max(0)
+		# mz, _ = parser.getspectrum(0)
+		# peaks = np.zeros((dim_y, dim_x, len(mz)))
+		# for i, (x, y, *_) in enumerate(parser.coordinates):
+		# 	_, intensities = parser.getspectrum(i)
+		# 	peaks[y-1, x-1,:] = intensities
+		# peaks = peaks.reshape((dim_y*dim_x,-1),order='C')
+		# return peaks, mz, dim_y, dim_x
+
+	@show_wait_message
+	def raw_processing(self, params):
+		status = True
+		try:
+			mz_select, calibration_shifts, peaks_select, mz_grid, peaks_aggregated = self.raw_mzList_picking(self.parser, params)
+			peak_list, dim_x, dim_y = self.raw_peakList_alignment(self.parser, mz_select, calibration_shifts, params)
+			
+			self.peaks = peak_list
+			self.mz = mz_select
+			self.dim_y = dim_y
+			self.dim_x = dim_x
+		except Exception as e:
+			print("An error occurred:")
+			traceback.print_exc()
+			status = False
+
+		return status
+
+	def raw_mzList_picking(self, parser, params):
+		vis_range = np.round([ params["range"][0] - 1, params["range"][1] + 1], params["decimal_ions"])
+		mz_res = 10**-params["decimal_ions"]
+		mz_grid = np.arange(vis_range[0], vis_range[1], mz_res)
+		
+		peaks_aggregated = 0
+		calibration_shifts = []
+		
+		n_spectra = len(parser.coordinates)
+		for i in tqdm(range(n_spectra)):
+			mz_raw, peaks_raw = parser.getspectrum(i)
+			
+			# lockmass
+			if params["lockmass"]:
+				calibration_shift = self.lockmass_shift_prediction(mz_raw, peaks_raw, lockmass_peak=params["lockmass"], lockmass_range=0.1, method="nearest_peak")
+				mz_raw = mz_raw + calibration_shift
+				calibration_shifts.append(calibration_shift)
+
+			# filter range
+			raw_range = (mz_raw>=vis_range[0])*(mz_raw<=vis_range[1])
+			mz_raw = mz_raw[raw_range]
+			peaks_raw = peaks_raw[raw_range]
+		
+			# interpolate
+			peaks_interp = np.interp(mz_grid, mz_raw, peaks_raw, left=0, right=0)
+
+			# smoothing
+			if params["smoothing"]:
+				peaks_interp = self.smoothing(mz_grid, peaks_interp, kernel_nstd=4, kernel_bandwidth=params["smoothing"])
+
+			# aggregate
+			peaks_aggregated += peaks_interp
+
+		mz_grid, peaks_aggregated
+
+		# peak picking
+		if params["smoothing"]:
+			locs, _= find_peaks(peaks_aggregated, width=params["smoothing"]/mz_res)
+		else:
+			locs, _= find_peaks(peaks_aggregated)
+		mz_cent, peaks_cent = mz_grid[locs], peaks_aggregated[locs]
+		
+		# peak selection
+		select_ind = np.sort(np.argsort(-peaks_cent)[:params["n_ions"]])
+		mz_select, peaks_select = mz_cent[select_ind], peaks_cent[select_ind]
+
+		mz_select = np.round(mz_select, params["decimal_ions"])
+
+		return mz_select, calibration_shifts, peaks_select, mz_grid, peaks_aggregated
+
+	def smoothing(self, x_interp, y_interp, kernel_nstd, kernel_bandwidth):
+		mz_resolution = np.diff(x_interp)[0]
+		kernel_width = int(kernel_nstd * kernel_bandwidth / mz_resolution)
+		kernel = np.exp(-0.5 * (np.arange(-kernel_width, kernel_width + 1)*mz_resolution / kernel_bandwidth) ** 2)
+		kernel = kernel/kernel.sum()
+		y_smoothed = np.convolve(y_interp, kernel, mode='same')
+		return y_smoothed
+
+	def lockmass_shift_prediction(self, mz, peaks, lockmass_peak=554.2615, lockmass_range=0.1, method="highest_peak"):
+		mz_range = (mz>(lockmass_peak-lockmass_range))*(mz<(lockmass_peak+lockmass_range))
+		mz_sub, peak_sub = mz[mz_range], peaks[mz_range]
+		
+		if mz_sub.size>0:
+			if method == 'nearest_mz':
+				locmass_loc = np.abs(mz_sub-lockmass_peak).argmin()
+				
+			elif method == 'highest_peak':
+				locmass_loc = peak_sub.argmax()
+				
+			elif method == 'nearest_peak':
+				locs, _= find_peaks(peak_sub)
+				if locs.size>0:
+					mz_sub, peak_sub = mz_sub[locs], peak_sub[locs]
+				locmass_loc = np.abs(mz_sub-lockmass_peak).argmin()
+				
+			else:
+				raise ValueError('unknown lockmass method')
+				
+			calibration_shift = lockmass_peak - mz_sub[locmass_loc]
+		
+		else:
+			calibration_shift = 0
+		
+		return calibration_shift
+
+	def raw_peakList_alignment(self, parser, mz_ref, calibration_shifts, params):
+		
+		vis_range = np.round([ mz_ref.min() - 1, mz_ref.max() + 1], params["decimal_ions"])
+		mz_res = 10**-params["decimal_ions"]
+		mz_grid = np.arange(vis_range[0], vis_range[1], mz_res)
+		
+		n_spectra = len(parser.coordinates)
+		n_ions = len(mz_ref)
+
+		dim_x, dim_y, *_ = np.array(parser.coordinates).max(0)
+		peak_list = np.zeros((dim_y, dim_x, n_ions))
+		for i, (x, y, *_) in tqdm(enumerate(parser.coordinates), total=n_spectra):
+			mz_raw, peaks_raw = parser.getspectrum(i)
+			
+			# lockmass
+			if params["lockmass"]:
+				mz_raw = mz_raw + calibration_shifts[i]
+
+			# filter range
+			raw_range = (mz_raw>=vis_range[0])*(mz_raw<=vis_range[1])
+			mz_raw = mz_raw[raw_range]
+			peaks_raw = peaks_raw[raw_range]
+		
+			# smoothing
+			if params["smoothing"]:
+				peaks_raw = np.interp(mz_grid, mz_raw, peaks_raw, left=0, right=0)
+				peaks_raw = self.smoothing(mz_grid, peaks_raw, kernel_nstd=4, kernel_bandwidth=params["smoothing"])
+				mz_raw = mz_grid
+
+			# peak match
+			peaks_aligned, _ = self.peak_matching(mz_raw, peaks_raw, mz_ref, tol=5*mz_res, method='max')
+			peak_list[y-1, x-1] = peaks_aligned
+
+		peak_list = peak_list.reshape((dim_y*dim_x,-1),order='C')
+		return peak_list, dim_x, dim_y
+
+	def MSIExport(self, savepath):
+		file_type = os.path.splitext(savepath)[-1]
+		if file_type.lower() == ".h5":
+			compression_level = 4
+			peaks = self.peaks.reshape((self.dim_y,self.dim_x,-1),order='C')
+			with h5py.File(savepath, 'w') as h5file:
+				h5file.create_dataset('peaks', data=peaks, compression='gzip', compression_opts=compression_level)
+				h5file.create_dataset('mz', data=self.mz, compression='gzip', compression_opts=compression_level)
+			print("Export completed (h5)")
+		elif file_type.lower() == ".csv":
+			YX = np.zeros((len(self.peaks),2))
+			for ind in range(len(self.peaks)):
+				j, i = ind_ToFrom_sub(ind, self.dim_x)
+				YX[ind] = [j, i]
+
+			csv_data = np.concatenate([YX, self.peaks], axis=1)
+			csv_columns = [str(self.dim_y), str(self.dim_x)] + [str(x) for x in self.mz] #[int(self.dim_y), int(self.dim_x)]+list(self.mz)
+			df = pd.DataFrame(csv_data, columns=csv_columns)
+			df.to_csv(savepath, index=False)
+			print("Export completed (csv)")
+
+
 	# def getSelectedMz(self):
 	# 	return self.selectedmz
 		
-	 # Define function to align peaks and merge csv file 
-	def batch_peak_alignment(self, files, csv_save_name):
+	def load_alignment_files(self, files):
+		mz, peaks, labels = [],[],[]
+		classes = []
+		for file in files:
+			print(file)
+			df = pd.read_csv(file)
+			
+			mz.append( np.array(df.columns[self.peak_start_col:], dtype='float') )
+			peaks.append( df[df.columns[self.peak_start_col:]].values )
+			labels.append( df[df.columns[0:self.peak_start_col]].values )
+			classes.append(df["Class"].values)
+			labels_headers = df.columns[0:self.peak_start_col]
+		
+		self.mz = mz
+		self.peaks = peaks
+		self.labels = labels
+		self.labels_headers = labels_headers
+
+		classes = np.concatenate(classes)
+
+		retstr = f'Number of slides:  \t{len(mz)}\n'
+		retstr += f'Number of spectra:\t{len(classes)}\n'
+		retstr += f'Number of classes:\t{len(set(classes))}\n'
+		mz_range = [np.concatenate(mz).min(), np.concatenate(mz).max()]
+		retstr += f'Range of m/z:     \t{mz_range[0]} to {mz_range[1]}\n'
+		class_names,class_lens = np.unique(classes, return_counts=1)
+		for x,y in zip(class_names,class_lens):
+			retstr += f'  {str(y)}: {x} \n'
+
+		return retstr, mz_range
+	
+	# Define function to align peaks and merge csv file 
+	def batch_peak_alignment(self, params):
 		""""
 		OBJECTIVE:
 		to align m/z values from muliple MSI slides
@@ -2006,40 +2782,35 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		@Moon
 		"""
 
-		## list the csv files
-		for file in files: 
-			print(file)
-		## read the files
-		print('reading the csv files...')
-		#################################
-		peak_start_col = 4 # all info other than peak intensities
-		#################################
-				
-		mz, peaks, labels = [],[],[]
-		for file in files:
-			df = pd.read_csv(file)
-
-			mz.append( np.array(df.columns[peak_start_col:], dtype='float') )
-			peaks.append( df[df.columns[peak_start_col:]].values )
-			labels.append( df[df.columns[0:peak_start_col]].values )
-
-			labels_headers = df.columns[0:peak_start_col]
-			# print(labels_headers)
-
-		mz_all = np.sort(np.concatenate(mz)).astype('float64')
-		
-		## cluster m/z values that are close to eachother
-		print('accumulating m/z values...')
-		mz_bandwidth = 0.01 #std of the estimated mz clusters
-		abundance_threshold = 0.4 #eliminate the least abundant peaks between slides
-		mz_resolution = 0.01 # m/z resolution for peak clustering
+		mz_bandwidth = params['mz_bandwidth']
+		abundance_threshold = params['abundance_threshold']
+		ion_count_method = params['ion_count_method']
+		mz_resolution = params['mz_resolution']
 		nsig = 4 # number of std in kernel width
 
-		# subband_start = 50
-		# subband_stop = 1200 
-		subband_start = np.round(mz_all.min()-nsig*mz_bandwidth, -1)-10  # 50 m/z range minimum
-		subband_stop = np.round(mz_all.max()+nsig*mz_bandwidth, -1)+10  # 1200 m/z range maximum
-		
+		csv_save_name = params['savepath']
+		preview_mode = params['preview']
+
+		mz = self.mz.copy()
+		if preview_mode:
+			preview_start = preview_mode[0]
+			preview_stop = preview_mode[1]
+			mz_preview_ind = []
+			for i, mz_i in enumerate(mz):
+				ind = (mz_i>= preview_start) * (mz_i<= preview_stop)
+				mz[i] = mz_i[ind]
+				mz_preview_ind.append(ind)
+		mz_all = np.sort(np.concatenate(mz)).astype('float64')
+		## cluster m/z values that are close to eachother
+		print('accumulating m/z values...')
+
+		if preview_mode:
+			subband_start = mz_all.min() - nsig*mz_bandwidth - mz_resolution
+			subband_stop = mz_all.max() + nsig*mz_bandwidth + mz_resolution
+		else:
+			subband_start = np.round(mz_all.min()-nsig*mz_bandwidth, -1)-10 
+			subband_stop = np.round(mz_all.max()+nsig*mz_bandwidth, -1)+10
+
 		# generate sample Gaussian kernel
 		x = np.arange(-nsig*mz_bandwidth,nsig*mz_bandwidth+1e-5,mz_resolution)
 		x = np.round(x, decimals=4)
@@ -2082,16 +2853,24 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		mz_df = pd.DataFrame(new_mz, columns=selected_mz)
 		
 		# eliminate the least repeated mz 
-		num_sample_per_slide = np.array([x.shape[0] for x in peaks]).T
+		if ion_count_method=='Spectra':
+			num_sample_per_slide = np.array([x.shape[0] for x in self.peaks]).T
+			num_nonnan_mz = []
+			for j in range(n_mz):
+				x=0
+				for i in range(n_csv):
+					x += ( len(new_mz[i][j])>0 )*num_sample_per_slide[i]
+				num_nonnan_mz.append(x)
+			nonnan_threshold = int(abundance_threshold*np.sum(num_sample_per_slide))
 
-		num_nonnan_mz = []
-		for j in range(n_mz):
-			x=0
-			for i in range(n_csv):
-				x += ( len(new_mz[i][j])>0 )*num_sample_per_slide[i]
-			num_nonnan_mz.append(x)
-
-		nonnan_threshold = int(abundance_threshold*np.sum(num_sample_per_slide))
+		elif ion_count_method=='Slides':
+			num_nonnan_mz = []
+			for j in range(n_mz):
+				x=0
+				for i in range(n_csv):
+					x += ( len(new_mz[i][j])>0 )
+				num_nonnan_mz.append(x)
+			nonnan_threshold = int(abundance_threshold*n_csv)
 
 		kept_mz_ind = np.array(num_nonnan_mz) > nonnan_threshold
 		n_mz = kept_mz_ind.sum()
@@ -2103,7 +2882,13 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		final_mz_df = pd.DataFrame(np.nan*np.ones([n_csv,n_mz]), columns=new_mz_df.columns)
 		for i in range(n_csv):
 			mz_old = mz[i]
-			pmean = peaks[i].mean(axis=0)/peaks[i].mean(axis=0).max()
+
+			if preview_mode:
+				peaks_i = self.peaks[i][:,mz_preview_ind[i]]
+				pmean = peaks_i.mean(axis=0)/peaks_i.mean(axis=0).max()
+			else:
+				pmean = self.peaks[i].mean(axis=0)/self.peaks[i].mean(axis=0).max()
+
 			for j in range(n_mz):
 				mz_cell = new_mz_df.loc[i, new_mz_df.columns[j]]
 				if len(mz_cell)==0:
@@ -2116,7 +2901,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 					final_mz_df.loc[i, final_mz_df.columns[j]] = mz_cell[i_abundant]
 								
 
-		# correct the selected mz
+		# correct the calculated mz list to existing values
 		mz_list = final_mz_df.to_numpy()
 		mz_selected_old = final_mz_df.columns
 		corrected_mz = []
@@ -2129,46 +2914,86 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		corrected_mz = np.array(corrected_mz)
 		final_mz_df.columns = corrected_mz
 
-		# add label and save the m/z alignment results
+		# add label 
 		labeled_mz_df = final_mz_df.copy()
-		#################################
-		# ll = [labels[i][0][1] for i in range(n_csv)]
-		ll = [labels[i][0][0] for i in range(n_csv)]
-		#################################
+		ll = [self.labels[i][0][0] for i in range(n_csv)]
 		labeled_mz_df.insert(0, 'selected m/z', ll)
 
-		print('saving the aligned m/z csv...')
-		labeled_mz_df.to_csv(csv_save_name[:-4]+'_MZLIST.csv', index=False)
-		
-		# align peaks
-		aligned_peaks = []
-		for i in range(n_csv):
-			mz_old = mz[i]
-			newp = np.nan*np.ones([len(peaks[i]),n_mz])
-			for j,col in enumerate(corrected_mz):
-				mz_val = final_mz_df[col][i]
-				if ~np.isnan(mz_val):
-					p_ind = np.where(mz_old == mz_val)[0]
-					newp[:,j] = peaks[i][:,p_ind].flat
-			aligned_peaks.append(newp)
+		if preview_mode:
+			print(corrected_mz)
+			plt.figure(figsize=(10, 4))
+			for i,mz_i in enumerate(mz):
+				markerline, stemlines, baseline = plt.stem(mz_i, np.ones_like(mz_i))
+				markerline.set_color(f"C{i}")
+				markerline.set_markersize(5)
+				stemlines.set_color(f"C{i}")
+				baseline.set_visible(False)
+			plt.legend(params['file_names'])
 
-		del peaks
-		aligned_peaks = np.concatenate(aligned_peaks, axis=0)
-		aligned_peaks_labels = np.concatenate(labels, axis=0)
+			plt.plot(mz_grid, kde_grid, 'k')
+			plt.plot(mz_grid[locs], kde_grid[locs], 'bx')
+			plt.plot(corrected_mz, kde_grid[locs[kept_mz_ind]]+kde_grid.max()/30, 'rv', markersize=10)
+			plt.xlim([preview_start, preview_stop])
 
-		# add label and save aligned peaks
-		aligned_peaks = np.concatenate( [aligned_peaks_labels, aligned_peaks] , axis=1)
-		csv_column = labels_headers.tolist()+list(corrected_mz)
-		df = pd.DataFrame(aligned_peaks, columns=csv_column)
-		print('saving the aligned peaks csv...')
-		df.to_csv(csv_save_name, index=False)
-		print('alignment done!')
+			# save plot
+			filename = os.path.join(os.getcwd(), r"alighnment_preview.jpg")
+			plt.savefig(filename, bbox_inches='tight', dpi=600)
+			plt.close()
 
-		### report information
-		retstr = 'Dataset successfully aligned! \n'
-		retstr += f'Aligned dataset:\t {csv_save_name} \n'
-		retstr += self.datasetInfo(df)
-		return retstr
+			# display plot
+			YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
+			YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
+
+			volumeNode = slicer.util.loadVolume(filename, {"singleFile": True})
+			slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
+
+			YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
+			YellowNode.SetOrientation("Axial")
+			slicer.util.resetSliceViews()
+
+		else:
+			print('saving the aligned m/z csv...')
+			labeled_mz_df.to_csv(csv_save_name[:-4]+'_MZLIST.csv', index=False)
+			
+			# align peaks
+			if params['matching_method'] == "Cluster":
+				aligned_peaks = []
+				for i in range(n_csv):
+					mz_old = mz[i]
+					newp = np.nan*np.ones([len(self.peaks[i]),n_mz])
+					for j,col in enumerate(corrected_mz):
+						mz_val = final_mz_df[col][i]
+						if ~np.isnan(mz_val):
+							p_ind = np.where(mz_old == mz_val)[0]
+							newp[:,j] = self.peaks[i][:,p_ind].flat
+					aligned_peaks.append(newp)
+			
+			elif params['matching_method'] == "Tolerance":
+				tolerance = params['matching_tol']
+				bin_method = params['matching_bin']
+				aligned_peaks = []
+				for i in range(n_csv):
+					aligned_peaks_i, _ = self.peak_matching(mz[i], self.peaks[i], corrected_mz, tolerance, bin_method)
+					# aligned_peaks_i, _ = self.peak_alignemnt_to_reference(mz[i], self.peaks[i], corrected_mz, thresh=tolerance)
+					aligned_peaks.append(aligned_peaks_i)
+
+			aligned_peaks = np.concatenate(aligned_peaks, axis=0)
+			aligned_peaks_labels = np.concatenate(self.labels, axis=0)
+
+			# add label and save aligned peaks
+			aligned_peaks = np.concatenate( [aligned_peaks_labels, aligned_peaks] , axis=1)
+			csv_column = self.labels_headers.tolist()+list(corrected_mz)
+			df = pd.DataFrame(aligned_peaks, columns=csv_column)
+			print('saving the aligned peaks csv...')
+			df.to_csv(csv_save_name, index=False)
+			print('alignment done!')
+
+			### report information
+			retstr = 'Dataset successfully aligned! \n'
+			retstr += f'Aligned dataset:\t {csv_save_name} \n'
+			retstr += f'Number of ions:   \t {len(corrected_mz)} \n'
+			retstr += self.datasetInfo(df)
+			return retstr
 
 
 	# generates and displays the pca image
@@ -2421,6 +3246,9 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			retstr += f'   {str(y)}\t in class\t {x} \n'
 		return retstr
 
+
+## Helper functions
+# 1D ind and 2D sub conversion
 def ind_ToFrom_sub(X, dim_x):
     if isinstance(X, int):
         ind = X
@@ -2431,3 +3259,131 @@ def ind_ToFrom_sub(X, dim_x):
         i, j = X
         res = i * dim_x + j
     return res
+
+# Sample-based spectrum normalization
+def dataset_normalization(data, method, **kwargs):
+	if method == "TIC":
+		scale = data.sum(axis=1, keepdims=True)
+	elif method == "RMS":
+		scale = np.sqrt(np.mean(np.square(data), axis=1, keepdims=True))
+	elif method == "median":
+		scale = np.median(data, axis=1, keepdims=True)
+	elif method == "mean":
+		scale = np.mean(data, axis=1, keepdims=True)
+	elif method == "TUC":
+		if 'threshold' not in kwargs:
+			raise ValueError("Method 'TUC' requires a 'threshold' argument.")
+		threshold = kwargs['threshold']
+		mask = data > threshold
+		scale = np.sum(data * mask, axis=1, keepdims=True)
+	elif method == "Reference":
+		if 'ion_index' not in kwargs:
+			raise ValueError("Method 'Reference' requires a 'ion_index' argument.")
+		ion_index = kwargs['ion_index']
+		scale = data[:, ion_index].copy()
+	else:
+		raise ValueError("Invalid normalization method")
+
+	scale[scale == 0] = 1  # Prevent division by zero
+	
+	return data / scale
+
+def imzML_TIC(parser):
+    dim_x, dim_y, *_ = np.array(parser.coordinates).max(0)
+    tic_img = np.zeros((dim_y, dim_x))
+    for i, (x, y, *_) in enumerate(parser.coordinates):
+        _, intensities = parser.getspectrum(i)
+        tic_img[y-1, x-1] = intensities.sum()
+    return tic_img
+
+def imzML_ionImg(parser, mz, tol):
+    dim_x, dim_y, *_ = np.array(parser.coordinates).max(0)
+    ion_img = np.zeros((dim_y, dim_x))
+    for i, (x, y, *_) in enumerate(parser.coordinates):
+        mzs, intensities = parser.getspectrum(i)
+        mask = (mzs >= (mz-tol)) & (mzs <= (mz+tol))
+        ion_img[y-1, x-1] = intensities[mask].sum()
+    return ion_img
+
+def latent2color(xy):
+	from matplotlib.colors import hsv_to_rgb
+
+	x_norm = (xy[:, 0] - xy[:, 0].min()) / np.ptp(xy[:, 0])
+	y_norm = (xy[:, 1] - xy[:, 1].min()) / np.ptp(xy[:, 1])
+
+	hsv = np.stack([x_norm, np.ones_like(x_norm), y_norm], axis=1)  # shape (N, 3)
+	rgb = hsv_to_rgb(hsv)
+
+	return rgb
+
+def compute_vip(pls, X):
+    """Compute VIP scores for multi-class PLS-DA"""
+    t = pls.x_scores_            # (N, n_components)
+    w = pls.x_weights_           # (n_features, n_components)
+    q = pls.y_loadings_          # (n_components, n_classes)
+
+    p, h = w.shape               # p: number of features, h: components
+    s = np.zeros((h,))
+    
+    # Sum of squares explained by each component over all response variables
+    for i in range(h):
+        s[i] = np.sum(t[:, i] ** 2 * np.sum(q[i, :] ** 2))
+
+    total_s = np.sum(s)
+    vip = np.zeros((p,))
+    
+    for i in range(p):  # for each feature
+        weight = np.array([
+            (w[i, j] / np.linalg.norm(w[:, j]))**2 if np.linalg.norm(w[:, j]) != 0 else 0.0
+            for j in range(h)
+        ])
+        vip[i] = np.sqrt(p * np.dot(s, weight) / total_s)
+    return vip
+
+
+def get_performance(y_train, y_train_preds, y_train_prob, class_order):
+	acc = accuracy_score(y_train, y_train_preds)
+	bac = balanced_accuracy_score(y_train, y_train_preds)
+	# if len(set(y_train)) == len(set(class_order)):
+	# 	if len(class_order)==2: #binary
+	# 		recall_all = recall_score(y_train, y_train_preds, average=None)
+	# 		auc = roc_auc_score(y_train, y_train_prob[:,-1], average='macro')
+	# 	else:
+	# 		recall_all = recall_score(y_train, y_train_preds, average=None)
+	# 		auc = roc_auc_score(y_train, y_train_prob, average='macro', multi_class='ovr')
+	# else:
+	# 	for lab in np.sort(list(set(y_train))):
+	# 		class_recall = recall_score(y_train, y_train_preds, labels=[lab], average=None)
+	# 		results_str += f"{lab} recall (sensitivity): {np.round(100*class_recall[0],2)}\n"
+	
+	return acc, bac
+
+
+
+# Low Coefficient of Variation (CV) Across Spectra for selection of normalization 
+# cv = np.std(data, axis=0) / np.mean(data, axis=0)
+# ref_peak_index = np.argmin(cv)
+
+# # Quantile Normalization
+# def quantile_normalization(data):
+#     sorted_idx = np.argsort(data, axis=0)
+#     sorted_data = np.sort(data, axis=0)
+#     mean_values = np.mean(sorted_data, axis=1)
+#     normalized = np.zeros_like(data)
+#     for i in range(data.shape[1]):
+#         normalized[sorted_idx[:, i], i] = mean_values
+#     return normalized
+
+# # Median Fold Change Normalization
+# def median_fold_change_normalization(data):
+#     median_spectrum = np.median(data, axis=0)
+#     ratios = data / (median_spectrum + 1e-10)  # Avoid division by zero
+#     scale_factors = np.median(ratios, axis=1, keepdims=True)
+#     return data / scale_factors
+
+# # Probabilistic Quotient Normalization (PQN)
+# def pqn_normalization(data):
+#     reference = np.median(data, axis=0)
+#     quotients = data / (reference + 1e-10)
+#     scale_factors = np.median(quotients, axis=1, keepdims=True)
+#     return data / scale_factors

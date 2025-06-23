@@ -140,24 +140,146 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.pcaExtendCheckbox.hide()
 		self.ui.roiCintrastExtend.hide()
 		self.ClearClusterTable()
+		## hide the in-ui table view
+		self.ui.ClusterTable.setVisible(False)
 
-		# import push botton mechanism
-		self.ui.textFileLoad.hide()
-		self.ui.loadHisto.hide()
 		self.ui.csvLoad.hide()
 		self.ui.modellingFile.hide()
 		self.ui.deployImport.hide()
 		self.ui.deployModelImport.hide()
+
+		norm_methods = ['Total ion current (TIC)', 'Total signal current (TSC)', 'Root mean square (RMS)', 'Median', 'Mean', 'Reference ion']
+		for method in norm_methods:
+			self.ui.normMethodComboBox.addItem(method)
+		self.ui.normMethodComboBox.setCurrentText("Total ion current (TIC)")
+		self.ui.refionLabel.setVisible(False)
+		self.ui.refIoncomboBox.setVisible(False)
+		self.ui.thresholdLabel.setVisible(False)
+		self.ui.thresholdValue.setVisible(False)
+
+		for method in norm_methods:
+			self.ui.depNormMethod.addItem(method)
+		self.ui.depNormMethod.setCurrentText("Total ion current (TIC)")
+		self.ui.depRefIonLab.setVisible(False)
+		self.ui.depComboboxIon.setVisible(False)
+		self.ui.depNormThreshLab.setVisible(False)
+		self.ui.depNormThresh.setVisible(False)
+
+		self.ui.MLlabel2.setVisible(False)
+		self.ui.MLparam2.setVisible(False)
+
+		self.ui.AlignTolLabel.setVisible(False)
+		self.ui.AlignTolVal.setVisible(False)
+		self.ui.AlignBinLab.setVisible(False)
+		self.ui.AlignBinVal.setVisible(False)
 		
-		# Data Import
+		self.ui.lockmassLab.setVisible(False)
+		self.ui.lockmassVal.setVisible(False)
+		self.ui.rawrangeStLab.setVisible(False)
+		self.ui.rawrangeStVal.setVisible(False)
+		self.ui.rawrangeEnLab.setVisible(False)
+		self.ui.rawrangeEnVal.setVisible(False)
+		self.ui.rawsmoothLab.setVisible(False)
+		self.ui.rawsmoothVal.setVisible(False)
+
+		# Set logo in UI
+		logo_path = self.resourcePath('Icons/UI_nameM.png')
+		# logo_path = self.resourcePath('Icons/UI_logoS.png')
+		self.ui.logo.setPixmap(qt.QPixmap(logo_path))
+
+		# Set pushbutton icons
+		icon_path = self.resourcePath('Icons/roi.png')
+		self.ui.ROIforLocalContrast.setIcon(qt.QIcon(icon_path))
+
+		icon_path = self.resourcePath('Icons/marker.png')
+		self.ui.RAWplaceFiducial.setIcon(qt.QIcon(icon_path))
+		self.ui.placeFiducial.setIcon(qt.QIcon(icon_path))
+
+		# Set tab widget tooltip and icons
+		icon_names = ['home', 'file', 'visualization', 'dataset', 'alignment', 'preprocess', 'train', 'report', 'inference']
+		for i in range(self.ui.tabWidget.count):
+			tabText = self.ui.tabWidget.tabText(i)
+			self.ui.tabWidget.setTabText(i, "")            
+			self.ui.tabWidget.tabBar().setTabToolTip(i, tabText)  
+			icon_path = self.resourcePath(f'Icons/{icon_names[i]}.png')
+			self.ui.tabWidget.setTabIcon(i, qt.QIcon(icon_path))
+
+		self.ui.tabWidget.setTabText(0, 'Home') 
+		self.ui.tabWidget.tabBar().setIconSize(qt.QSize(25, 25))
+
+		# Collapse the Data Probe
+		dataProbeWidget = slicer.util.mainWindow().findChild(qt.QWidget, "DataProbeCollapsibleWidget")
+		if dataProbeWidget and hasattr(dataProbeWidget, "collapsed"):
+			dataProbeWidget.collapsed = True
+
+		# Hide additional toolbars
+		for child in slicer.util.mainWindow().findChildren(qt.QToolBar):
+			visible_toolbars = ['ModuleSelectorToolBar', 'ViewToolBar', 'MouseModeToolBar', 'DialogToolBar']
+			if child.objectName in visible_toolbars:
+				child.setVisible(True)
+			else:
+				child.setVisible(False)
+
+		# Collapse Python console
+		# pythonConsoleDock = slicer.util.mainWindow().findChild(qt.QDockWidget, "PythonConsoleDockWidget")
+		# if pythonConsoleDock:
+		# 	pythonConsoleDock.setVisible(False)
+
+		# Layout to red view
+		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
+
+		# Heatmap list singleIonHeatmapList
+		self.ui.singleIonHeatmapList.addItem('Inferno')
+		self.ui.singleIonHeatmapList.addItem('DivergingBlueRed')
+		self.ui.singleIonHeatmapList.addItem('PET-Rainbow2')
+		self.ui.singleIonHeatmapList.addItem('Cividis')
+		self.ui.singleIonHeatmapList.addItem('ColdToHotRainbow')
+
+		for i in range(self.ui.singleIonHeatmapList.count):
+			text = self.ui.singleIonHeatmapList.itemText(i)
+			data = self.ui.singleIonHeatmapList.itemData(i)
+			self.ui.RawImgHeatmap.addItem(text, data)
+
+		# Home tab
 		self.ui.clearReloadPush.connect("clicked(bool)", self.onClearReload)
 		self.ui.loadScenePush.connect("clicked(bool)", self.onLoadScene)
 
+		self.ui.Go2tab1.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(1))
+		self.ui.Go2tab2.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(2))
+		self.ui.Go2tab3.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(3))
+		self.ui.Go2tab4.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(4))
+		self.ui.Go2tab5.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(5))
+		self.ui.Go2tab6.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(6))
+		self.ui.Go2tab7.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(7))
+		self.ui.Go2tab8.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(8))
+
+		self.ui.userManual.clicked.connect(
+			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://slicermassvision.readthedocs.io/")))
+		self.ui.sampleData.clicked.connect(
+			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://github.com/jamzad/SlicerMassVision/releases/tag/test-data")))
+		self.ui.codeBase.clicked.connect(
+			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://github.com/jamzad/SlicerMassVision")))
+
+		self.ui.database1.clicked.connect(
+			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://hmdb.ca/")))
+		self.ui.database2.clicked.connect(
+			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://www.lipidmaps.org/")))
+
+		# Data Import
 		self.ui.textFileSelect.connect("clicked(bool)", self.onTextFileSelect)
-		self.ui.textFileLoad.connect("clicked(bool)", self.onTextFileLoad)
 
 		self.ui.histoFileSelect.connect("clicked(bool)",self.onHistoSelect)
-		self.ui.loadHisto.connect("clicked(bool)",self.onloadHisto)
+
+		self.ui.rawSelect.connect("clicked(bool)", self.onRawSelect)
+		self.ui.RAWplaceFiducial.connect("clicked(bool)", lambda checked: self.onPutFiducial("raw-spectrum"))
+		self.ui.RAWplotSpectra.connect("clicked(bool)", self.onRawPlotSpectra)
+		self.ui.RawPlotImg.connect("clicked(bool)", self.onRawPlotImg)
+		self.ui.rawsmoothCheck.connect("clicked(bool)", self.onRawsmoothCheck)
+		self.ui.lockmassCheck.connect("clicked(bool)", self.onLockmassCheck)
+		self.ui.rawrangeCheck.connect("clicked(bool)", self.onRawrangCheck)
+		self.ui.rawProcess.connect("clicked(bool)", self.onRawProcess)
+
+		self.ui.ExportPushBotton.connect("clicked(bool)",self.onExport)
 
 		self.ui.REIMSFileSelect.connect("clicked(bool)",self.onREIMSSelect)
 		self.ui.REIMSFileLoad.connect("clicked(bool)",self.onREIMSLoad)
@@ -165,20 +287,20 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		# Visualization
 		self.ui.spectrumPlot.connect("clicked(bool)", self.onSpectrumPlot)
-		self.ui.singleIonHeatmapList.addItem('Inferno')
-		self.ui.singleIonHeatmapList.addItem('DivergingBlueRed')
-		self.ui.singleIonHeatmapList.addItem('PET-Rainbow2')
-		self.ui.singleIonHeatmapList.addItem('Cividis')
-		self.ui.singleIonHeatmapList.addItem('ColdToHotRainbow')
-	
+		self.ui.placeFiducial.connect("clicked(bool)", lambda checked: self.onPutFiducial("spectrum"))
+
 		self.ui.AbundanceThumbnail.connect("clicked(bool)", self.onAbundanceThumbnail)
 
 		self.ui.singleIonButton.connect("clicked(bool)", self.selectedSingleIon)
 		self.ui.multiIonButton.connect("clicked(bool)", self.selectedMultiIon)
 		self.ui.PCA_button.connect("clicked(bool)", self.onPCAButton)
 		self.ui.partialPCA.connect("clicked(bool)", self.onPartialPCAButton)
+		self.ui.ROIforLocalContrast.connect("clicked(bool)", self.onROIforLocalContrast)
 		self.dataInfo = ''
 		self.ui.ContrastThumbnail.connect("clicked(bool)", self.onContrastThumbnail)
+
+		self.ui.NLVisMethod.currentTextChanged.connect(self.onNLVisMethod)
+		self.ui.UmapButton.connect("clicked(bool)", self.onUMAPVis)
 
 		self.ui.Cluster_button.connect("clicked(bool)", self.onClusterButton)
 		self.ui.ClusterThumbnail.connect("clicked(bool)", self.onClusterThumbnail)
@@ -192,21 +314,24 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.createCSVbutton.connect("clicked(bool)",self.onCSVconnect)
 		self.ui.saveScenePush.connect("clicked(bool)",self.onSaveScene)
 
-
 		# Multi-slide alignment
-		self.ui.pushButton_11.connect("clicked(bool)", self.onMerge)
-		self.ui.textFileLoad_2.connect("clicked(bool)", self.onCSVmerge)
 		self.files = set()
-  
+		self.ui.selectToAlign.connect("clicked(bool)", self.onSelectToAlign)
+		self.ui.loadToAlign.connect("clicked(bool)", self.onLoadToAlign)
 
+		self.ui.alignPreview.connect("clicked(bool)", self.onAlignPreview)
+		
+		self.ui.AlignMatchMethod.currentTextChanged.connect(self.onAlignMatchMethod)
+
+		self.ui.alignButton.connect("clicked(bool)", self.onMerge)
+		
 		# Dataset post-processing
 		self.ui.csvSelect.connect("clicked(bool)", self.onCsvSelect)
 		self.ui.csvLoad.connect("clicked(bool)", self.onCsvLoad)
 		self.ui.normalizeCheckbox.connect("clicked(bool)", self.onNormalizationState)
-
-		self.ui.refNorm.toggled.connect(self.onIonNorm)
-		self.ui.normalizeTICoption.toggled.connect(self.onIonNorm)
 		
+		self.ui.normMethodComboBox.currentTextChanged.connect(self.onNormMethodChange)
+
 		self.ui.spectrumFiltercheckBox.connect("clicked(bool)", self.onFilterState)
 		self.ui.pixelaggcheckBox.connect("clicked(bool)", self.onAggState)
 		self.ui.applyProcessingButton.connect("clicked(bool)", self.onApplyProcessing)	
@@ -217,13 +342,24 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.modellingFile.connect("clicked(bool)", self.onModellingLoad)
 		self.ui.distributionPCA.connect("clicked(bool)", self.onPlotDIstribution)
 
+		self.ui.FRankMethod.currentTextChanged.connect(self.onRankMethodChange)
+		self.ui.FRankApply.clicked.connect(self.onFeatureRank)
+		
+		self.ui.FSelManualUpload.setVisible(False)
+		self.ui.FnumberLabel.setVisible(False)
+		self.ui.FnumberValue.setVisible(False)
+		self.ui.FSelMethod.currentTextChanged.connect(self.onSelMethodChange)
+		self.ui.FSelManualUpload.clicked.connect(self.onFeatureListUpload)
+
 		self.ui.randomSplit.connect("clicked(bool)", self.onRandomSplit) # random
 		self.ui.customSplit.connect("clicked(bool)", self.onCustomSplit)  # custom
 		self.ui.allTrain.connect("clicked(bool)", self.onAllTrainSplit)  # all train
+		self.ui.XVall.connect("clicked(bool)", self.onCrossVal)  # all train
 
 		self.ui.trainModel.connect("clicked(bool)", self.onModelTrain)
 		self.onAllTrainSplit()
 		
+		self.ui.ModelSelectCombobox.currentTextChanged.connect(self.onMLMethod)
 
 		# Results
 		self.model_results = ''
@@ -236,8 +372,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.deployModelImport.connect("clicked(bool)", self.onDeployModelLoad)
 		self.ui.deployNormcheck.connect("clicked(bool)", self.onDeployNormCheck)
 
-		self.ui.depRadioTIC.toggled.connect(self.onDepNormRadioToggle)
-		self.ui.depRadioIon.toggled.connect(self.onDepNormRadioToggle)
+		# self.ui.depRadioTIC.toggled.connect(self.onDepNormRadioToggle)
+		# self.ui.depRadioIon.toggled.connect(self.onDepNormRadioToggle)
+
+		self.ui.depNormMethod.currentTextChanged.connect(self.onDepNormMethodChange)
 
 		self.ui.deployAGGcheck.connect("clicked(bool)", self.onDeployAggCheck)
 
@@ -276,6 +414,88 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		fileExplorer = qt.QFileDialog()
 		mrbFilename = fileExplorer.getOpenFileName(None, "Load Slicer Project", "", "MSI Project Files (*.mrb);;All Files (*)")
 		slicer.util.loadScene(mrbFilename)
+
+	def onRawSelect(self):
+		fileExplorer = qt.QFileDialog()
+		filePath = fileExplorer.getOpenFileName(None, "Import raw MSI data", "", "imzML (*.imzml);;All Files (*)")
+		if filePath:
+			self.ui.rawLineEdit.setText(filePath)
+			info, mz_range = self.logic.RawFileLoad(filePath)
+			if info:
+				self.ui.rawInfo.setText(info)
+				self.ui.rawrangeStVal.setText( np.round(mz_range[0]) )
+				self.ui.rawrangeEnVal.setText( np.round(mz_range[1]) )
+				self.logic.saveFolder = os.path.dirname(filePath)
+				self.logic.slideName = os.path.basename(filePath)
+
+	def onPutFiducial(self, listName):
+		# Try to get or create the fiducial node
+		try:
+			fiducialNode = slicer.util.getNode(listName)
+		except slicer.util.MRMLNodeNotFoundException:
+			fiducialNode = slicer.vtkMRMLMarkupsFiducialNode()
+			fiducialNode.SetName(listName)
+			slicer.mrmlScene.AddNode(fiducialNode)
+
+		# Set as active list for placement
+		slicer.modules.markups.logic().SetActiveListID(fiducialNode)
+
+		# Enable place mode without switching module
+		interactionNode = slicer.mrmlScene.GetNodeByID("vtkMRMLInteractionNodeSingleton")
+		interactionNode.SetCurrentInteractionMode(interactionNode.Place)
+		interactionNode.SwitchToSinglePlaceMode()  # Or use SwitchToPersistentPlaceMode() for multi
+
+	def onRawPlotSpectra(self):
+		self.logic.RawPlotSpectra()
+
+	def onRawPlotImg(self):
+		ion_mz = float(self.ui.RawImgIon.text)
+		tol_mz = float(self.ui.RawImgTol.text)
+		img_heatmap = self.ui.RawImgHeatmap.currentText
+		self.logic.RawPlotImg(ion_mz, tol_mz, img_heatmap)
+	
+	def onRawsmoothCheck(self):
+		currentState = self.ui.rawsmoothCheck.isChecked()
+		self.ui.rawsmoothLab.setVisible(currentState)
+		self.ui.rawsmoothVal.setVisible(currentState)
+
+	def onLockmassCheck(self):
+		currentState = self.ui.lockmassCheck.isChecked()
+		self.ui.lockmassLab.setVisible(currentState)
+		self.ui.lockmassVal.setVisible(currentState)
+
+	def onRawrangCheck(self):
+		currentState = self.ui.rawrangeCheck.isChecked()
+		self.ui.rawrangeStLab.setVisible(currentState)
+		self.ui.rawrangeStVal.setVisible(currentState)
+		self.ui.rawrangeEnLab.setVisible(currentState)
+		self.ui.rawrangeEnVal.setVisible(currentState)
+
+	def onRawProcess(self):
+		params = {}
+		params["smoothing"] = None
+		if self.ui.rawsmoothCheck.isChecked():
+			params["smoothing"] = float(self.ui.rawsmoothVal.text)
+
+		params["lockmass"] = None
+		if self.ui.lockmassCheck.isChecked():
+			params["lockmass"] = float(self.ui.lockmassVal.text)
+
+		params["range"] = [self.logic.raw_range[0], self.logic.raw_range[1]]
+		if self.ui.rawrangeCheck.isChecked():
+			params["range"] = [float(self.ui.rawrangeStVal.text), float(self.ui.rawrangeEnVal.text)]
+
+		params["n_ions"] = int(self.ui.rawNIonVal.text)
+		params["decimal_ions"] = int(self.ui.rawmzResVal.text)
+
+		process_done = self.logic.raw_processing(params)
+		if process_done:
+			self.logic.normalize()
+			self.logic.heatmap_display()
+			self.populateMzLists()
+			info = self.logic.getDataInformation()
+			self.ui.rawProcessInfo.setText(info)
+
 
 	def onTextFileSelect(self):
 		file_info = self.logic.textFileSelect()
@@ -335,6 +555,13 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.logic.heatmap_display()
 		self.populateMzLists()
 
+	def onExport(self):
+		print('Export MSI data...')
+		fileExplorer = qt.QFileDialog()		
+		defaultSave = self.logic.savenameBase
+		savepath = fileExplorer.getSaveFileName(None, "Export", defaultSave, "Structured CSV (*.csv);;Hierarchical HDF5 (*.h5)")
+		print(savepath)
+		self.logic.MSIExport(savepath)
 
 	### Visualization tab
 	def onSpectrumPlot(self):
@@ -363,6 +590,30 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		info = self.logic.LoadingsRank()
 		info = f'Local Contrast \nregion ({int(min_y[0])},{int(max_y[0])}), ({int(min_x[0])},{int(max_x[0])})\n\n' + info
 		self.ui.LoadingsInfo.setText(info)
+
+	def onROIforLocalContrast(self):
+		# Remove any existing ROI for local contrast
+		for node in slicer.util.getNodesByClass("vtkMRMLMarkupsROINode"):
+			if node.GetName() == " ":
+				slicer.mrmlScene.RemoveNode(node)
+				break  # assuming only one exists
+
+		# Create a new Markups ROI node
+		roiNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsROINode", " ")
+
+		# Configure display properties (transparent faces, visible edges)
+		roiDisplayNode = roiNode.GetDisplayNode()
+		roiDisplayNode.SetHandlesInteractive(True)
+		roiDisplayNode.SetFillOpacity(0.0)      # Transparent box
+		roiDisplayNode.SetOutlineOpacity(1.0)   # Visible edges
+
+		# Set it as the active list for placement
+		slicer.modules.markups.logic().SetActiveListID(roiNode)
+
+		# Enable placement mode
+		interactionNode = slicer.app.applicationLogic().GetInteractionNode()
+		interactionNode.SetCurrentInteractionMode(interactionNode.Place)
+		interactionNode.SwitchToSinglePlaceMode()
 
 	def onROIContrast(self):
 		# get all ROIs
@@ -423,11 +674,33 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 	def onPCAButton(self):
 		# displays the pca image
 		self.logic.pca_display()
-
+		
 		info = self.logic.LoadingsRank()
 		info = 'Global Contrast \n\n' + info
 		self.ui.LoadingsInfo.setText(info)
 
+	def onNLVisMethod(self, text):
+		if text=="UMAP":
+			self.ui.NLVisLabel1.setText("n_neighbors")
+			self.ui.NLVisLabel1.setToolTip("2 - 200")
+			self.ui.NLVisParam1.setText("15")
+			self.ui.NLVisLabel2.setText("min_dist")
+			self.ui.NLVisLabel2.setToolTip("0.0 - 0.99")
+			self.ui.NLVisParam2.setText("0.1")
+			
+		elif text=="t-SNE":
+			self.ui.NLVisLabel1.setText("perplexity")
+			self.ui.NLVisLabel1.setToolTip("5 - 50")
+			self.ui.NLVisParam1.setText("30")
+			self.ui.NLVisLabel2.setText("early_exaggeration")
+			self.ui.NLVisLabel2.setToolTip("4 - 20")
+			self.ui.NLVisParam2.setText("12")
+	
+	def onUMAPVis(self):
+		method = self.ui.NLVisMethod.currentText
+		param1 = float(self.ui.NLVisParam1.text)
+		param2 = float(self.ui.NLVisParam2.text)
+		self.logic.nonlinear_display(method, param1, param2)
   
 	def populateMzLists(self):
 		# adds the m/z values to m/z lists for the color channels
@@ -508,21 +781,71 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		volcano_mz, dice_score, volcano_fc, volcano_pval, pearson_corr = self.logic.ViewClusterThumbnail(cluster_ind)
 		
 		self.ClearClusterTable()
-		nRows = len(volcano_mz)
-		self.ui.ClusterTable.setRowCount(nRows)
+		# nRows = len(volcano_mz)
+		# self.ui.ClusterTable.setRowCount(nRows)
 
-		for i in range(nRows):
-			self.ui.ClusterTable.setItem(i, 0, qt.QTableWidgetItem(str(volcano_mz[i])))
-			self.ui.ClusterTable.setItem(i, 1, qt.QTableWidgetItem(str(np.round(pearson_corr[i],4))))
-			self.ui.ClusterTable.setItem(i, 2, qt.QTableWidgetItem(str( np.round(volcano_fc[i],4))))
-			item = str(np.round(volcano_pval[i],4))
-			if volcano_pval[i]>=300:
-				item = '>300'
-			self.ui.ClusterTable.setItem(i, 3, qt.QTableWidgetItem(item))
-			self.ui.ClusterTable.setItem(i, 4, qt.QTableWidgetItem(str(np.round(dice_score[i],4))))
+		# for i in range(nRows):
+		# 	self.ui.ClusterTable.setItem(i, 0, qt.QTableWidgetItem(str(volcano_mz[i])))
+		# 	self.ui.ClusterTable.setItem(i, 1, qt.QTableWidgetItem(str(np.round(pearson_corr[i],4))))
+		# 	self.ui.ClusterTable.setItem(i, 2, qt.QTableWidgetItem(str( np.round(volcano_fc[i],4))))
+		# 	item = str(np.round(volcano_pval[i],4))
+		# 	if volcano_pval[i]>=300:
+		# 		item = '>300'
+		# 	self.ui.ClusterTable.setItem(i, 3, qt.QTableWidgetItem(item))
+		# 	self.ui.ClusterTable.setItem(i, 4, qt.QTableWidgetItem(str(np.round(dice_score[i],4))))
 		
-		self.ui.ClusterTable.resizeColumnsToContents()  # Adjust column widths
-		self.ui.ClusterTable.resizeRowsToContents()     # Adjust row heights
+		# self.ui.ClusterTable.resizeColumnsToContents()  # Adjust column widths
+		# self.ui.ClusterTable.resizeRowsToContents()     # Adjust row heights
+
+		# Add ranking as slicer table
+		clusterIons = pd.DataFrame({
+			'm/z': volcano_mz,
+			'Pearson correlation': np.round(pearson_corr,4),
+			'FC [log]': np.round(volcano_fc,4),
+			'p-value [-log]': np.round(volcano_pval,4),
+			'Dice score': np.round(dice_score,4)
+		})		
+
+		# create a table node
+		tableNode = slicer.mrmlScene.GetFirstNodeByName("ClusterIons")
+		if not tableNode:
+			tableNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTableNode', 'ClusterIons')
+		else:
+			tableNode.RemoveAllColumns()
+
+		for col in clusterIons.columns:
+			array = vtk.vtkVariantArray()
+			array.SetName(str(col))
+			for val in clusterIons[col]:
+				array.InsertNextValue(vtk.vtkVariant(str(val)))
+			tableNode.AddColumn(array)
+
+		# lock the table
+		tableNode.SetUseColumnTitleAsColumnHeader(True)
+		tableNode.SetLocked(True)
+
+		# set the table view node
+		tableViewNodes = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
+		if tableViewNodes:
+			tableViewNode = tableViewNodes[0]
+			tableViewNode.SetTableNodeID(tableNode.GetID())
+		
+		# view the table below the ion images
+		customLayoutId = 80
+		customLayout = """
+		<layout type="vertical" split="true">
+		<item>
+			<view class="vtkMRMLSliceNode" singletontag="Yellow"/>
+		</item>
+		<item>
+			<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+		</item>
+		</layout>
+		"""
+		# yellowViewNode = slicer.mrmlScene.GetNodeByID("vtkMRMLSliceNodeYellow")
+		# yellowViewNode.SetLayoutColor((0.9294117647058824, 0.8352941176470589, 0.2980392156862745))
+		slicer.app.layoutManager().layoutLogic().GetLayoutNode().AddLayoutDescription(customLayoutId, customLayout)
+		slicer.app.layoutManager().setLayout(customLayoutId)
 
 	### Dataset generation
 
@@ -595,11 +918,15 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
 	def onTabChange(self, index):
+		tab_names = ['Home', 'Data', 'Visualization', 'Dataset', 'Alignment', 'Preprocessing', 'AI training', 'AI Report', 'AI deployment']
+		for i in range(self.ui.tabWidget.count):
+			self.ui.tabWidget.setTabText(i, "")     
+		self.ui.tabWidget.setTabText(index, tab_names[index])
 		print('selected tab:',index, self.ui.tabWidget.tabText(index))
-		if index==7:
+		if index==8:
 			self.updateDepVisList()
 			self.updateDepSegList()
-		elif index==2:
+		elif index==3:
 			self.updateVolumeList()
 	
 	def onModuleChange(self):
@@ -637,17 +964,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
 	### Multi-slide alignment tab
- 
-	def onMerge(self):
-		# Merge csv files added by the user
-		fileExplorer = qt.QFileDialog()
-		defaultSave = list(self.files)[-1][:-4]+'_aligned'
-		savepath = fileExplorer.getSaveFileName(None, "Save aligned dataset", defaultSave, "CSV Files (*.csv);;All Files (*)")
-		print('save path:',savepath)
-		retstr = self.logic.batch_peak_alignment(list(self.files), savepath)
-		self.ui.alignmentTextBrowser.setText(retstr)
-	
-	def onCSVmerge(self):
+
+	def onSelectToAlign(self):
 		# gets the list of files they are trying to merge and shows them in the viewer
 		fileExplorer = qt.QFileDialog()
 		filePaths = fileExplorer.getOpenFileNames(None, "Open CSV datasets", "", "CSV Files (*.csv);;All Files (*)")
@@ -660,8 +978,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 				delete_btn.clicked.connect(self.createDeleteButtonClickedHandler(filePath))
 				self.ui.filesTable.setItem(i, 0, qt.QTableWidgetItem(filePath))
 				self.ui.filesTable.setCellWidget(i, 1, delete_btn)
-	
-		# Wrapper functions to let us pass the filenames to the button press handler
+
+	# Wrapper functions to let us pass the filenames to the button press handler
 	def createDeleteButtonClickedHandler(self, path):
 		def deleteButtonPressed(checked):
 			self.handleDeleteButtonClicked(checked, path)
@@ -676,7 +994,61 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 				self.ui.filesTable.setRowCount(len(self.files))
 				numRows -= 1
 			r += 1
-   
+
+	def onLoadToAlign(self):
+		info, mz_range = self.logic.load_alignment_files(list(self.files))
+		self.ui.fileInfoAlign.setText(info)
+
+		self.ui.alignPreviewStart.setText(mz_range[0])
+		self.ui.alignPreviewEnd.setText(mz_range[1])
+	
+	def onAlignPreview(self):
+		params = {}
+		params['mz_bandwidth'] = float(self.ui.KDEbandwidthVal.text)
+		params['abundance_threshold'] = 1 - float(self.ui.sparsityVal.text)
+		params['mz_resolution'] = params['mz_bandwidth']/2
+		params['ion_count_method'] = self.ui.sparsityLevel.currentText
+		params['preview'] = [float(self.ui.alignPreviewStart.text), float(self.ui.alignPreviewEnd.text)]
+		params['savepath'] = None
+		params['file_names'] = [os.path.splitext(os.path.basename(x))[0] for x in list(self.files)]
+
+		self.logic.batch_peak_alignment(params)
+
+	def onAlignMatchMethod(self, text):
+		if text == "Cluster":
+			self.ui.AlignTolLabel.setVisible(False)
+			self.ui.AlignTolVal.setVisible(False)
+			self.ui.AlignBinLab.setVisible(False)
+			self.ui.AlignBinVal.setVisible(False)
+		elif text == "Tolerance":
+			self.ui.AlignTolLabel.setVisible(True)
+			self.ui.AlignTolVal.setVisible(True)
+			self.ui.AlignBinLab.setVisible(True)
+			self.ui.AlignBinVal.setVisible(True)
+
+	def onMerge(self):
+		# Merge csv files added by the user
+		fileExplorer = qt.QFileDialog()
+		defaultSave = list(self.files)[-1][:-4]+'_aligned'
+		savepath = fileExplorer.getSaveFileName(None, "Save aligned dataset", defaultSave, "CSV Files (*.csv);;All Files (*)")
+		print('save path:',savepath)
+
+		params = {}
+		params['mz_bandwidth'] = float(self.ui.KDEbandwidthVal.text)
+		params['abundance_threshold'] = 1 - float(self.ui.sparsityVal.text)
+		params['mz_resolution'] = params['mz_bandwidth']/2
+		params['ion_count_method'] = self.ui.sparsityLevel.currentText
+		params['savepath'] = savepath
+		params['preview'] = None
+		params['matching_method'] = self.ui.AlignMatchMethod.currentText
+		if params['matching_method'] == "Tolerance":
+			params['matching_tol'] = float(self.ui.AlignTolVal.text)
+			params['matching_bin'] = self.ui.AlignBinVal.currentText.lower()
+
+		retstr = self.logic.batch_peak_alignment(params)
+		self.ui.alignmentTextBrowser.setText(retstr)
+
+	
 	### Dataset post-processing
 	def onCsvSelect(self):
 		fileExplorer = qt.QFileDialog()
@@ -695,22 +1067,74 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			all_mz = self.logic.getCsvMzList()
 			for mz in all_mz:
 				self.ui.refIoncomboBox.addItem(mz)
+			threshold = self.logic.getTUSthreshold()
+			self.ui.thresholdValue.setText(str(threshold))
 	
+	# def onNormalizationState(self):
+	# 	if self.ui.normalizeCheckbox.isChecked():
+	# 		self.ui.normalizeTICoption.setEnabled(True)
+	# 		self.ui.refNorm.setEnabled(True)
+	# 		self.onIonNorm()
+	# 	else:
+	# 		self.ui.normalizeTICoption.setEnabled(False)
+	# 		self.ui.refNorm.setEnabled(False)
+	# 		self.ui.refIoncomboBox.setEnabled(False)
+
+	def onNormMethodChange(self, text):
+		if text == "Reference ion":
+			self.ui.refionLabel.setVisible(True)
+			self.ui.refIoncomboBox.setVisible(True)
+			self.ui.thresholdLabel.setVisible(False)
+			self.ui.thresholdValue.setVisible(False)
+		elif text == "Total signal current (TSC)":
+			self.ui.refionLabel.setVisible(False)
+			self.ui.refIoncomboBox.setVisible(False)
+			self.ui.thresholdLabel.setVisible(True)
+			self.ui.thresholdValue.setVisible(True)
+		else:
+			self.ui.refionLabel.setVisible(False)
+			self.ui.refIoncomboBox.setVisible(False)
+			self.ui.thresholdLabel.setVisible(False)
+			self.ui.thresholdValue.setVisible(False)
+
+	def onDepNormMethodChange(self, text):
+		if text == "Reference ion":
+			self.ui.depRefIonLab.setVisible(True)
+			self.ui.depComboboxIon.setVisible(True)
+			self.ui.depNormThreshLab.setVisible(False)
+			self.ui.depNormThresh.setVisible(False)
+		elif text == "Total signal current (TSC)":
+			self.ui.depRefIonLab.setVisible(False)
+			self.ui.depComboboxIon.setVisible(False)
+			self.ui.depNormThreshLab.setVisible(True)
+			self.ui.depNormThresh.setVisible(True)
+		else:
+			self.ui.depRefIonLab.setVisible(False)
+			self.ui.depComboboxIon.setVisible(False)
+			self.ui.depNormThreshLab.setVisible(False)
+			self.ui.depNormThresh.setVisible(False)
+
 	def onNormalizationState(self):
 		if self.ui.normalizeCheckbox.isChecked():
-			self.ui.normalizeTICoption.setEnabled(True)
-			self.ui.refNorm.setEnabled(True)
-			self.onIonNorm()
-		else:
-			self.ui.normalizeTICoption.setEnabled(False)
-			self.ui.refNorm.setEnabled(False)
-			self.ui.refIoncomboBox.setEnabled(False)
-
-	def onIonNorm(self):
-		if self.ui.refNorm.isChecked():
+			self.ui.normMethodLabel.setEnabled(True)
+			self.ui.normMethodComboBox.setEnabled(True)
+			self.ui.refionLabel.setEnabled(True)
 			self.ui.refIoncomboBox.setEnabled(True)
+			self.ui.thresholdLabel.setEnabled(True)
+			self.ui.thresholdValue.setEnabled(True)
 		else:
+			self.ui.normMethodLabel.setEnabled(False)
+			self.ui.normMethodComboBox.setEnabled(False)
+			self.ui.refionLabel.setEnabled(False)
 			self.ui.refIoncomboBox.setEnabled(False)
+			self.ui.thresholdLabel.setEnabled(False)
+			self.ui.thresholdValue.setEnabled(False)
+
+	# def onIonNorm(self):
+	# 	if self.ui.refNorm.isChecked():
+	# 		self.ui.refIoncomboBox.setEnabled(True)
+	# 	else:
+	# 		self.ui.refIoncomboBox.setEnabled(False)
 
 
 	def onFilterState(self):
@@ -740,12 +1164,23 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 	def onApplyProcessing(self):
 		# get normalize parameters
 		if self.ui.normalizeCheckbox.isChecked():
-			if self.ui.normalizeTICoption.isChecked():
-				spec_normalization = 'tic'
+			spec_normalization = self.ui.normMethodComboBox.currentText
+			if spec_normalization == "Reference ion":
+				normalization_param = float(self.ui.refIoncomboBox.currentText)
+			elif spec_normalization == "Total signal current (TSC)":
+				normalization_param = float(self.ui.thresholdValue.text)
 			else:
-				spec_normalization = self.ui.refIoncomboBox.currentText
+				normalization_param = None
 		else:
 			spec_normalization = None
+			normalization_param = None
+		# if self.ui.normalizeCheckbox.isChecked():
+		# 	if self.ui.normalizeTICoption.isChecked():
+		# 		spec_normalization = 'tic'
+		# 	else:
+		# 		spec_normalization = self.ui.refIoncomboBox.currentText
+		# else:
+		# 	spec_normalization = None
 	
 		# get spectrum filtering
 		if self.ui.spectrumFiltercheckBox.isChecked():
@@ -765,7 +1200,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		print(savepath)
 
 
-		processed_csv_info = self.logic.dataset_post_processing(spec_normalization, subband_selection, pixel_aggregation, savepath)
+		processed_csv_info = self.logic.dataset_post_processing(spec_normalization, normalization_param, subband_selection, pixel_aggregation, savepath)
 
 		retstr = 'Dataset successfully processed! \n'
 		retstr += f'Processed dataset:\t {savepath} \n'
@@ -777,6 +1212,68 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 	def onPlotDIstribution(self):
 		self.logic.plot_latent_pca()
+
+	def onRankMethodChange(self, text):
+		if text == "Linear SVC":
+			self.ui.FRankParamLab.setVisible(True)
+			self.ui.FRankParamVal.setVisible(True)
+			self.ui.FRankParamLab.setText("C")
+			self.ui.FRankParamLab.setToolTip("Regularization strength")
+			self.ui.FRankParamVal.setText("1.0")
+		elif text == "PLS-DA":
+			self.ui.FRankParamLab.setVisible(True)
+			self.ui.FRankParamVal.setVisible(True)
+			self.ui.FRankParamLab.setText("n_components")
+			self.ui.FRankParamLab.setToolTip("Number of components")
+			self.ui.FRankParamVal.setText("2")
+		elif text == 'LDA':
+			self.ui.FRankParamLab.setVisible(False)
+			self.ui.FRankParamVal.setVisible(False)
+
+
+	def onFeatureRank(self):
+		rankMethod = self.ui.FRankMethod.currentText
+		rankParam = float(self.ui.FRankParamVal.text)
+		df = self.logic.feature_ranking(rankMethod, rankParam)
+
+		## show the table
+		# slicer.app.layoutManager().setLayout(35)
+		# tableViewNode = slicer.util.getNodesByClass("vtkMRMLTableViewNode")[0]
+		# slicer.app.layoutManager().addMaximizedViewNode(tableViewNode)
+
+		customLayoutId = 70
+		customLayout = """
+		<layout type="vertical">
+		<item>
+			<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+		</item>
+		</layout>
+		"""
+		slicer.app.layoutManager().layoutLogic().GetLayoutNode().AddLayoutDescription(customLayoutId, customLayout)
+		slicer.app.layoutManager().setLayout(customLayoutId)
+
+	def onSelMethodChange(self, text):
+		if text == "Top ranked":
+			self.ui.FnumberLabel.setVisible(True)
+			self.ui.FnumberValue.setVisible(True)
+			self.ui.FSelManualUpload.setVisible(False)
+		elif text == "Manual":
+			self.ui.FnumberLabel.setVisible(False)
+			self.ui.FnumberValue.setVisible(False)
+			self.ui.FSelManualUpload.setVisible(True)
+		elif text == "None":
+			self.ui.FnumberLabel.setVisible(False)
+			self.ui.FnumberValue.setVisible(False)
+			self.ui.FSelManualUpload.setVisible(False)
+
+	def onFeatureListUpload(self):
+		fileExplorer = qt.QFileDialog()
+		featureFiles = fileExplorer.getOpenFileName(None, "Upload feature indices", "", "CSV Files (*.csv);;All Files (*)")
+		if featureFiles:
+			df = pd.read_csv(featureFiles, header=None)
+			self.logic.manual_features_indices = [int(x) for x in df.values.ravel()]
+			print("Manual feature load compeleted")
+			print(self.logic.manual_features_indices)
 
 	def onSelectModelData(self):
 		fileExplorer = qt.QFileDialog()
@@ -819,6 +1316,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			self.logic.set_split('random')
 		elif self.ui.allTrain.isChecked():
 			self.logic.set_split('all_train')
+		elif self.ui.XVall.isChecked():
+			self.logic.set_split('cross_val')
 		
 
 	
@@ -844,6 +1343,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.namesTable.hide()
 		self.ui.namesTableLabel.hide()
 		self.logic.set_split('random')
+		self.ui.saveModelcheckBox.setVisible(True)
 
 	def onAllTrainSplit(self):
 		"""
@@ -852,6 +1352,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.namesTable.hide()
 		self.ui.namesTableLabel.hide()
 		self.logic.set_split('all_train')
+		self.ui.saveModelcheckBox.setVisible(True)
 
 	def onCustomSplit(self):
 		"""
@@ -863,7 +1364,17 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.namesTable.show()
 		self.ui.namesTableLabel.show()
 		self.logic.set_split('custom')
+		self.ui.saveModelcheckBox.setVisible(True)
 			
+	def onCrossVal(self):
+		"""
+  		Let logic keep track of what split is being used.
+		"""
+		self.ui.namesTable.hide()
+		self.ui.namesTableLabel.hide()
+		self.logic.set_split('cross_val')
+		self.ui.saveModelcheckBox.setChecked(False)
+		self.ui.saveModelcheckBox.setVisible(False)
 	# Wrapper functions to let us pass the buttons to the function,
 	# making the checkboxes exclusive. 
 
@@ -902,6 +1413,19 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		
 		self.logic.model_type = self.ui.ModelSelectCombobox.currentText
 		self.logic.train_balancing = self.ui.BalanceComBox.currentText
+
+		self.logic.model_param1 = float(self.ui.MLparam1.text)
+		self.logic.model_param2 = float(self.ui.MLparam2.text)
+
+		## feature selection
+		feature_select_method = self.ui.FSelMethod.currentText
+		if feature_select_method == "None":
+			self.logic.selected_features_indices = None
+		elif feature_select_method == "Top ranked":
+			n_features = int(self.ui.FnumberValue.text)
+			self.logic.selected_features_indices = self.logic.ranked_features_indices[:n_features]
+		elif feature_select_method == "Manual":
+			self.logic.selected_features_indices = self.logic.manual_features_indices
 		
 		accuracystring = self.logic.runModel(savepath)
 		if not accuracystring:
@@ -909,9 +1433,47 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		else:
 			self.ui.textBrowser.setText(accuracystring)
 			self.model_results = accuracystring
-			self.ui.tabWidget.setCurrentIndex(6)
+			self.ui.tabWidget.setCurrentIndex(7)
 
   
+	def onMLMethod(self, text):
+		if text=="PCA-LDA":
+			self.ui.MLlabel1.setText("n_components")
+			self.ui.MLlabel1.setToolTip("Number of components, or variance explained")
+			self.ui.MLparam1.setText("0.99")
+
+			self.ui.MLlabel2.setVisible(False)
+			self.ui.MLparam2.setVisible(False)
+		
+		elif text=="Linear SVC":
+			self.ui.MLlabel1.setText("C")
+			self.ui.MLlabel1.setToolTip("Regularization strength")
+			self.ui.MLparam1.setText("1.0")
+
+			self.ui.MLlabel2.setVisible(False)
+			self.ui.MLparam2.setVisible(False)
+
+		elif text=="Random Forest":
+			self.ui.MLlabel1.setText("n_estimators")
+			self.ui.MLlabel1.setToolTip("Number of trees in the forest")
+			self.ui.MLparam1.setText("100")
+
+			self.ui.MLlabel2.setVisible(False)
+			self.ui.MLparam2.setVisible(False)
+
+		elif text=="PLS-DA":
+			self.ui.MLlabel1.setText("n_components")
+			self.ui.MLlabel1.setToolTip("Number of components")
+			self.ui.MLparam1.setText("2")
+
+			self.ui.MLlabel2.setVisible(False)
+			self.ui.MLparam2.setVisible(False)
+			# self.ui.NLVisLabel2.setText("min_dist")
+			# self.ui.NLVisLabel2.setToolTip("0.0 - 0.99")
+			# self.ui.NLVisParam2.setText("0.1")
+			
+
+
 	### Model deployment tab
 	def onDeploySelect(self):
 		file_loc = self.logic.textFileSelect()
@@ -947,15 +1509,31 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		for mz in self.logic.DmzRef:
 			self.ui.depComboboxIon.addItem(mz)
 
+	# def onDeployNormCheck(self):
+	# 	if self.ui.deployNormcheck.isChecked():
+	# 		self.ui.depRadioTIC.setEnabled(True)
+	# 		self.ui.depRadioIon.setEnabled(True)
+	# 		self.onDepNormRadioToggle()
+	# 	else:
+	# 		self.ui.depRadioTIC.setEnabled(False)
+	# 		self.ui.depRadioIon.setEnabled(False)
+	# 		self.ui.depComboboxIon.setEnabled(False)
+
 	def onDeployNormCheck(self):
 		if self.ui.deployNormcheck.isChecked():
-			self.ui.depRadioTIC.setEnabled(True)
-			self.ui.depRadioIon.setEnabled(True)
-			self.onDepNormRadioToggle()
+			self.ui.depNormMethLab.setEnabled(True)
+			self.ui.depNormMethod.setEnabled(True)
+			self.ui.depRefIonLab.setEnabled(True)
+			self.ui.depComboboxIon.setEnabled(True)
+			self.ui.depNormThreshLab.setEnabled(True)
+			self.ui.depNormThresh.setEnabled(True)
 		else:
-			self.ui.depRadioTIC.setEnabled(False)
-			self.ui.depRadioIon.setEnabled(False)
+			self.ui.depNormMethLab.setEnabled(False)
+			self.ui.depNormMethod.setEnabled(False)
+			self.ui.depRefIonLab.setEnabled(False)
 			self.ui.depComboboxIon.setEnabled(False)
+			self.ui.depNormThreshLab.setEnabled(False)
+			self.ui.depNormThresh.setEnabled(False)
 
 	def onDepNormRadioToggle(self):
 		if self.ui.depRadioIon.isChecked():
@@ -986,7 +1564,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.depSegListCombo.setEnabled(state)
 
 	def onDepGoVis(self):
-		self.ui.tabWidget.setCurrentIndex(1)
+		self.ui.tabWidget.setCurrentIndex(2)
 
 	def onDepGoSeg(self):
 		sourceVolumeNode = slicer.util.getNode( self.ui.depVisListCombo.currentText )
@@ -1025,12 +1603,24 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 	def onApplyDeployment(self):
 		# spectrum normalization
 		if self.ui.deployNormcheck.isChecked():
-			if self.ui.depRadioTIC.isChecked():
-				spec_normalization = 'tic'
+			spec_normalization = self.ui.depNormMethod.currentText
+			if spec_normalization == "Reference ion":
+				normalization_param = float(self.ui.depComboboxIon.currentText)
+			elif spec_normalization == "Total signal current (TSC)":
+				normalization_param = float(self.ui.depNormThresh.text)
 			else:
-				spec_normalization = self.ui.depComboboxIon.currentText
+				normalization_param = None
 		else:
 			spec_normalization = None
+			normalization_param = None
+
+		# if self.ui.deployNormcheck.isChecked():
+		# 	if self.ui.depRadioTIC.isChecked():
+		# 		spec_normalization = 'tic'
+		# 	else:
+		# 		spec_normalization = self.ui.depComboboxIon.currentText
+		# else:
+		# 	spec_normalization = None
 	
 		# spectrum aggregation
 		if self.ui.deployAGGcheck.isChecked():
@@ -1042,7 +1632,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		if self.ui.depMaskcheck.isChecked():
 			dep_mask = self.ui.depSegListCombo.currentText
 
-		self.logic.model_deployment(spec_normalization, pixel_aggregation, dep_mask)
+		self.logic.model_deployment(spec_normalization, normalization_param, pixel_aggregation, dep_mask)
 
 	### Boilerplate functions from template
 			

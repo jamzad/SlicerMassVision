@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>450</width>
-    <height>1106</height>
+    <width>412</width>
+    <height>1428</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -32,30 +32,20 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>1</number>
+   <number>0</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
   </property>
-  <widget class="QWidget" name="tab">
+  <widget class="QWidget" name="tab_9">
    <attribute name="title">
-    <string>Data import</string>
+    <string>Home</string>
    </attribute>
-   <layout class="QFormLayout" name="formLayout_8">
+   <layout class="QFormLayout" name="formLayout_9">
     <item row="0" column="0" colspan="2">
-     <widget class="QLabel" name="label_55">
-      <property name="font">
-       <font>
-        <pointsize>10</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
+     <widget class="QLabel" name="logo">
       <property name="text">
-       <string>MassVision 0.6.2 </string>
+       <string>Logo</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
@@ -63,26 +53,249 @@
      </widget>
     </item>
     <item row="1" column="0" colspan="2">
-     <widget class="QPushButton" name="clearReloadPush">
-      <property name="text">
-       <string>Clear data and analysis</string>
+     <widget class="QGroupBox" name="groupBox">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
       </property>
+      <property name="title">
+       <string/>
+      </property>
+      <layout class="QGridLayout" name="gridLayout">
+       <item row="8" column="0">
+        <widget class="QPushButton" name="Go2tab2">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Visualization</string>
+         </property>
+        </widget>
+       </item>
+       <item row="17" column="0" colspan="2">
+        <spacer name="verticalSpacer_46">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="5" column="0" colspan="2">
+        <spacer name="verticalSpacer_16">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="8" column="1">
+        <widget class="QPushButton" name="Go2tab6">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>AI supervised training</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_28">
+         <property name="text">
+          <string>Prijects</string>
+         </property>
+        </widget>
+       </item>
+       <item row="11" column="1">
+        <widget class="QPushButton" name="Go2tab8">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>AI model deployment</string>
+         </property>
+        </widget>
+       </item>
+       <item row="19" column="0" colspan="2">
+        <widget class="QPushButton" name="database1">
+         <property name="text">
+          <string>Human Metabolome Database</string>
+         </property>
+        </widget>
+       </item>
+       <item row="20" column="0" colspan="2">
+        <widget class="QPushButton" name="database2">
+         <property name="text">
+          <string>LIPID Metabolites And Pathways Strategy</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="label_25">
+         <property name="text">
+          <string>Quick access</string>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="0">
+        <widget class="QPushButton" name="Go2tab3">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Dataset curation</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0" colspan="2">
+        <widget class="QPushButton" name="clearReloadPush">
+         <property name="text">
+          <string>Clear data and analysis</string>
+         </property>
+        </widget>
+       </item>
+       <item row="11" column="0">
+        <widget class="QPushButton" name="Go2tab4">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Multi-dataset alignment</string>
+         </property>
+        </widget>
+       </item>
+       <item row="14" column="0" colspan="2">
+        <widget class="QPushButton" name="userManual">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>User manual</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0" colspan="2">
+        <widget class="QPushButton" name="loadScenePush">
+         <property name="text">
+          <string>Load project...</string>
+         </property>
+        </widget>
+       </item>
+       <item row="12" column="0" colspan="2">
+        <spacer name="verticalSpacer_44">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="15" column="0" colspan="2">
+        <widget class="QPushButton" name="sampleData">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Sample data</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <widget class="QPushButton" name="Go2tab1">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Data import/export</string>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="1">
+        <widget class="QPushButton" name="Go2tab7">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>AI performance report</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="1">
+        <widget class="QPushButton" name="Go2tab5">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Dataset preprocessing</string>
+         </property>
+        </widget>
+       </item>
+       <item row="13" column="0">
+        <widget class="QLabel" name="label_29">
+         <property name="text">
+          <string>Resources</string>
+         </property>
+        </widget>
+       </item>
+       <item row="18" column="0">
+        <widget class="QLabel" name="label_30">
+         <property name="text">
+          <string>External links</string>
+         </property>
+        </widget>
+       </item>
+       <item row="16" column="0" colspan="2">
+        <widget class="QPushButton" name="codeBase">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Codebase</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </item>
     <item row="2" column="0" colspan="2">
-     <widget class="QPushButton" name="loadScenePush">
-      <property name="text">
-       <string>Load project...</string>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="0" colspan="2">
-     <spacer name="verticalSpacer_16">
+     <spacer name="verticalSpacer_18">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Fixed</enum>
       </property>
       <property name="sizeHint" stdset="0">
        <size>
@@ -92,7 +305,14 @@
       </property>
      </spacer>
     </item>
-    <item row="5" column="0">
+   </layout>
+  </widget>
+  <widget class="QWidget" name="tab">
+   <attribute name="title">
+    <string>Data</string>
+   </attribute>
+   <layout class="QFormLayout" name="formLayout_8">
+    <item row="0" column="0" colspan="2">
      <widget class="QLabel" name="label_64">
       <property name="font">
        <font>
@@ -105,58 +325,25 @@
        <string notr="true"/>
       </property>
       <property name="text">
-       <string>MSI data</string>
+       <string>Import MSI (cube)    </string>
       </property>
      </widget>
     </item>
-    <item row="5" column="1">
-     <spacer name="horizontalSpacer_24">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>40</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="6" column="0">
+    <item row="1" column="0">
      <widget class="QPushButton" name="textFileSelect">
       <property name="text">
        <string>Select file...</string>
       </property>
      </widget>
     </item>
-    <item row="6" column="1">
+    <item row="1" column="1">
      <widget class="QLineEdit" name="ImportlineEdit">
       <property name="readOnly">
        <bool>true</bool>
       </property>
      </widget>
     </item>
-    <item row="7" column="1">
-     <widget class="QPushButton" name="textFileLoad">
-      <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
-color: rgb(255, 255, 255);</string>
-      </property>
-      <property name="text">
-       <string>Import</string>
-      </property>
-      <property name="autoDefault">
-       <bool>false</bool>
-      </property>
-      <property name="default">
-       <bool>false</bool>
-      </property>
-      <property name="flat">
-       <bool>false</bool>
-      </property>
-     </widget>
-    </item>
-    <item row="8" column="0" colspan="2">
+    <item row="2" column="0" colspan="2">
      <widget class="QTextBrowser" name="dataInformation">
       <property name="maximumSize">
        <size>
@@ -173,7 +360,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="9" column="0" colspan="2">
+    <item row="3" column="0" colspan="2">
      <spacer name="verticalSpacer_15">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -189,7 +376,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="10" column="0">
+    <item row="4" column="0" colspan="2">
      <widget class="QLabel" name="label_61">
       <property name="font">
        <font>
@@ -202,49 +389,25 @@ p, li { white-space: pre-wrap; }
        <string notr="true"/>
       </property>
       <property name="text">
-       <string>Reference image   </string>
+       <string>Import histopathology</string>
       </property>
      </widget>
     </item>
-    <item row="10" column="1">
-     <spacer name="horizontalSpacer_5">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>40</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="11" column="0">
+    <item row="5" column="0">
      <widget class="QPushButton" name="histoFileSelect">
       <property name="text">
        <string>Select file...</string>
       </property>
      </widget>
     </item>
-    <item row="11" column="1">
+    <item row="5" column="1">
      <widget class="QLineEdit" name="HistoLineEdit">
       <property name="readOnly">
        <bool>true</bool>
       </property>
      </widget>
     </item>
-    <item row="12" column="1">
-     <widget class="QPushButton" name="loadHisto">
-      <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
-color: rgb(255, 255, 255);</string>
-      </property>
-      <property name="text">
-       <string>Load</string>
-      </property>
-     </widget>
-    </item>
-    <item row="13" column="0" colspan="2">
+    <item row="6" column="0" colspan="2">
      <spacer name="verticalSpacer_25">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -260,7 +423,653 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="14" column="0">
+    <item row="7" column="0" colspan="2">
+     <widget class="ctkCollapsibleButton" name="CollapsibleButton">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>RAW MSI</string>
+      </property>
+      <layout class="QFormLayout" name="formLayout_10">
+       <item row="0" column="1">
+        <widget class="QGroupBox" name="groupBox_2">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="title">
+          <string/>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_2">
+          <item row="4" column="0" colspan="3">
+           <spacer name="verticalSpacer_39">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="10" column="2">
+           <widget class="QComboBox" name="RawImgHeatmap">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+           </widget>
+          </item>
+          <item row="15" column="0">
+           <widget class="QLabel" name="lockmassLab">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true"/>
+            </property>
+            <property name="text">
+             <string>Reference peak</string>
+            </property>
+           </widget>
+          </item>
+          <item row="23" column="0">
+           <widget class="QCheckBox" name="rawrangeCheck">
+            <property name="text">
+             <string>Spectral filtering</string>
+            </property>
+           </widget>
+          </item>
+          <item row="14" column="0">
+           <widget class="QCheckBox" name="lockmassCheck">
+            <property name="text">
+             <string>Calibration</string>
+            </property>
+           </widget>
+          </item>
+          <item row="10" column="0">
+           <widget class="QLabel" name="label_85">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true"/>
+            </property>
+            <property name="text">
+             <string>heatmap</string>
+            </property>
+           </widget>
+          </item>
+          <item row="25" column="0">
+           <widget class="QLabel" name="rawrangeEnLab">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true"/>
+            </property>
+            <property name="text">
+             <string>End</string>
+            </property>
+           </widget>
+          </item>
+          <item row="12" column="0" colspan="3">
+           <spacer name="verticalSpacer_40">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="9" column="0">
+           <widget class="QLabel" name="label_84">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true"/>
+            </property>
+            <property name="text">
+             <string>tolerance m/z</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="0">
+           <widget class="QPushButton" name="RAWplaceFiducial">
+            <property name="autoFillBackground">
+             <bool>false</bool>
+            </property>
+            <property name="styleSheet">
+             <string notr="true"/>
+            </property>
+            <property name="text">
+             <string>select spectra</string>
+            </property>
+           </widget>
+          </item>
+          <item row="18" column="0">
+           <widget class="QLabel" name="rawsmoothLab">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true"/>
+            </property>
+            <property name="text">
+             <string>Kernel bandwidth</string>
+            </property>
+           </widget>
+          </item>
+          <item row="24" column="0">
+           <widget class="QLabel" name="rawrangeStLab">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true"/>
+            </property>
+            <property name="text">
+             <string>Start</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0" colspan="3">
+           <widget class="QTextBrowser" name="rawInfo">
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>80</height>
+             </size>
+            </property>
+            <property name="html">
+             <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8.25pt;&quot;&gt;Data info&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+           </widget>
+          </item>
+          <item row="26" column="0" colspan="3">
+           <spacer name="verticalSpacer_42">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>10</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="5" column="0">
+           <widget class="QLabel" name="label_67">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true"/>
+            </property>
+            <property name="text">
+             <string>Exploration</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="2">
+           <widget class="QPushButton" name="RAWplotSpectra">
+            <property name="text">
+             <string>Plot spectra</string>
+            </property>
+           </widget>
+          </item>
+          <item row="17" column="0">
+           <widget class="QCheckBox" name="rawsmoothCheck">
+            <property name="text">
+             <string>Smoothing</string>
+            </property>
+           </widget>
+          </item>
+          <item row="18" column="2">
+           <widget class="QLineEdit" name="rawsmoothVal">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>0.01</string>
+            </property>
+            <property name="readOnly">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="22" column="0" colspan="3">
+           <spacer name="verticalSpacer_41">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>10</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="1" column="2">
+           <widget class="QLineEdit" name="rawLineEdit">
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="28" column="0">
+           <widget class="QLabel" name="label_93">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true"/>
+            </property>
+            <property name="text">
+             <string>m/z resolution (10^-x)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="30" column="0" colspan="3">
+           <widget class="QTextBrowser" name="rawProcessInfo">
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>80</height>
+             </size>
+            </property>
+            <property name="html">
+             <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8.25pt;&quot;&gt;Data info&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+           </widget>
+          </item>
+          <item row="13" column="0">
+           <widget class="QLabel" name="label_75">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true"/>
+            </property>
+            <property name="text">
+             <string>Processing</string>
+            </property>
+           </widget>
+          </item>
+          <item row="29" column="1" colspan="2">
+           <widget class="QPushButton" name="rawProcess">
+            <property name="cursor">
+             <cursorShape>ArrowCursor</cursorShape>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+            </property>
+            <property name="text">
+             <string>Process</string>
+            </property>
+           </widget>
+          </item>
+          <item row="11" column="2">
+           <widget class="QPushButton" name="RawPlotImg">
+            <property name="text">
+             <string>Plot ion image</string>
+            </property>
+           </widget>
+          </item>
+          <item row="27" column="0">
+           <widget class="QLabel" name="ewNIon">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true"/>
+            </property>
+            <property name="text">
+             <string>Number of ions  </string>
+            </property>
+           </widget>
+          </item>
+          <item row="9" column="2">
+           <widget class="QLineEdit" name="RawImgTol">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>0.1</string>
+            </property>
+            <property name="readOnly">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="8" column="0">
+           <widget class="QLabel" name="label_74">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true"/>
+            </property>
+            <property name="text">
+             <string>ion m/z</string>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="0" colspan="3">
+           <spacer name="verticalSpacer_36">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>10</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_88">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true"/>
+            </property>
+            <property name="text">
+             <string>Import</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QPushButton" name="rawSelect">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>Select file...</string>
+            </property>
+           </widget>
+          </item>
+          <item row="16" column="0" colspan="3">
+           <spacer name="verticalSpacer_45">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>10</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="8" column="2">
+           <widget class="QLineEdit" name="RawImgIon">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>600</string>
+            </property>
+            <property name="readOnly">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="15" column="2">
+           <widget class="QLineEdit" name="lockmassVal">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>554.2615</string>
+            </property>
+            <property name="readOnly">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="24" column="2">
+           <widget class="QLineEdit" name="rawrangeStVal">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>600</string>
+            </property>
+            <property name="readOnly">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="25" column="2">
+           <widget class="QLineEdit" name="rawrangeEnVal">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>900</string>
+            </property>
+            <property name="readOnly">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="27" column="2">
+           <widget class="QLineEdit" name="rawNIonVal">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>1000</string>
+            </property>
+            <property name="readOnly">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="28" column="2">
+           <widget class="QLineEdit" name="rawmzResVal">
+            <property name="font">
+             <font>
+              <pointsize>8</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>3</string>
+            </property>
+            <property name="readOnly">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="9" column="0" colspan="2">
+     <spacer name="verticalSpacer_30">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="10" column="0">
+     <widget class="QLabel" name="label_66">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Export MSI data    </string>
+      </property>
+     </widget>
+    </item>
+    <item row="10" column="1">
+     <widget class="QPushButton" name="ExportPushBotton">
+      <property name="styleSheet">
+       <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+      </property>
+      <property name="text">
+       <string>Export</string>
+      </property>
+     </widget>
+    </item>
+    <item row="12" column="0" colspan="2">
      <widget class="QLabel" name="label_REIMS">
       <property name="font">
        <font>
@@ -277,28 +1086,21 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="14" column="1">
-     <spacer name="horizontalSpacer_28">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>40</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="15" column="0">
+    <item row="13" column="0">
      <widget class="QPushButton" name="REIMSFileSelect">
       <property name="text">
        <string>Select...</string>
       </property>
      </widget>
     </item>
-    <item row="15" column="1">
+    <item row="13" column="1">
      <widget class="QTextBrowser" name="filenameREIMSBrowser">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="maximumSize">
        <size>
         <width>16777215</width>
@@ -317,7 +1119,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="16" column="1">
+    <item row="14" column="1">
      <widget class="QPushButton" name="REIMSFileLoad">
       <property name="styleSheet">
        <string notr="true">background-color: #1769aa;
@@ -328,7 +1130,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="17" column="0" colspan="2">
+    <item row="15" column="0" colspan="2">
      <widget class="QTextBrowser" name="REIMSInformation">
       <property name="maximumSize">
        <size>
@@ -345,10 +1147,13 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="18" column="0" colspan="2">
-     <spacer name="verticalSpacer_17">
+    <item row="16" column="0" colspan="2">
+     <spacer name="verticalSpacer_43">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Expanding</enum>
       </property>
       <property name="sizeHint" stdset="0">
        <size>
@@ -415,7 +1220,7 @@ p, li { white-space: pre-wrap; }
     <item row="6" column="1">
      <widget class="QPushButton" name="singleIonButton">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -433,7 +1238,7 @@ color: rgb(255, 255, 255);</string>
     <item row="7" column="1">
      <widget class="QPushButton" name="AbundanceThumbnail">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -632,7 +1437,7 @@ color: rgb(255, 0, 0);</string>
     <item row="17" column="1">
      <widget class="QPushButton" name="multiIonButton">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -686,7 +1491,7 @@ color: rgb(255, 255, 255);</string>
     <item row="20" column="1">
      <widget class="QPushButton" name="PCA_button">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -697,7 +1502,7 @@ color: rgb(255, 255, 255);</string>
     <item row="21" column="1">
      <widget class="QPushButton" name="partialPCA">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -732,7 +1537,7 @@ color: rgb(255, 255, 255);</string>
     <item row="23" column="1">
      <widget class="QPushButton" name="ContrastThumbnail">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -798,7 +1603,7 @@ p, li { white-space: pre-wrap; }
      <widget class="QLabel" name="label_17">
       <property name="font">
        <font>
-        <pointsize>8</pointsize>
+        <pointsize>9</pointsize>
         <weight>50</weight>
         <bold>false</bold>
        </font>
@@ -910,7 +1715,7 @@ p, li { white-space: pre-wrap; }
     <item row="29" column="1">
      <widget class="QPushButton" name="Cluster_button">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -922,7 +1727,7 @@ color: rgb(255, 255, 255);</string>
      <widget class="QLabel" name="label_19">
       <property name="font">
        <font>
-        <pointsize>10</pointsize>
+        <pointsize>9</pointsize>
         <weight>50</weight>
         <bold>false</bold>
        </font>
@@ -938,7 +1743,7 @@ color: rgb(255, 255, 255);</string>
     <item row="31" column="1">
      <widget class="QPushButton" name="ClusterThumbnail">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1030,7 +1835,7 @@ color: rgb(255, 255, 255);</string>
       </column>
      </widget>
     </item>
-    <item row="35" column="0">
+    <item row="41" column="0">
      <widget class="QLabel" name="label_11">
       <property name="font">
        <font>
@@ -1044,7 +1849,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="35" column="1">
+    <item row="41" column="1">
      <spacer name="horizontalSpacer_7">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -1057,10 +1862,10 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="36" column="1">
+    <item row="42" column="1">
      <widget class="QPushButton" name="spectrumPlot">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1068,7 +1873,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="37" column="0" colspan="2">
+    <item row="43" column="0" colspan="2">
      <spacer name="verticalSpacer">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -1081,7 +1886,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="38" column="0" colspan="2">
+    <item row="44" column="0" colspan="2">
      <spacer name="verticalSpacer_2">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -1109,6 +1914,155 @@ color: rgb(255, 255, 255);</string>
        </size>
       </property>
      </spacer>
+    </item>
+    <item row="42" column="0">
+     <widget class="QPushButton" name="placeFiducial">
+      <property name="text">
+       <string>select spectra</string>
+      </property>
+     </widget>
+    </item>
+    <item row="35" column="0">
+     <widget class="QLabel" name="label_20">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Non-linear</string>
+      </property>
+     </widget>
+    </item>
+    <item row="40" column="0" colspan="2">
+     <spacer name="verticalSpacer_32">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="36" column="0">
+     <widget class="QLabel" name="label_21">
+      <property name="font">
+       <font>
+        <pointsize>9</pointsize>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Method</string>
+      </property>
+     </widget>
+    </item>
+    <item row="36" column="1">
+     <widget class="QComboBox" name="NLVisMethod">
+      <item>
+       <property name="text">
+        <string>UMAP</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>t-SNE</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+    <item row="37" column="0">
+     <widget class="QLabel" name="NLVisLabel1">
+      <property name="font">
+       <font>
+        <pointsize>9</pointsize>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>n_neighbors</string>
+      </property>
+     </widget>
+    </item>
+    <item row="37" column="1">
+     <widget class="QLineEdit" name="NLVisParam1">
+      <property name="text">
+       <string>15</string>
+      </property>
+     </widget>
+    </item>
+    <item row="38" column="0">
+     <widget class="QLabel" name="NLVisLabel2">
+      <property name="font">
+       <font>
+        <pointsize>9</pointsize>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>min_dist</string>
+      </property>
+     </widget>
+    </item>
+    <item row="38" column="1">
+     <widget class="QLineEdit" name="NLVisParam2">
+      <property name="text">
+       <string>0.1</string>
+      </property>
+     </widget>
+    </item>
+    <item row="39" column="1">
+     <widget class="QPushButton" name="UmapButton">
+      <property name="styleSheet">
+       <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+      </property>
+      <property name="text">
+       <string>Global contrast</string>
+      </property>
+     </widget>
+    </item>
+    <item row="21" column="0">
+     <widget class="QPushButton" name="ROIforLocalContrast">
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>16777215</height>
+       </size>
+      </property>
+      <property name="cursor">
+       <cursorShape>ArrowCursor</cursorShape>
+      </property>
+      <property name="text">
+       <string>select region</string>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>16</width>
+        <height>16</height>
+       </size>
+      </property>
+      <property name="autoDefault">
+       <bool>false</bool>
+      </property>
+      <property name="default">
+       <bool>false</bool>
+      </property>
+      <property name="flat">
+       <bool>false</bool>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
@@ -1150,7 +2104,7 @@ color: rgb(255, 255, 255);</string>
     <item row="1" column="1">
      <widget class="QPushButton" name="gotoRegistration">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1210,7 +2164,7 @@ color: rgb(255, 255, 255);</string>
        <string notr="true"/>
       </property>
       <property name="text">
-       <string>Main visualization for ROI selection</string>
+       <string>Main visualization</string>
       </property>
      </widget>
     </item>
@@ -1236,7 +2190,7 @@ color: rgb(255, 255, 255);</string>
        <string notr="true"/>
       </property>
       <property name="text">
-       <string>Guide visualization for ROI selection</string>
+       <string>Guide visualization</string>
       </property>
      </widget>
     </item>
@@ -1259,7 +2213,7 @@ color: rgb(255, 255, 255);</string>
     <item row="6" column="1">
      <widget class="QPushButton" name="segmentEditor">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1316,7 +2270,7 @@ color: rgb(255, 255, 255);</string>
     <item row="9" column="1">
      <widget class="QPushButton" name="roiContrast">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1327,7 +2281,7 @@ color: rgb(255, 255, 255);</string>
     <item row="10" column="1">
      <widget class="QPushButton" name="roiContrastLDA">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1401,7 +2355,7 @@ color: rgb(255, 255, 255);</string>
     <item row="15" column="1">
      <widget class="QPushButton" name="createCSVbutton">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1535,6 +2489,16 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
+    <item row="1" column="0" colspan="2">
+     <widget class="QPushButton" name="selectToAlign">
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Select...</string>
+      </property>
+     </widget>
+    </item>
     <item row="2" column="0">
      <widget class="QLabel" name="label_77">
       <property name="styleSheet">
@@ -1585,9 +2549,277 @@ p, li { white-space: pre-wrap; }
      </widget>
     </item>
     <item row="4" column="1">
-     <widget class="QPushButton" name="pushButton_11">
+     <widget class="QPushButton" name="loadToAlign">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+      </property>
+      <property name="text">
+       <string>Load files</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="0" colspan="2">
+     <widget class="QTextBrowser" name="fileInfoAlign">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>120</height>
+       </size>
+      </property>
+      <property name="html">
+       <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Aligned dataset info&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="0" colspan="2">
+     <spacer name="verticalSpacer_38">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Preferred</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="7" column="0">
+     <widget class="QLabel" name="label_2">
+      <property name="font">
+       <font>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Alignment parameters </string>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="1">
+     <spacer name="horizontalSpacer_31">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="8" column="0">
+     <widget class="QLabel" name="label_3">
+      <property name="text">
+       <string>KDE bandwidth for ion clustering</string>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="1">
+     <widget class="QLineEdit" name="KDEbandwidthVal">
+      <property name="text">
+       <string>0.01</string>
+      </property>
+     </widget>
+    </item>
+    <item row="9" column="0">
+     <widget class="QLabel" name="label_4">
+      <property name="text">
+       <string>Feature sparsity</string>
+      </property>
+     </widget>
+    </item>
+    <item row="9" column="1">
+     <widget class="QLineEdit" name="sparsityVal">
+      <property name="text">
+       <string>0.6</string>
+      </property>
+     </widget>
+    </item>
+    <item row="10" column="0">
+     <widget class="QLabel" name="label_5">
+      <property name="text">
+       <string>Sparsity level</string>
+      </property>
+     </widget>
+    </item>
+    <item row="10" column="1">
+     <widget class="QComboBox" name="sparsityLevel">
+      <item>
+       <property name="text">
+        <string>Spectra</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Slides</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+    <item row="11" column="0" colspan="2">
+     <spacer name="verticalSpacer_37">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Preferred</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="12" column="0">
+     <widget class="QLabel" name="label_6">
+      <property name="font">
+       <font>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Alignment preview</string>
+      </property>
+     </widget>
+    </item>
+    <item row="12" column="1">
+     <spacer name="horizontalSpacer_32">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="13" column="0">
+     <widget class="QLabel" name="label_14">
+      <property name="text">
+       <string>visualization range start (m/z)</string>
+      </property>
+     </widget>
+    </item>
+    <item row="13" column="1">
+     <widget class="QLineEdit" name="alignPreviewStart">
+      <property name="text">
+       <string/>
+      </property>
+     </widget>
+    </item>
+    <item row="14" column="0">
+     <widget class="QLabel" name="label_10">
+      <property name="text">
+       <string>visualization range end (m/z)</string>
+      </property>
+     </widget>
+    </item>
+    <item row="14" column="1">
+     <widget class="QLineEdit" name="alignPreviewEnd">
+      <property name="text">
+       <string/>
+      </property>
+     </widget>
+    </item>
+    <item row="15" column="1">
+     <widget class="QPushButton" name="alignPreview">
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Visualize</string>
+      </property>
+     </widget>
+    </item>
+    <item row="16" column="0" colspan="2">
+     <spacer name="verticalSpacer_35">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Preferred</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="17" column="0">
+     <widget class="QLabel" name="label_24">
+      <property name="font">
+       <font>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Peak Matching</string>
+      </property>
+     </widget>
+    </item>
+    <item row="17" column="1">
+     <spacer name="horizontalSpacer_33">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="18" column="0">
+     <widget class="QLabel" name="label_22">
+      <property name="text">
+       <string>Method</string>
+      </property>
+     </widget>
+    </item>
+    <item row="19" column="0">
+     <widget class="QLabel" name="AlignTolLabel">
+      <property name="text">
+       <string>Tolerance</string>
+      </property>
+     </widget>
+    </item>
+    <item row="19" column="1">
+     <widget class="QLineEdit" name="AlignTolVal">
+      <property name="text">
+       <string>0.001</string>
+      </property>
+     </widget>
+    </item>
+    <item row="21" column="1">
+     <widget class="QPushButton" name="alignButton">
+      <property name="styleSheet">
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1595,7 +2827,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="5" column="0" colspan="2">
+    <item row="22" column="0" colspan="2">
      <widget class="QTextBrowser" name="alignmentTextBrowser">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -1618,7 +2850,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="6" column="1">
+    <item row="23" column="1">
      <spacer name="verticalSpacer_14">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -1631,14 +2863,54 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="1" column="0" colspan="2">
-     <widget class="QPushButton" name="textFileLoad_2">
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
+    <item row="20" column="0">
+     <widget class="QLabel" name="AlignBinLab">
       <property name="text">
-       <string>Select...</string>
+       <string>Bin function</string>
       </property>
+     </widget>
+    </item>
+    <item row="18" column="1">
+     <widget class="QComboBox" name="AlignMatchMethod">
+      <item>
+       <property name="text">
+        <string>Cluster</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Tolerance</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+    <item row="20" column="1">
+     <widget class="QComboBox" name="AlignBinVal">
+      <item>
+       <property name="text">
+        <string>Mean</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Median</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Sum</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Max</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Global max</string>
+       </property>
+      </item>
      </widget>
     </item>
    </layout>
@@ -1695,7 +2967,7 @@ p, li { white-space: pre-wrap; }
     <item row="12" column="1">
      <widget class="QPushButton" name="csvLoad">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -1773,36 +3045,60 @@ p, li { white-space: pre-wrap; }
      </spacer>
     </item>
     <item row="20" column="0">
-     <widget class="QRadioButton" name="normalizeTICoption">
+     <widget class="QLabel" name="normMethodLabel">
       <property name="enabled">
        <bool>true</bool>
       </property>
       <property name="text">
-       <string>     Total Ion Current (TIC)</string>
+       <string>         Method</string>
       </property>
-      <property name="checked">
+     </widget>
+    </item>
+    <item row="20" column="1">
+     <widget class="QComboBox" name="normMethodComboBox">
+      <property name="enabled">
        <bool>true</bool>
       </property>
      </widget>
     </item>
     <item row="21" column="0">
-     <widget class="QRadioButton" name="refNorm">
+     <widget class="QLabel" name="thresholdLabel">
       <property name="enabled">
        <bool>true</bool>
       </property>
       <property name="text">
-       <string>     Reference Ion</string>
+       <string>         Threshold</string>
       </property>
      </widget>
     </item>
     <item row="21" column="1">
-     <widget class="QComboBox" name="refIoncomboBox">
+     <widget class="QLineEdit" name="thresholdValue">
       <property name="enabled">
-       <bool>false</bool>
+       <bool>true</bool>
+      </property>
+      <property name="text">
+       <string>0</string>
       </property>
      </widget>
     </item>
-    <item row="22" column="0" colspan="2">
+    <item row="22" column="0">
+     <widget class="QLabel" name="refionLabel">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="text">
+       <string>         Reference ion</string>
+      </property>
+     </widget>
+    </item>
+    <item row="22" column="1">
+     <widget class="QComboBox" name="refIoncomboBox">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="24" column="0" colspan="2">
      <spacer name="verticalSpacer_21">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -1818,7 +3114,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="26" column="0">
+    <item row="28" column="0">
      <widget class="QCheckBox" name="spectrumFiltercheckBox">
       <property name="font">
        <font>
@@ -1832,7 +3128,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="26" column="1">
+    <item row="28" column="1">
      <spacer name="horizontalSpacer_12">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -1845,7 +3141,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="27" column="0">
+    <item row="29" column="0">
      <widget class="QLabel" name="lowLabel">
       <property name="enabled">
        <bool>false</bool>
@@ -1855,7 +3151,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="27" column="1">
+    <item row="29" column="1">
      <widget class="QLineEdit" name="spectrumlowerBand">
       <property name="enabled">
        <bool>false</bool>
@@ -1865,7 +3161,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="28" column="0">
+    <item row="30" column="0">
      <widget class="QLabel" name="upLabel">
       <property name="enabled">
        <bool>false</bool>
@@ -1875,7 +3171,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="28" column="1">
+    <item row="30" column="1">
      <widget class="QLineEdit" name="spectrumUpperband">
       <property name="enabled">
        <bool>false</bool>
@@ -1885,7 +3181,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="30" column="0" colspan="2">
+    <item row="32" column="0" colspan="2">
      <spacer name="verticalSpacer_20">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -1901,7 +3197,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="36" column="0">
+    <item row="38" column="0">
      <widget class="QCheckBox" name="pixelaggcheckBox">
       <property name="font">
        <font>
@@ -1915,7 +3211,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="36" column="1">
+    <item row="38" column="1">
      <spacer name="horizontalSpacer_11">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -1928,7 +3224,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="37" column="0">
+    <item row="39" column="0">
      <widget class="QLabel" name="wLabel">
       <property name="enabled">
        <bool>false</bool>
@@ -1938,7 +3234,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="37" column="1">
+    <item row="39" column="1">
      <widget class="QLineEdit" name="patchWidth">
       <property name="enabled">
        <bool>false</bool>
@@ -1948,7 +3244,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="38" column="0">
+    <item row="40" column="0">
      <widget class="QLabel" name="sLabel">
       <property name="enabled">
        <bool>false</bool>
@@ -1958,7 +3254,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="38" column="1">
+    <item row="40" column="1">
      <widget class="QLineEdit" name="patchStride">
       <property name="enabled">
        <bool>false</bool>
@@ -1968,7 +3264,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="39" column="0">
+    <item row="41" column="0">
      <widget class="QLabel" name="pLabel">
       <property name="enabled">
        <bool>false</bool>
@@ -1978,7 +3274,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="39" column="1">
+    <item row="41" column="1">
      <widget class="QLineEdit" name="partialPatch">
       <property name="enabled">
        <bool>false</bool>
@@ -1988,7 +3284,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="40" column="0">
+    <item row="42" column="0">
      <widget class="QLabel" name="mLabel">
       <property name="enabled">
        <bool>false</bool>
@@ -1998,7 +3294,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="40" column="1">
+    <item row="42" column="1">
      <widget class="QComboBox" name="aggMode">
       <property name="enabled">
        <bool>false</bool>
@@ -2025,10 +3321,10 @@ p, li { white-space: pre-wrap; }
       </item>
      </widget>
     </item>
-    <item row="41" column="1">
+    <item row="43" column="1">
      <widget class="QPushButton" name="applyProcessingButton">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -2036,7 +3332,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="42" column="0" colspan="2">
+    <item row="44" column="0" colspan="2">
      <widget class="QTextBrowser" name="postCsvinfo">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -2113,7 +3409,7 @@ p, li { white-space: pre-wrap; }
     <item row="5" column="1">
      <widget class="QPushButton" name="modellingFile">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -2193,7 +3489,7 @@ p, li { white-space: pre-wrap; }
     <item row="10" column="1">
      <widget class="QPushButton" name="distributionPCA">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -2201,8 +3497,73 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="11" column="0" colspan="2">
-     <spacer name="verticalSpacer_23">
+    <item row="12" column="0">
+     <widget class="QLabel" name="label_86">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Feature ranking</string>
+      </property>
+     </widget>
+    </item>
+    <item row="12" column="1">
+     <spacer name="horizontalSpacer_24">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="13" column="0">
+     <widget class="QLabel" name="FRankLabel">
+      <property name="font">
+       <font>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Method</string>
+      </property>
+     </widget>
+    </item>
+    <item row="13" column="1">
+     <widget class="QComboBox" name="FRankMethod">
+      <item>
+       <property name="text">
+        <string>Linear SVC</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>PLS-DA</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>LDA</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+    <item row="22" column="0" colspan="2">
+     <spacer name="verticalSpacer_34">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>
@@ -2217,7 +3578,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="12" column="0">
+    <item row="23" column="0">
      <widget class="QLabel" name="label_63">
       <property name="font">
        <font>
@@ -2230,11 +3591,11 @@ color: rgb(255, 255, 255);</string>
        <string notr="true"/>
       </property>
       <property name="text">
-       <string>Model training</string>
+       <string>Model training/validation</string>
       </property>
      </widget>
     </item>
-    <item row="12" column="1">
+    <item row="23" column="1">
      <spacer name="horizontalSpacer_16">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -2247,7 +3608,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="14" column="0">
+    <item row="25" column="0">
      <widget class="QLabel" name="label_71">
       <property name="font">
        <font>
@@ -2263,7 +3624,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="14" column="1">
+    <item row="25" column="1">
      <widget class="QComboBox" name="ModelSelectCombobox">
       <item>
        <property name="text">
@@ -2272,7 +3633,7 @@ color: rgb(255, 255, 255);</string>
       </item>
       <item>
        <property name="text">
-        <string>SVM</string>
+        <string>Linear SVC</string>
        </property>
       </item>
       <item>
@@ -2287,7 +3648,71 @@ color: rgb(255, 255, 255);</string>
       </item>
      </widget>
     </item>
-    <item row="17" column="0">
+    <item row="26" column="0">
+     <widget class="QLabel" name="MLlabel1">
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>n_components or variance</string>
+      </property>
+     </widget>
+    </item>
+    <item row="26" column="1">
+     <widget class="QLineEdit" name="MLparam1">
+      <property name="text">
+       <string>0.99</string>
+      </property>
+     </widget>
+    </item>
+    <item row="27" column="0">
+     <widget class="QLabel" name="MLlabel2">
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>n_components or variance</string>
+      </property>
+     </widget>
+    </item>
+    <item row="27" column="1">
+     <widget class="QLineEdit" name="MLparam2">
+      <property name="text">
+       <string>0.99</string>
+      </property>
+     </widget>
+    </item>
+    <item row="28" column="0" colspan="2">
+     <spacer name="verticalSpacer_33">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="29" column="0">
      <widget class="QLabel" name="label_78">
       <property name="font">
        <font>
@@ -2303,7 +3728,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="17" column="1">
+    <item row="29" column="1">
      <widget class="QRadioButton" name="allTrain">
       <property name="text">
        <string>Training on whole dataset</string>
@@ -2319,7 +3744,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="18" column="1">
+    <item row="30" column="1">
      <widget class="QRadioButton" name="randomSplit">
       <property name="text">
        <string>Random train/test split</string>
@@ -2332,14 +3757,14 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="19" column="1">
+    <item row="31" column="1">
      <widget class="QRadioButton" name="customSplit">
       <property name="text">
        <string>Slide-based train/test customization</string>
       </property>
      </widget>
     </item>
-    <item row="20" column="0" colspan="2">
+    <item row="33" column="0" colspan="2">
      <widget class="QLabel" name="namesTableLabel">
       <property name="styleSheet">
        <string notr="true"/>
@@ -2349,7 +3774,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="21" column="0" colspan="2">
+    <item row="34" column="0" colspan="2">
      <widget class="QTableWidget" name="namesTable">
       <column>
        <property name="text">
@@ -2373,7 +3798,7 @@ color: rgb(255, 255, 255);</string>
       </column>
      </widget>
     </item>
-    <item row="22" column="0" colspan="2">
+    <item row="35" column="0" colspan="2">
      <spacer name="verticalSpacer_27">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -2389,7 +3814,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="23" column="0">
+    <item row="36" column="0">
      <widget class="QLabel" name="label_83">
       <property name="font">
        <font>
@@ -2405,7 +3830,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="23" column="1">
+    <item row="36" column="1">
      <widget class="QComboBox" name="BalanceComBox">
       <item>
        <property name="text">
@@ -2429,7 +3854,7 @@ color: rgb(255, 255, 255);</string>
       </item>
      </widget>
     </item>
-    <item row="24" column="0" colspan="2">
+    <item row="37" column="0" colspan="2">
      <spacer name="verticalSpacer_26">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -2445,7 +3870,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="25" column="0">
+    <item row="38" column="0">
      <widget class="QLabel" name="label_79">
       <property name="font">
        <font>
@@ -2461,7 +3886,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="25" column="1">
+    <item row="38" column="1">
      <widget class="QCheckBox" name="saveModelcheckBox">
       <property name="text">
        <string>Export model pipeline</string>
@@ -2471,7 +3896,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="26" column="0" colspan="2">
+    <item row="39" column="0" colspan="2">
      <spacer name="verticalSpacer_8">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -2487,14 +3912,182 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="27" column="1">
+    <item row="40" column="1">
      <widget class="QPushButton" name="trainModel">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
        <string>Train and validate</string>
+      </property>
+     </widget>
+    </item>
+    <item row="17" column="0">
+     <widget class="QLabel" name="label_87">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Feature selection</string>
+      </property>
+     </widget>
+    </item>
+    <item row="17" column="1">
+     <spacer name="horizontalSpacer_28">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="18" column="0">
+     <widget class="QLabel" name="FselLabel">
+      <property name="font">
+       <font>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Method</string>
+      </property>
+     </widget>
+    </item>
+    <item row="18" column="1">
+     <widget class="QComboBox" name="FSelMethod">
+      <item>
+       <property name="text">
+        <string>None</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Top ranked</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Manual</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+    <item row="20" column="1">
+     <widget class="QPushButton" name="FSelManualUpload">
+      <property name="text">
+       <string>Upload feature list...</string>
+      </property>
+     </widget>
+    </item>
+    <item row="19" column="0">
+     <widget class="QLabel" name="FnumberLabel">
+      <property name="font">
+       <font>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Number of features</string>
+      </property>
+     </widget>
+    </item>
+    <item row="19" column="1">
+     <widget class="QLineEdit" name="FnumberValue">
+      <property name="text">
+       <string>100</string>
+      </property>
+     </widget>
+    </item>
+    <item row="16" column="0" colspan="2">
+     <spacer name="verticalSpacer_23">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="15" column="1">
+     <widget class="QPushButton" name="FRankApply">
+      <property name="styleSheet">
+       <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+      </property>
+      <property name="text">
+       <string>Rank features</string>
+      </property>
+     </widget>
+    </item>
+    <item row="11" column="0" colspan="2">
+     <spacer name="verticalSpacer_12">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="14" column="1">
+     <widget class="QLineEdit" name="FRankParamVal">
+      <property name="text">
+       <string>1.0</string>
+      </property>
+     </widget>
+    </item>
+    <item row="14" column="0">
+     <widget class="QLabel" name="FRankParamLab">
+      <property name="font">
+       <font>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>C</string>
+      </property>
+     </widget>
+    </item>
+    <item row="32" column="1">
+     <widget class="QRadioButton" name="XVall">
+      <property name="text">
+       <string>Leave-one-slide-out cross-validation</string>
       </property>
      </widget>
     </item>
@@ -2593,7 +4186,7 @@ color: rgb(255, 255, 255);</string>
     <item row="2" column="1">
      <widget class="QPushButton" name="deployImport">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -2678,7 +4271,7 @@ p, li { white-space: pre-wrap; }
     <item row="7" column="1">
      <widget class="QPushButton" name="deployModelImport">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -2776,36 +4369,57 @@ p, li { white-space: pre-wrap; }
      </spacer>
     </item>
     <item row="12" column="0">
-     <widget class="QRadioButton" name="depRadioTIC">
+     <widget class="QLabel" name="depNormMethLab">
       <property name="enabled">
        <bool>true</bool>
       </property>
       <property name="text">
-       <string>        total ion current (TIC)</string>
+       <string>              method</string>
       </property>
-      <property name="checked">
+     </widget>
+    </item>
+    <item row="12" column="1">
+     <widget class="QComboBox" name="depNormMethod">
+      <property name="enabled">
        <bool>true</bool>
       </property>
      </widget>
     </item>
     <item row="13" column="0">
-     <widget class="QRadioButton" name="depRadioIon">
+     <widget class="QLabel" name="depNormThreshLab">
       <property name="enabled">
        <bool>true</bool>
       </property>
       <property name="text">
-       <string>        reference ion</string>
+       <string>              threshold</string>
       </property>
      </widget>
     </item>
     <item row="13" column="1">
-     <widget class="QComboBox" name="depComboboxIon">
-      <property name="enabled">
-       <bool>false</bool>
+     <widget class="QLineEdit" name="depNormThresh">
+      <property name="text">
+       <string>0</string>
       </property>
      </widget>
     </item>
     <item row="14" column="0">
+     <widget class="QLabel" name="depRefIonLab">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="text">
+       <string>              reference ion</string>
+      </property>
+     </widget>
+    </item>
+    <item row="14" column="1">
+     <widget class="QComboBox" name="depComboboxIon">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="15" column="0">
      <widget class="QCheckBox" name="deployAGGcheck">
       <property name="font">
        <font>
@@ -2818,7 +4432,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="14" column="1">
+    <item row="15" column="1">
      <spacer name="horizontalSpacer_20">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -2831,7 +4445,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="15" column="0">
+    <item row="16" column="0">
      <widget class="QLabel" name="aggwLabel">
       <property name="enabled">
        <bool>false</bool>
@@ -2841,7 +4455,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="15" column="1">
+    <item row="16" column="1">
      <widget class="QLineEdit" name="aggW">
       <property name="enabled">
        <bool>false</bool>
@@ -2851,7 +4465,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="16" column="0">
+    <item row="17" column="0">
      <widget class="QLabel" name="aggmodeLabel">
       <property name="enabled">
        <bool>false</bool>
@@ -2861,7 +4475,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="16" column="1">
+    <item row="17" column="1">
      <widget class="QComboBox" name="aggMode_2">
       <property name="enabled">
        <bool>false</bool>
@@ -2888,7 +4502,7 @@ p, li { white-space: pre-wrap; }
       </item>
      </widget>
     </item>
-    <item row="17" column="0">
+    <item row="18" column="0">
      <widget class="QCheckBox" name="depMaskcheck">
       <property name="font">
        <font>
@@ -2901,7 +4515,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="17" column="1">
+    <item row="18" column="1">
      <spacer name="horizontalSpacer_29">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -2914,7 +4528,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="18" column="1">
+    <item row="19" column="1">
      <widget class="QPushButton" name="depGoVisButton">
       <property name="enabled">
        <bool>false</bool>
@@ -2924,7 +4538,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="19" column="0">
+    <item row="20" column="0">
      <widget class="QLabel" name="depVisSelLabel">
       <property name="enabled">
        <bool>false</bool>
@@ -2934,14 +4548,14 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="19" column="1">
+    <item row="20" column="1">
      <widget class="QComboBox" name="depVisListCombo">
       <property name="enabled">
        <bool>false</bool>
       </property>
      </widget>
     </item>
-    <item row="20" column="1">
+    <item row="21" column="1">
      <widget class="QPushButton" name="depGoSegEdButton">
       <property name="enabled">
        <bool>false</bool>
@@ -2951,7 +4565,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="21" column="0">
+    <item row="22" column="0">
      <widget class="QLabel" name="depSegListLabel">
       <property name="enabled">
        <bool>false</bool>
@@ -2961,17 +4575,17 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="21" column="1">
+    <item row="22" column="1">
      <widget class="QComboBox" name="depSegListCombo">
       <property name="enabled">
        <bool>false</bool>
       </property>
      </widget>
     </item>
-    <item row="22" column="1">
+    <item row="23" column="1">
      <widget class="QPushButton" name="deployRun">
       <property name="styleSheet">
-       <string notr="true">background-color: #1769aa;
+       <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
@@ -2979,7 +4593,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="23" column="0" colspan="2">
+    <item row="24" column="0" colspan="2">
      <spacer name="verticalSpacer_10">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -2995,6 +4609,14 @@ color: rgb(255, 255, 255);</string>
    </layout>
   </widget>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ctkCollapsibleButton</class>
+   <extends>QWidget</extends>
+   <header>ctkCollapsibleButton.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
