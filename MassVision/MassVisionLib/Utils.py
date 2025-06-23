@@ -74,13 +74,13 @@ def get_performance_str(y_train, y_train_preds, y_train_prob, class_order):
 			for i in range(len(class_order)):
 				results_str += f"{class_order[i]} recall (sensitivity): {np.round(100*recall_all[i],2)}\n"
 			auc = roc_auc_score(y_train, y_train_prob[:,-1], average='macro')
-			results_str += f"AUC: {np.round(auc,2)}\n"
+			results_str += f"AUC: {np.round(auc,4)}\n"
 		else:
 			recall_all = recall_score(y_train, y_train_preds, average=None)
 			for i in range(len(class_order)):
 				results_str += f"{class_order[i]} recall (sensitivity): {np.round(100*recall_all[i],2)}\n"
 			auc = roc_auc_score(y_train, y_train_prob, average='macro', multi_class='ovr')
-			results_str += f"AUC: {np.round(auc,2)}\n"
+			results_str += f"AUC: {np.round(auc,4)}\n"
 
 	else:
 
