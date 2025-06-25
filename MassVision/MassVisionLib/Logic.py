@@ -17,6 +17,8 @@ except ModuleNotFoundError:
 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+from matplotlib.ticker import ScalarFormatter
+
 ## fix Mac crash
 matplotlib.use('Agg')
 
@@ -432,7 +434,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		"""
 		
 		# load csv dataset
-		df = self.csv_processing
+		df = self.df
 
 		# extract information
 		peak_start_col = self.peak_start_col
@@ -2178,10 +2180,40 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return all_string
 
+	
+	# def ANOVA(self):
+	# 	from sklearn.feature_selection import f_classif
+	# 	ind_sort = np.argsort(-f_statistic)
+	
+	def BoxPlot(self, mz_ref):
+		mz_ind = np.where(self.mz == mz_ref)[0][0]
 
+		classes = self.df["Class"].values
+		unique_classes = np.unique(classes)
+
+		grouped_data = [self.peaks[classes == cls, mz_ind] for cls in unique_classes]
+
+		saveName = os.path.splitext(self.csvFile)[0]+ f'_{mz_ref}boxplott.jpeg'
+		fig, ax = plot_custom_boxplot(grouped_data, unique_classes, mz_ref, (5,5), saveName)
+
+		df_summary = boxplot_summary(grouped_data, unique_classes)
+		# table_node = pandas_to_slicer_table(df_summary, 'Statistics')
+
+		# display plot
+		YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
+		YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
+
+		volumeNode = slicer.util.loadVolume(saveName, {"singleFile": True})
+		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
+
+		YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
+		YellowNode.SetOrientation("Axial")
+		slicer.util.resetSliceViews()
+
+		return df_summary
 
 	def plot_latent_pca(self):
-		peaks = self.df.iloc[0:, 4:].values
+		peaks = self.peaks
 		labels =  self.df.iloc[0:, 0:2].values
 		peaks = np.nan_to_num(peaks)
 		pca = PCA(n_components=2)
@@ -2220,7 +2252,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			ax.set_title(plot_titles[jj])
 
 		# save plot
-		filename = self.modellingFile[:-4] + f'_PCAlatent.jpeg'
+		filename = self.csvFile[:-4] + f'_PCAlatent.jpeg'
 		plt.savefig(filename, bbox_inches='tight', dpi=600)
 		plt.close()
 
@@ -2316,18 +2348,18 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# handle missing values
 		peaks = np.nan_to_num(peaks)
 
-		self.csv_processing = df
+		self.df = df
 		self.peaks = peaks
 		self.mz = mz
 
 		self.csvFile = filename
 		retstr = 'Dataset successfully loaded! \n'
 		retstr += f'Dataset name:\t {filename} \n'
-		retstr += self.datasetInfo(self.csv_processing)
+		retstr += self.datasetInfo(self.df)
 		return retstr
 
 	def getCsvMzList(self):
-		return list(self.csv_processing.columns[self.peak_start_col:])
+		return list(self.df.columns[self.peak_start_col:])
 		# return list(self.mz)
 
 	def fileSelect(self):
@@ -3358,7 +3390,107 @@ def get_performance(y_train, y_train_preds, y_train_prob, class_order):
 	
 	return acc, bac
 
+def plot_custom_boxplot(grouped_data, groups, mz_title, figsize=(5,5), save_path=None):
+	num_groups = len(grouped_data)
+	colors = cm.tab10(np.linspace(0, 1, num_groups))
+	fig, ax = plt.subplots(figsize=figsize)
 
+	box = ax.boxplot(
+		grouped_data,
+		patch_artist=True,
+		showfliers=False,
+		boxprops=dict(color='black'),
+		capprops=dict(color='black'),
+		whiskerprops=dict(color='black'),
+		medianprops=dict(color='black')
+	)
+
+	for patch, color in zip(box['boxes'], colors):
+		patch.set_facecolor(color)
+
+	for i, values in enumerate(grouped_data):
+		values = np.asarray(values)
+		q1, q3 = np.percentile(values, [25, 75])
+		iqr = q3 - q1
+		lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+		outliers = values[(values < lower) | (values > upper)]
+		x = np.random.normal(i + 1, 0.08, size=len(outliers))
+		ax.plot(x, outliers, 'o', markersize=6, markerfacecolor='white', markeredgecolor='black', alpha=0.6)
+
+	ax.set_xticks(range(1, num_groups + 1))
+	ax.set_xticklabels(groups, rotation=45, ha='right')
+	ax.set_ylabel("intensity")
+	ax.set_title(f'$m/z\ {mz_title}$', style='italic')
+	ax.set_ylim(bottom=0)
+	ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+	ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
+	ax.spines['top'].set_visible(False)
+	ax.spines['right'].set_visible(False)
+	ax.spines['left'].set_linewidth(2)
+	ax.spines['bottom'].set_linewidth(2)
+	plt.tight_layout()
+
+	if save_path:
+		fig.savefig(save_path, dpi=300, bbox_inches='tight')
+		
+	return fig, ax
+
+
+def boxplot_summary(grouped_data, classes):
+    rows = []
+    for data, label in zip(grouped_data, classes):
+        q1, q3 = np.percentile(data, [25, 75])
+        iqr = q3 - q1
+        outlier_mask = (data < (q1 - 1.5 * iqr)) | (data > (q3 + 1.5 * iqr))
+        stats = {
+            'Class': label,
+            'Count': len(data),
+            'Mean': np.mean(data),
+            'Median': np.median(data),
+            'Std': np.std(data, ddof=1),
+            'Min': np.min(data),
+            'Max': np.max(data),
+            'IQR': iqr,
+            'Outlier Count': int(np.sum(outlier_mask))
+        }
+        rows.append(stats)
+
+    df_summary = pd.DataFrame(rows)
+    return df_summary
+
+
+
+def pandas_to_slicer_table(df: pd.DataFrame, table_name="StatsTable"):
+    # Create new table node
+    table_node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode", table_name)
+    table = table_node.GetTable()
+
+    # Create and set column headers
+    vtk_columns = []
+
+    # First column is for row labels (index)
+    row_header = vtk.vtkStringArray()
+    row_header.SetName("Parameter")
+    row_header.SetNumberOfValues(len(df.index))
+    for i, row_label in enumerate(df.index):
+        row_header.SetValue(i, str(row_label))
+    table.AddColumn(row_header)
+    vtk_columns.append(row_header)
+
+    # Add each DataFrame column as a VTK column
+    for col in df.columns:
+        vtk_col = vtk.vtkStringArray()
+        vtk_col.SetName(str(col))
+        vtk_col.SetNumberOfValues(len(df.index))
+        for i, val in enumerate(df[col]):
+            vtk_col.SetValue(i, str(val))  # Convert everything to string for display
+        table.AddColumn(vtk_col)
+        vtk_columns.append(vtk_col)
+
+    # Set number of rows in the table
+    table.SetNumberOfRows(len(df.index))
+
+    return table_node
 
 # Low Coefficient of Variation (CV) Across Spectra for selection of normalization 
 # cv = np.std(data, axis=0) / np.mean(data, axis=0)

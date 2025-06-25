@@ -196,7 +196,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.placeFiducial.setIcon(qt.QIcon(icon_path))
 
 		# Set tab widget tooltip and icons
-		icon_names = ['home', 'file', 'visualization', 'dataset', 'alignment', 'preprocess', 'train', 'report', 'inference']
+		icon_names = ['home', 'file', 'visualization', 'dataset', 'alignment', 'preprocess', 'stat', 'train', 'report', 'inference']
 		for i in range(self.ui.tabWidget.count):
 			tabText = self.ui.tabWidget.tabText(i)
 			self.ui.tabWidget.setTabText(i, "")            
@@ -252,6 +252,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.Go2tab6.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(6))
 		self.ui.Go2tab7.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(7))
 		self.ui.Go2tab8.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(8))
+		self.ui.Go2tab8.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(9))
 
 		self.ui.userManual.clicked.connect(
 			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://slicermassvision.readthedocs.io/")))
@@ -337,10 +338,15 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.applyProcessingButton.connect("clicked(bool)", self.onApplyProcessing)	
   
 
+		# Statistical analysis
+		self.ui.importStat.connect("clicked(bool)", self.onSelectStatData)
+		self.ui.distributionPCA.connect("clicked(bool)", self.onPlotDIstribution)
+		self.ui.boxplotButton.connect("clicked(bool)", self.onBoxPlot)
+
+		
 		# Model Training
 		self.ui.selectCSV.connect("clicked(bool)", self.onSelectModelData)
 		self.ui.modellingFile.connect("clicked(bool)", self.onModellingLoad)
-		self.ui.distributionPCA.connect("clicked(bool)", self.onPlotDIstribution)
 
 		self.ui.FRankMethod.currentTextChanged.connect(self.onRankMethodChange)
 		self.ui.FRankApply.clicked.connect(self.onFeatureRank)
@@ -918,12 +924,12 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
 	def onTabChange(self, index):
-		tab_names = ['Home', 'Data', 'Visualization', 'Dataset', 'Alignment', 'Preprocessing', 'AI training', 'AI Report', 'AI deployment']
+		tab_names = ['Home', 'Data', 'Visualization', 'Dataset', 'Alignment', 'Preprocessing', 'Statistical', 'AI training', 'AI Report', 'AI deployment']
 		for i in range(self.ui.tabWidget.count):
 			self.ui.tabWidget.setTabText(i, "")     
 		self.ui.tabWidget.setTabText(index, tab_names[index])
 		print('selected tab:',index, self.ui.tabWidget.tabText(index))
-		if index==8:
+		if index==9:
 			self.updateDepVisList()
 			self.updateDepSegList()
 		elif index==3:
@@ -1208,6 +1214,51 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.postCsvinfo.setText(retstr)
 
 
+	### Statistical
+	def onBoxPlot(self):
+		mz_ref = float(self.ui.statIonCombo.currentText)
+		df_summary = self.logic.BoxPlot(mz_ref)
+
+		# create a table node
+		tableNode = slicer.mrmlScene.GetFirstNodeByName("BoxplotStats")
+		if not tableNode:
+			tableNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTableNode', 'BoxplotStats')
+		else:
+			tableNode.RemoveAllColumns()
+
+		for col in df_summary.columns:
+			array = vtk.vtkVariantArray()
+			array.SetName(str(col))
+			for val in df_summary[col]:
+				array.InsertNextValue(vtk.vtkVariant(str(val)))
+			tableNode.AddColumn(array)
+
+		# lock the table
+		tableNode.SetUseColumnTitleAsColumnHeader(True)
+		tableNode.SetUseFirstColumnAsRowHeader(True)
+		tableNode.SetLocked(True)
+
+		# set the table view node
+		tableViewNodes = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
+		if tableViewNodes:
+			tableViewNode = tableViewNodes[0]
+			tableViewNode.SetTableNodeID(tableNode.GetID())
+		
+		# view the table below the ion images
+		customLayoutId = 90
+		customLayout = """
+		<layout type="horizontal" split="true">
+		<item>
+			<view class="vtkMRMLSliceNode" singletontag="Yellow"/>
+		</item>
+		<item>
+			<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+		</item>
+		</layout>
+		"""
+		slicer.app.layoutManager().layoutLogic().GetLayoutNode().AddLayoutDescription(customLayoutId, customLayout)
+		slicer.app.layoutManager().setLayout(customLayoutId)
+
 	### Model training tab
 
 	def onPlotDIstribution(self):
@@ -1274,6 +1325,21 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			self.logic.manual_features_indices = [int(x) for x in df.values.ravel()]
 			print("Manual feature load compeleted")
 			print(self.logic.manual_features_indices)
+
+	def onSelectStatData(self):
+		fileExplorer = qt.QFileDialog()
+		csvFilename = fileExplorer.getOpenFileName(None, "Open CSV dataset", "", "CSV Files (*.csv);;All Files (*)")
+		if csvFilename:
+			self.ui.fileStat.setText(csvFilename)
+			self.ui.fileStat.setToolTip(csvFilename)
+
+			csv_info = self.logic.CsvLoad(csvFilename)
+			if csv_info:
+				self.ui.infoStat.setText(csv_info)
+				self.ui.statIonCombo.clear()
+				all_mz = self.logic.getCsvMzList()
+				for mz in all_mz:
+					self.ui.statIonCombo.addItem(mz)
 
 	def onSelectModelData(self):
 		fileExplorer = qt.QFileDialog()
@@ -1433,7 +1499,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		else:
 			self.ui.textBrowser.setText(accuracystring)
 			self.model_results = accuracystring
-			self.ui.tabWidget.setCurrentIndex(7)
+			self.ui.tabWidget.setCurrentIndex(8)
 
   
 	def onMLMethod(self, text):
