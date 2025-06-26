@@ -3513,7 +3513,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="7" column="0">
+    <item row="12" column="0">
      <widget class="QLabel" name="label_89">
       <property name="font">
        <font>
@@ -3530,7 +3530,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="7" column="1">
+    <item row="12" column="1">
      <spacer name="horizontalSpacer_15">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -3543,17 +3543,17 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="8" column="0">
+    <item row="13" column="0">
      <widget class="QLabel" name="label_23">
       <property name="text">
-       <string>Ion (m/z)</string>
+       <string>ion (m/z)</string>
       </property>
      </widget>
     </item>
-    <item row="8" column="1">
+    <item row="13" column="1">
      <widget class="QComboBox" name="statIonCombo"/>
     </item>
-    <item row="10" column="0" colspan="2">
+    <item row="15" column="0" colspan="2">
      <spacer name="verticalSpacer_31">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -3569,7 +3569,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="9" column="1">
+    <item row="14" column="1">
      <widget class="QPushButton" name="boxplotButton">
       <property name="styleSheet">
        <string notr="true">background-color: #006666;
@@ -3577,6 +3577,161 @@ color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
        <string>Plot</string>
+      </property>
+     </widget>
+    </item>
+    <item row="20" column="0" colspan="2">
+     <spacer name="verticalSpacer_47">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="16" column="0">
+     <widget class="QLabel" name="label_90">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Statistical tests</string>
+      </property>
+     </widget>
+    </item>
+    <item row="17" column="1">
+     <widget class="QPushButton" name="anovaButton">
+      <property name="styleSheet">
+       <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+      </property>
+      <property name="text">
+       <string>ANOVA</string>
+      </property>
+     </widget>
+    </item>
+    <item row="16" column="1">
+     <spacer name="horizontalSpacer_34">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="11" column="0" colspan="2">
+     <spacer name="verticalSpacer_48">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="7" column="0">
+     <widget class="QLabel" name="label_91">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Configuration</string>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="1">
+     <spacer name="horizontalSpacer_35">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="8" column="1">
+     <widget class="QComboBox" name="statClassConfig"/>
+    </item>
+    <item row="8" column="0">
+     <widget class="QLabel" name="label_26">
+      <property name="text">
+       <string>method</string>
+      </property>
+     </widget>
+    </item>
+    <item row="9" column="1">
+     <widget class="QComboBox" name="statGroup1combo"/>
+    </item>
+    <item row="9" column="0">
+     <widget class="QLabel" name="statGroup1Lab">
+      <property name="text">
+       <string>group 1</string>
+      </property>
+     </widget>
+    </item>
+    <item row="10" column="0">
+     <widget class="QLabel" name="statGroup2Lab">
+      <property name="text">
+       <string>group 2</string>
+      </property>
+     </widget>
+    </item>
+    <item row="10" column="1">
+     <widget class="QComboBox" name="statGroup2combo"/>
+    </item>
+    <item row="18" column="1">
+     <widget class="QPushButton" name="ttestButton">
+      <property name="styleSheet">
+       <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+      </property>
+      <property name="text">
+       <string>Welch's t-test</string>
+      </property>
+     </widget>
+    </item>
+    <item row="19" column="1">
+     <widget class="QPushButton" name="volcanoButton">
+      <property name="styleSheet">
+       <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+      </property>
+      <property name="text">
+       <string>Volcano</string>
       </property>
      </widget>
     </item>

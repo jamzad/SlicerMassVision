@@ -2181,34 +2181,159 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return all_string
 
 	
-	# def ANOVA(self):
-	# 	from sklearn.feature_selection import f_classif
-	# 	ind_sort = np.argsort(-f_statistic)
+	def runANOVA(self, label_config):
+		from sklearn.feature_selection import f_classif
+
+		class_1, class_2 = label_config
+		classes = self.classes
+
+		if class_2 !=None:
+			unique_classes = label_config
+			mask = np.isin(classes, unique_classes)
+			f_statistic, p_values = f_classif(self.peaks[mask], classes[mask])
+			# n_classes = len(np.unique(classes[mask]))
+
+		elif class_1 !=None:
+			rest_class = "not " + class_1
+			unique_classes = [class_1, rest_class]
+
+			binary_labels = np.array([
+				class_1 if label == class_1 else rest_class
+				for label in classes
+			])
+
+			f_statistic, p_values = f_classif(self.peaks, binary_labels)
+			# n_classes = len(np.unique(binary_labels))
+
+		else:
+			f_statistic, p_values = f_classif(self.peaks, classes)
+			# n_classes = len(np.unique(classes))
+
+		# if n_classes==2:
+
+		
+		anova_results = pd.DataFrame({
+			'm/z': self.mz,
+			'F-statistics': f_statistic,
+			'p-value': p_values,
+			'index': np.arange(len(self.mz))
+		})
+
+		anova_results = anova_results.sort_values(by='F-statistics', ascending=False).reset_index(drop=True)
+
+		return anova_results
 	
-	def BoxPlot(self, mz_ref):
+	def runTtest(self, label_config, return_volcano=False):
+		from scipy.stats import ttest_ind
+
+		class_1, class_2 = label_config
+		classes = self.classes
+
+		if class_2 !=None:
+			group_1 = self.peaks[classes == class_1]
+			group_2 = self.peaks[classes == class_2]
+
+		elif class_1 !=None:
+			group_1 = self.peaks[classes == class_1]
+			group_2 = self.peaks[classes != class_1]
+
+		elif len(np.unique(classes))==2:
+			class_1, class_2 = np.unique(classes)
+			group_1 = self.peaks[classes == class_1]
+			group_2 = self.peaks[classes == class_2]
+
+		else:
+			print("NOT BINARY")
+			return None
+
+		t_values, p_values = ttest_ind(group_1, group_2, axis=0, equal_var=False)  # Welch's t-test
+
+		if not return_volcano:
+			ttest_results = pd.DataFrame({
+				'm/z': self.mz,
+				't-statistics': t_values,
+				'p-value': p_values,
+				'index': np.arange(len(self.mz))
+			})
+
+			ttest_results = ttest_results.sort_values(by='t-statistics', ascending=False).reset_index(drop=True)
+
+			return ttest_results
+		
+		else:
+			p_values = -np.log10(p_values+1e-300)
+			fold_changes = np.log2(group_1.mean(axis=0) / (group_2.mean(axis=0) + 1e-300))  # Avoid division by zero
+			volcano_results = pd.DataFrame({
+				'm/z': self.mz,
+				'FC [log]': fold_changes,
+				'p-value [-log]': p_values,
+				'index': np.arange(len(self.mz))
+			})
+
+			volcano_results = volcano_results.sort_values(by='FC [log]', ascending=False).reset_index(drop=True)
+			
+			saveName = os.path.splitext(self.csvFile)[0]+ r"_volcano.jpeg"
+			plot_custom_volcano(fold_changes, p_values, self.mz, p_thresh=0.05, fc_thresh=1, top_n=10, figsize=(12,5), save_path=saveName)
+
+			# display plot
+			volumeNode = slicer.util.loadNodeFromFile(saveName, "VolumeFile", {"singleFile": True, "show": False})
+
+			RedCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeRed")
+			RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
+
+			RedCompNode.SetBackgroundVolumeID(volumeNode.GetID())
+			RedNode.SetOrientation("Axial")
+
+			return volcano_results
+	
+	def BoxPlot(self, mz_ref, label_config):
 		mz_ind = np.where(self.mz == mz_ref)[0][0]
 
-		classes = self.df["Class"].values
-		unique_classes = np.unique(classes)
+		class_1, class_2 = label_config
+		classes = self.classes
 
-		grouped_data = [self.peaks[classes == cls, mz_ind] for cls in unique_classes]
+		if class_2 !=None:
+			unique_classes = label_config
 
-		saveName = os.path.splitext(self.csvFile)[0]+ f'_{mz_ref}boxplott.jpeg'
-		fig, ax = plot_custom_boxplot(grouped_data, unique_classes, mz_ref, (5,5), saveName)
+			mask = np.isin(classes, unique_classes)
+			filtered_classes = classes[mask]
+			filtered_peaks = self.peaks[mask, mz_ind]
+
+			grouped_data = [
+				filtered_peaks[filtered_classes == cls] for cls in unique_classes
+			]
+
+		elif class_1 !=None:
+			rest_class = "not " + class_1
+			unique_classes = [class_1, rest_class]
+
+			binary_labels = np.array([
+				class_1 if label == class_1 else rest_class
+				for label in classes
+			])
+
+			grouped_data = [self.peaks[binary_labels == cls, mz_ind] for cls in unique_classes
+			]
+
+		else:
+			unique_classes = np.unique(classes)
+			grouped_data = [self.peaks[classes == cls, mz_ind] for cls in unique_classes]
+
+		saveName = os.path.splitext(self.csvFile)[0]+ f'_{mz_ref}_boxplot.jpeg'
+		plot_custom_boxplot(grouped_data, unique_classes, mz_ref, (5,5), saveName)
 
 		df_summary = boxplot_summary(grouped_data, unique_classes)
 		# table_node = pandas_to_slicer_table(df_summary, 'Statistics')
 
 		# display plot
+		# volumeNode = slicer.util.loadVolume(saveName, {"singleFile": True})
+		volumeNode = slicer.util.loadNodeFromFile(saveName, "VolumeFile", {"singleFile": True, "show": False})
+
 		YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
 		YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
-
-		volumeNode = slicer.util.loadVolume(saveName, {"singleFile": True})
-		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
-
+		
 		YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
 		YellowNode.SetOrientation("Axial")
-		slicer.util.resetSliceViews()
 
 		return df_summary
 
@@ -2351,6 +2476,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.df = df
 		self.peaks = peaks
 		self.mz = mz
+		self.classes = self.df["Class"].values
 
 		self.csvFile = filename
 		retstr = 'Dataset successfully loaded! \n'
@@ -3392,7 +3518,7 @@ def get_performance(y_train, y_train_preds, y_train_prob, class_order):
 
 def plot_custom_boxplot(grouped_data, groups, mz_title, figsize=(5,5), save_path=None):
 	num_groups = len(grouped_data)
-	colors = cm.tab10(np.linspace(0, 1, num_groups))
+	colors = cm.jet(np.linspace(0, 1, num_groups))
 	fig, ax = plt.subplots(figsize=figsize)
 
 	box = ax.boxplot(
@@ -3432,8 +3558,8 @@ def plot_custom_boxplot(grouped_data, groups, mz_title, figsize=(5,5), save_path
 
 	if save_path:
 		fig.savefig(save_path, dpi=300, bbox_inches='tight')
-		
-	return fig, ax
+
+	plt.close()
 
 
 def boxplot_summary(grouped_data, classes):
@@ -3459,38 +3585,104 @@ def boxplot_summary(grouped_data, classes):
     return df_summary
 
 
+def plot_custom_volcano(log2_fc, neg_log10_p, mz, p_thresh=0.05, fc_thresh=1, top_n=10, figsize=(5,5), save_path=None):
+	
+	# Thresholds
+	log_p_thresh = -np.log10(p_thresh) 
 
-def pandas_to_slicer_table(df: pd.DataFrame, table_name="StatsTable"):
-    # Create new table node
-    table_node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode", table_name)
-    table = table_node.GetTable()
+	# Create DataFrame
+	df = pd.DataFrame({
+		'mz': mz,
+		'log2FC': log2_fc,
+		'-log10(p)': neg_log10_p
+	})
 
-    # Create and set column headers
-    vtk_columns = []
+	# Apply significance criteria
+	df['significant'] = (df['-log10(p)'] > log_p_thresh) & (np.abs(df['log2FC']) > fc_thresh)
+	df['upregulated'] = df['significant'] & (df['log2FC'] > fc_thresh)
+	df['downregulated'] = df['significant'] & (df['log2FC'] < -fc_thresh)
 
-    # First column is for row labels (index)
-    row_header = vtk.vtkStringArray()
-    row_header.SetName("Parameter")
-    row_header.SetNumberOfValues(len(df.index))
-    for i, row_label in enumerate(df.index):
-        row_header.SetValue(i, str(row_label))
-    table.AddColumn(row_header)
-    vtk_columns.append(row_header)
+	# Compute composite ranking score
+	df['score'] = df['-log10(p)'] * np.abs(df['log2FC'])
 
-    # Add each DataFrame column as a VTK column
-    for col in df.columns:
-        vtk_col = vtk.vtkStringArray()
-        vtk_col.SetName(str(col))
-        vtk_col.SetNumberOfValues(len(df.index))
-        for i, val in enumerate(df[col]):
-            vtk_col.SetValue(i, str(val))  # Convert everything to string for display
-        table.AddColumn(vtk_col)
-        vtk_columns.append(vtk_col)
+	# Select top N features for annotation
+	top_up = df[df['upregulated']].sort_values('score', ascending=False).head(top_n)
+	top_down = df[df['downregulated']].sort_values('score', ascending=False).head(top_n)
 
-    # Set number of rows in the table
-    table.SetNumberOfRows(len(df.index))
+	# Plotting
+	fig = plt.figure(figsize=figsize)
 
-    return table_node
+	# Non-significant points
+	plt.scatter(df.loc[~df['significant'], 'log2FC'],
+				df.loc[~df['significant'], '-log10(p)'],
+				color='lightgray', s=10, label='Not significant')
+
+	# Upregulated points
+	plt.scatter(df.loc[df['upregulated'], 'log2FC'],
+				df.loc[df['upregulated'], '-log10(p)'],
+				color='red', s=20, label='Upregulated')
+
+	# Downregulated points
+	plt.scatter(df.loc[df['downregulated'], 'log2FC'],
+				df.loc[df['downregulated'], '-log10(p)'],
+				color='blue', s=20, label='Downregulated')
+
+	# Threshold lines
+	plt.axhline(log_p_thresh, color='black', linestyle='--', linewidth=1)
+	plt.axvline(fc_thresh, color='black', linestyle='--', linewidth=1)
+	plt.axvline(-fc_thresh, color='black', linestyle='--', linewidth=1)
+
+	# Annotations for top features
+	for _, row in pd.concat([top_up, top_down]).iterrows():
+		plt.annotate(row['mz'],
+					(row['log2FC'], row['-log10(p)']),
+					fontsize=8, xytext=(5, 2), textcoords='offset points')
+
+	# Labels and layout
+	plt.xlabel('log₂(Fold Change)', fontsize=12)
+	plt.ylabel('−log₁₀(p-value)', fontsize=12)
+	plt.title('Volcano Plot', fontsize=14)
+	plt.legend()
+	plt.grid(True, linestyle='--', alpha=0.5)
+	plt.tight_layout()
+
+	if save_path:
+		fig.savefig(save_path, dpi=300, bbox_inches='tight')
+
+	plt.close()
+
+
+# def pandas_to_slicer_table(df: pd.DataFrame, table_name="StatsTable"):
+#     # Create new table node
+#     table_node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode", table_name)
+#     table = table_node.GetTable()
+
+#     # Create and set column headers
+#     vtk_columns = []
+
+#     # First column is for row labels (index)
+#     row_header = vtk.vtkStringArray()
+#     row_header.SetName("Parameter")
+#     row_header.SetNumberOfValues(len(df.index))
+#     for i, row_label in enumerate(df.index):
+#         row_header.SetValue(i, str(row_label))
+#     table.AddColumn(row_header)
+#     vtk_columns.append(row_header)
+
+#     # Add each DataFrame column as a VTK column
+#     for col in df.columns:
+#         vtk_col = vtk.vtkStringArray()
+#         vtk_col.SetName(str(col))
+#         vtk_col.SetNumberOfValues(len(df.index))
+#         for i, val in enumerate(df[col]):
+#             vtk_col.SetValue(i, str(val))  # Convert everything to string for display
+#         table.AddColumn(vtk_col)
+#         vtk_columns.append(vtk_col)
+
+#     # Set number of rows in the table
+#     table.SetNumberOfRows(len(df.index))
+
+#     return table_node
 
 # Low Coefficient of Variation (CV) Across Spectra for selection of normalization 
 # cv = np.std(data, axis=0) / np.mean(data, axis=0)

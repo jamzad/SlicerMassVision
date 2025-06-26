@@ -182,6 +182,11 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.rawsmoothLab.setVisible(False)
 		self.ui.rawsmoothVal.setVisible(False)
 
+		self.ui.statGroup1Lab.setVisible(False)
+		self.ui.statGroup1combo.setVisible(False)
+		self.ui.statGroup2Lab.setVisible(False)
+		self.ui.statGroup2combo.setVisible(False)
+		
 		# Set logo in UI
 		logo_path = self.resourcePath('Icons/UI_nameM.png')
 		# logo_path = self.resourcePath('Icons/UI_logoS.png')
@@ -342,6 +347,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.importStat.connect("clicked(bool)", self.onSelectStatData)
 		self.ui.distributionPCA.connect("clicked(bool)", self.onPlotDIstribution)
 		self.ui.boxplotButton.connect("clicked(bool)", self.onBoxPlot)
+		self.ui.anovaButton.connect("clicked(bool)", self.onANOVA)
+		self.ui.statClassConfig.currentTextChanged.connect(self.onStatConfigChange)
+		self.ui.ttestButton.connect("clicked(bool)", self.onTtest)
+		self.ui.volcanoButton.connect("clicked(bool)", self.onVolcano)
 
 		
 		# Model Training
@@ -1214,11 +1223,92 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.postCsvinfo.setText(retstr)
 
 
-	### Statistical
+	### Statistical tab
+	def onSelectStatData(self):
+		fileExplorer = qt.QFileDialog()
+		csvFilename = fileExplorer.getOpenFileName(None, "Open CSV dataset", "", "CSV Files (*.csv);;All Files (*)")
+		if csvFilename:
+			self.ui.fileStat.setText(csvFilename)
+			self.ui.fileStat.setToolTip(csvFilename)
+
+			csv_info = self.logic.CsvLoad(csvFilename)
+			if csv_info:
+				self.ui.infoStat.setText(csv_info)
+				self.ui.statIonCombo.clear()
+				all_mz = self.logic.getCsvMzList()
+				for mz in all_mz:
+					self.ui.statIonCombo.addItem(mz)
+
+			classes = self.logic.classes
+			unique_classes = np.unique(classes)
+
+			self.ui.statClassConfig.clear()
+			self.ui.statGroup1combo.clear()
+			self.ui.statGroup2combo.clear()
+
+			self.ui.statGroup1Lab.setVisible(False)
+			self.ui.statGroup1combo.setVisible(False)
+			self.ui.statGroup2Lab.setVisible(False)
+			self.ui.statGroup2combo.setVisible(False)
+
+			if len(unique_classes)==1:
+				self.ui.statClassConfig.addItem("Single class")
+			elif len(unique_classes)==2:
+				self.ui.statClassConfig.addItem("All classes - binary")
+			elif len(unique_classes)>2:
+				self.ui.statClassConfig.addItem("All classes")
+				self.ui.statClassConfig.addItem("Binary - one versus the rest")
+				self.ui.statClassConfig.addItem("Binary - two classes")
+				self.ui.statClassConfig.setCurrentText("All classes")
+
+	def onStatConfigChange(self, text):
+		if text in ["Single class", "All classes - binary", "All classes"]:
+			self.ui.statGroup1Lab.setVisible(False)
+			self.ui.statGroup1combo.setVisible(False)
+			self.ui.statGroup2Lab.setVisible(False)
+			self.ui.statGroup2combo.setVisible(False)
+		elif text == "Binary - one versus the rest":
+			classes = np.unique(self.logic.classes)
+			self.ui.statGroup1combo.clear()
+			for label in classes:
+				self.ui.statGroup1combo.addItem(label)
+			self.ui.statGroup1Lab.setVisible(True)
+			self.ui.statGroup1combo.setVisible(True)
+			self.ui.statGroup2Lab.setVisible(False)
+			self.ui.statGroup2combo.setVisible(False)
+		else:
+			classes = np.unique(self.logic.classes)
+			self.ui.statGroup1combo.clear()
+			for label in classes:
+				self.ui.statGroup1combo.addItem(label)
+			self.ui.statGroup2combo.clear()
+			for label in classes:
+				self.ui.statGroup2combo.addItem(label)
+			self.ui.statGroup1Lab.setVisible(True)
+			self.ui.statGroup1combo.setVisible(True)
+			self.ui.statGroup2Lab.setVisible(True)
+			self.ui.statGroup2combo.setVisible(True)
+	
+	def onPlotDIstribution(self):
+		self.logic.plot_latent_pca()
+
+	def GetStatConfigParameters(self):
+		label_1, label_2 = None, None
+		if self.ui.statGroup2combo.isVisible():
+			label_1 = self.ui.statGroup1combo.currentText
+			label_2 = self.ui.statGroup2combo.currentText
+		elif self.ui.statGroup1combo.isVisible():
+			label_1 = self.ui.statGroup1combo.currentText
+
+		return [label_1, label_2]
+
 	def onBoxPlot(self):
 		mz_ref = float(self.ui.statIonCombo.currentText)
-		df_summary = self.logic.BoxPlot(mz_ref)
-
+		label_config = self.GetStatConfigParameters()
+		df_summary = self.logic.BoxPlot(mz_ref, label_config)
+		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
+		slicer.util.resetSliceViews()
+		
 		# create a table node
 		tableNode = slicer.mrmlScene.GetFirstNodeByName("BoxplotStats")
 		if not tableNode:
@@ -1259,11 +1349,139 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		slicer.app.layoutManager().layoutLogic().GetLayoutNode().AddLayoutDescription(customLayoutId, customLayout)
 		slicer.app.layoutManager().setLayout(customLayoutId)
 
+	def onANOVA(self):
+		self.onRunStat(test_method='anova', tabName = "ANOVA")
+	
+	def onTtest(self):
+		self.onRunStat(test_method='ttest', tabName = "tTest")
+
+	def onVolcano(self):
+		self.onRunStat(test_method='ttest', tabName = "Volcano", return_volcano=True)
+
+	def onRunStat(self, test_method, tabName, return_volcano=False):
+		label_config = self.GetStatConfigParameters()
+
+		if test_method == 'anova':
+			stat_results = self.logic.runANOVA(label_config)
+		elif test_method == 'ttest':
+			stat_results = self.logic.runTtest(label_config, return_volcano)
+
+		if stat_results is None:
+			warning_dialog = qt.QMessageBox()
+			warning_dialog.setIcon(qt.QMessageBox.Warning)
+			warning_dialog.setText("This method is not compatible with non-binary data. Please choose a binary configuration.")
+			warning_dialog.setWindowTitle("Non-binary warning")
+			warning_dialog.setStandardButtons(qt.QMessageBox.Ok)
+			warning_dialog.exec_()
+			return False
+
+		# create a table node
+		tableNode = slicer.mrmlScene.GetFirstNodeByName(tabName)
+		if not tableNode:
+			tableNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTableNode', tabName)
+		else:
+			tableNode.RemoveAllColumns()
+
+		for col in stat_results.columns:
+			array = vtk.vtkVariantArray()
+			array.SetName(str(col))
+			for val in stat_results[col]:
+				array.InsertNextValue(vtk.vtkVariant(str(val)))
+			tableNode.AddColumn(array)
+
+		# lock the table
+		tableNode.SetUseColumnTitleAsColumnHeader(True)
+		tableNode.SetLocked(True)
+
+		# set the table view node
+		tableViewNodes = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
+		if tableViewNodes:
+			tableViewNode = tableViewNodes[0]
+			tableViewNode.SetTableNodeID(tableNode.GetID())
+
+		# view the table below the ion images
+		# customLayoutId = 70
+		# customLayout = """
+		# <layout type="vertical">
+		# <item>
+		# 	<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+		# </item>
+		# </layout>
+		# """
+		if not return_volcano:
+			customLayoutId = 91
+			customLayout = """
+			<layout type="horizontal" split="true">
+			<item>
+				<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+			</item>
+			<item>
+				<view class="vtkMRMLSliceNode" singletontag="Yellow"/>
+			</item>
+			</layout>
+			"""
+			YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
+			YellowCompNode.SetBackgroundVolumeID("")
+			slicer.app.layoutManager().layoutLogic().GetLayoutNode().AddLayoutDescription(customLayoutId, customLayout)
+			slicer.app.layoutManager().setLayout(customLayoutId)
+
+		else:
+			customLayoutId = 92
+			customLayout = """
+			<layout type="vertical" split="true">
+			<item>
+				<layout type="horizontal" split="true">
+				<item>
+					<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+				</item>
+				<item>
+					<view class="vtkMRMLSliceNode" singletontag="Yellow"/>
+				</item>
+				</layout>
+			</item>
+			<item>
+				<view class="vtkMRMLSliceNode" singletontag="Red"/>
+			</item>
+			</layout>
+			"""
+			YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
+			YellowCompNode.SetBackgroundVolumeID("")
+			slicer.app.layoutManager().layoutLogic().GetLayoutNode().AddLayoutDescription(customLayoutId, customLayout)
+			slicer.app.layoutManager().setLayout(customLayoutId)
+			slicer.util.resetSliceViews()
+
+
+		# interactive boxplot on cell click
+		self.tableNode = tableNode
+
+		tableView = None
+		for w in qt.QApplication.instance().allWidgets():
+			if isinstance(w, slicer.qMRMLTableView) and w.mrmlTableNode() is tableNode:
+				tableView = w
+				break
+		if not tableView:
+			slicer.util.errorDisplay("Table view for 'Stat' is not open")
+			raise RuntimeError("No open Table View for 'Stat'")
+		
+		try:
+			tableView.clicked.disconnect()
+		except Exception:
+			pass
+		tableView.clicked.connect(self.onStatCellClicked)
+
+	def onStatCellClicked(self, index):
+		row = index.row()
+		# col = index.column()
+		# colName = self.tableNode.GetColumnName(col)
+		# lastCol = self.tableNode.GetNumberOfColumns() - 1
+		mz_ref = float(self.tableNode.GetCellText(row, 0))
+		print(mz_ref)
+		label_config = self.GetStatConfigParameters()
+		df_summary = self.logic.BoxPlot(mz_ref, label_config)
+		slicer.util.resetSliceViews()
+
+
 	### Model training tab
-
-	def onPlotDIstribution(self):
-		self.logic.plot_latent_pca()
-
 	def onRankMethodChange(self, text):
 		if text == "Linear SVC":
 			self.ui.FRankParamLab.setVisible(True)
@@ -1325,21 +1543,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			self.logic.manual_features_indices = [int(x) for x in df.values.ravel()]
 			print("Manual feature load compeleted")
 			print(self.logic.manual_features_indices)
-
-	def onSelectStatData(self):
-		fileExplorer = qt.QFileDialog()
-		csvFilename = fileExplorer.getOpenFileName(None, "Open CSV dataset", "", "CSV Files (*.csv);;All Files (*)")
-		if csvFilename:
-			self.ui.fileStat.setText(csvFilename)
-			self.ui.fileStat.setToolTip(csvFilename)
-
-			csv_info = self.logic.CsvLoad(csvFilename)
-			if csv_info:
-				self.ui.infoStat.setText(csv_info)
-				self.ui.statIonCombo.clear()
-				all_mz = self.logic.getCsvMzList()
-				for mz in all_mz:
-					self.ui.statIonCombo.addItem(mz)
 
 	def onSelectModelData(self):
 		fileExplorer = qt.QFileDialog()
