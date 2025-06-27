@@ -1478,7 +1478,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		print(mz_ref)
 		label_config = self.GetStatConfigParameters()
 		df_summary = self.logic.BoxPlot(mz_ref, label_config)
-		slicer.util.resetSliceViews()
+		# slicer.util.resetSliceViews()
+		yellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
+		yellowLogic = slicer.app.applicationLogic().GetSliceLogic(yellowNode)
+		yellowLogic.FitSliceToAll()
 
 
 	### Model training tab

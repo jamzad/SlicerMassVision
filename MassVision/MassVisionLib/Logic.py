@@ -2273,7 +2273,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			volcano_results = volcano_results.sort_values(by='FC [log]', ascending=False).reset_index(drop=True)
 			
 			saveName = os.path.splitext(self.csvFile)[0]+ r"_volcano.jpeg"
-			plot_custom_volcano(fold_changes, p_values, self.mz, p_thresh=0.05, fc_thresh=1, top_n=10, figsize=(12,5), save_path=saveName)
+			plot_custom_volcano(fold_changes, p_values, self.mz, p_thresh=0.05, fc_thresh=1, top_n=20, figsize=(12,5), save_path=saveName)
 
 			# display plot
 			volumeNode = slicer.util.loadNodeFromFile(saveName, "VolumeFile", {"singleFile": True, "show": False})
@@ -3636,7 +3636,7 @@ def plot_custom_volcano(log2_fc, neg_log10_p, mz, p_thresh=0.05, fc_thresh=1, to
 	for _, row in pd.concat([top_up, top_down]).iterrows():
 		plt.annotate(row['mz'],
 					(row['log2FC'], row['-log10(p)']),
-					fontsize=8, xytext=(5, 2), textcoords='offset points')
+					fontsize=5, xytext=(5, 2), textcoords='offset points')
 
 	# Labels and layout
 	plt.xlabel('log₂(Fold Change)', fontsize=12)
@@ -3647,7 +3647,7 @@ def plot_custom_volcano(log2_fc, neg_log10_p, mz, p_thresh=0.05, fc_thresh=1, to
 	plt.tight_layout()
 
 	if save_path:
-		fig.savefig(save_path, dpi=300, bbox_inches='tight')
+		fig.savefig(save_path, dpi=400, bbox_inches='tight')
 
 	plt.close()
 
