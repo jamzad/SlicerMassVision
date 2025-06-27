@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>412</width>
-    <height>1428</height>
+    <width>557</width>
+    <height>1725</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -32,7 +32,7 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>0</number>
+   <number>6</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
@@ -64,33 +64,6 @@
        <string/>
       </property>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="8" column="0">
-        <widget class="QPushButton" name="Go2tab2">
-         <property name="styleSheet">
-          <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
-         </property>
-         <property name="text">
-          <string>Visualization</string>
-         </property>
-        </widget>
-       </item>
-       <item row="17" column="0" colspan="2">
-        <spacer name="verticalSpacer_46">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Fixed</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
        <item row="5" column="0" colspan="2">
         <spacer name="verticalSpacer_16">
          <property name="orientation">
@@ -107,46 +80,44 @@ color: rgb(255, 255, 255);</string>
          </property>
         </spacer>
        </item>
-       <item row="8" column="1">
-        <widget class="QPushButton" name="Go2tab6">
-         <property name="styleSheet">
-          <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
-         </property>
-         <property name="text">
-          <string>AI supervised training</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="label_28">
-         <property name="text">
-          <string>Prijects</string>
-         </property>
-        </widget>
-       </item>
-       <item row="11" column="1">
-        <widget class="QPushButton" name="Go2tab8">
-         <property name="styleSheet">
-          <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
-         </property>
-         <property name="text">
-          <string>AI model deployment</string>
-         </property>
-        </widget>
-       </item>
-       <item row="19" column="0" colspan="2">
-        <widget class="QPushButton" name="database1">
-         <property name="text">
-          <string>Human Metabolome Database</string>
-         </property>
-        </widget>
-       </item>
        <item row="20" column="0" colspan="2">
+        <spacer name="verticalSpacer_46">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="23" column="0" colspan="2">
         <widget class="QPushButton" name="database2">
          <property name="text">
           <string>LIPID Metabolites And Pathways Strategy</string>
+         </property>
+        </widget>
+       </item>
+       <item row="18" column="0" colspan="2">
+        <widget class="QPushButton" name="sampleData">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Sample data</string>
+         </property>
+        </widget>
+       </item>
+       <item row="22" column="0" colspan="2">
+        <widget class="QPushButton" name="database1">
+         <property name="text">
+          <string>Human Metabolome Database</string>
          </property>
         </widget>
        </item>
@@ -157,46 +128,6 @@ color: rgb(255, 255, 255);</string>
          </property>
         </widget>
        </item>
-       <item row="9" column="0">
-        <widget class="QPushButton" name="Go2tab3">
-         <property name="styleSheet">
-          <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
-         </property>
-         <property name="text">
-          <string>Dataset curation</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0" colspan="2">
-        <widget class="QPushButton" name="clearReloadPush">
-         <property name="text">
-          <string>Clear data and analysis</string>
-         </property>
-        </widget>
-       </item>
-       <item row="11" column="0">
-        <widget class="QPushButton" name="Go2tab4">
-         <property name="styleSheet">
-          <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
-         </property>
-         <property name="text">
-          <string>Multi-dataset alignment</string>
-         </property>
-        </widget>
-       </item>
-       <item row="14" column="0" colspan="2">
-        <widget class="QPushButton" name="userManual">
-         <property name="styleSheet">
-          <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
-         </property>
-         <property name="text">
-          <string>User manual</string>
-         </property>
-        </widget>
-       </item>
        <item row="4" column="0" colspan="2">
         <widget class="QPushButton" name="loadScenePush">
          <property name="text">
@@ -204,7 +135,14 @@ color: rgb(255, 255, 255);</string>
          </property>
         </widget>
        </item>
-       <item row="12" column="0" colspan="2">
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_28">
+         <property name="text">
+          <string>Prijects</string>
+         </property>
+        </widget>
+       </item>
+       <item row="15" column="0" colspan="2">
         <spacer name="verticalSpacer_44">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -220,18 +158,50 @@ color: rgb(255, 255, 255);</string>
          </property>
         </spacer>
        </item>
-       <item row="15" column="0" colspan="2">
-        <widget class="QPushButton" name="sampleData">
+       <item row="2" column="0" colspan="2">
+        <widget class="QPushButton" name="clearReloadPush">
+         <property name="text">
+          <string>Clear data and analysis</string>
+         </property>
+        </widget>
+       </item>
+       <item row="19" column="0" colspan="2">
+        <widget class="QPushButton" name="codeBase">
          <property name="styleSheet">
           <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
          </property>
          <property name="text">
-          <string>Sample data</string>
+          <string>Codebase</string>
          </property>
         </widget>
        </item>
-       <item row="7" column="0">
+       <item row="16" column="0">
+        <widget class="QLabel" name="label_29">
+         <property name="text">
+          <string>Resources</string>
+         </property>
+        </widget>
+       </item>
+       <item row="21" column="0">
+        <widget class="QLabel" name="label_30">
+         <property name="text">
+          <string>External links</string>
+         </property>
+        </widget>
+       </item>
+       <item row="17" column="0" colspan="2">
+        <widget class="QPushButton" name="userManual">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>User manual</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0" colspan="2">
         <widget class="QPushButton" name="Go2tab1">
          <property name="styleSheet">
           <string notr="true">background-color: #006666;
@@ -242,18 +212,40 @@ color: rgb(255, 255, 255);</string>
          </property>
         </widget>
        </item>
-       <item row="9" column="1">
-        <widget class="QPushButton" name="Go2tab7">
+       <item row="8" column="0">
+        <widget class="QPushButton" name="Go2tab2">
          <property name="styleSheet">
           <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
          </property>
          <property name="text">
-          <string>AI performance report</string>
+          <string>Visualization</string>
          </property>
         </widget>
        </item>
-       <item row="7" column="1">
+       <item row="9" column="0">
+        <widget class="QPushButton" name="Go2tab3">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Dataset curation</string>
+         </property>
+        </widget>
+       </item>
+       <item row="10" column="0">
+        <widget class="QPushButton" name="Go2tab4">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Multi-dataset alignment</string>
+         </property>
+        </widget>
+       </item>
+       <item row="11" column="0">
         <widget class="QPushButton" name="Go2tab5">
          <property name="styleSheet">
           <string notr="true">background-color: #006666;
@@ -264,28 +256,47 @@ color: rgb(255, 255, 255);</string>
          </property>
         </widget>
        </item>
-       <item row="13" column="0">
-        <widget class="QLabel" name="label_29">
-         <property name="text">
-          <string>Resources</string>
-         </property>
-        </widget>
-       </item>
-       <item row="18" column="0">
-        <widget class="QLabel" name="label_30">
-         <property name="text">
-          <string>External links</string>
-         </property>
-        </widget>
-       </item>
-       <item row="16" column="0" colspan="2">
-        <widget class="QPushButton" name="codeBase">
+       <item row="8" column="1">
+        <widget class="QPushButton" name="Go2tab6">
          <property name="styleSheet">
           <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
          </property>
          <property name="text">
-          <string>Codebase</string>
+          <string>Statistical analysis</string>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="1">
+        <widget class="QPushButton" name="Go2tab7">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>AI supervised training</string>
+         </property>
+        </widget>
+       </item>
+       <item row="10" column="1">
+        <widget class="QPushButton" name="Go2tab8">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>AI performance report</string>
+         </property>
+        </widget>
+       </item>
+       <item row="11" column="1">
+        <widget class="QPushButton" name="Go2tab9">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>AI model deployment</string>
          </property>
         </widget>
        </item>
@@ -355,8 +366,8 @@ color: rgb(255, 255, 255);</string>
        <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Data info&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:6.6pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8.25pt;&quot;&gt;Data info&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
     </item>
@@ -1114,8 +1125,8 @@ color: rgb(255, 255, 255);</string>
        <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;File location&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:6.6pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8.25pt;&quot;&gt;File location&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
     </item>
@@ -1142,8 +1153,8 @@ color: rgb(255, 255, 255);</string>
        <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Data info&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:6.6pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8.25pt;&quot;&gt;Data info&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
     </item>
@@ -1551,8 +1562,8 @@ color: rgb(255, 255, 255);</string>
        <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;ion contributions&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:6.6pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8.25pt;&quot;&gt;ion contributions&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
     </item>
@@ -2381,8 +2392,8 @@ color: rgb(255, 255, 255);</string>
        <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Dataset info&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:6.6pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8.25pt;&quot;&gt;Dataset info&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
     </item>
@@ -2577,8 +2588,8 @@ color: rgb(255, 255, 255);</string>
        <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Aligned dataset info&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:6.6pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8.25pt;&quot;&gt;Aligned dataset info&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
     </item>
@@ -2845,8 +2856,8 @@ color: rgb(255, 255, 255);</string>
        <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Aligned dataset info&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:6.6pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8.25pt;&quot;&gt;Aligned dataset info&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
     </item>
@@ -2993,8 +3004,8 @@ color: rgb(255, 255, 255);</string>
        <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Dataset info&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:6.6pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8.25pt;&quot;&gt;Dataset info&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
     </item>
@@ -3350,8 +3361,377 @@ color: rgb(255, 255, 255);</string>
        <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Dataset info&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:6.6pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8.25pt;&quot;&gt;Dataset info&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QWidget" name="tab_10">
+   <attribute name="title">
+    <string>Statistical analysis</string>
+   </attribute>
+   <layout class="QFormLayout" name="formLayout_11">
+    <item row="0" column="0">
+     <widget class="QLabel" name="label_65">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Import CSV dataset</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="1">
+     <spacer name="horizontalSpacer_4">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="1" column="0">
+     <widget class="QPushButton" name="importStat">
+      <property name="text">
+       <string>Select file...</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="1">
+     <widget class="QLineEdit" name="fileStat">
+      <property name="readOnly">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="0" colspan="2">
+     <widget class="QTextBrowser" name="infoStat">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>150</height>
+       </size>
+      </property>
+      <property name="html">
+       <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:6.6pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8.25pt;&quot;&gt;Dataset info&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="0" colspan="2">
+     <spacer name="verticalSpacer_12">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="4" column="0">
+     <widget class="QLabel" name="label_62">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Data distribution</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="1">
+     <spacer name="horizontalSpacer_5">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="5" column="1">
+     <widget class="QPushButton" name="distributionPCA">
+      <property name="styleSheet">
+       <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+      </property>
+      <property name="text">
+       <string>Plot PCA latent space</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="0" colspan="2">
+     <spacer name="verticalSpacer_17">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="12" column="0">
+     <widget class="QLabel" name="label_89">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Boxplot</string>
+      </property>
+     </widget>
+    </item>
+    <item row="12" column="1">
+     <spacer name="horizontalSpacer_15">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="13" column="0">
+     <widget class="QLabel" name="label_23">
+      <property name="text">
+       <string>ion (m/z)</string>
+      </property>
+     </widget>
+    </item>
+    <item row="13" column="1">
+     <widget class="QComboBox" name="statIonCombo"/>
+    </item>
+    <item row="15" column="0" colspan="2">
+     <spacer name="verticalSpacer_31">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="14" column="1">
+     <widget class="QPushButton" name="boxplotButton">
+      <property name="styleSheet">
+       <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+      </property>
+      <property name="text">
+       <string>Plot</string>
+      </property>
+     </widget>
+    </item>
+    <item row="20" column="0" colspan="2">
+     <spacer name="verticalSpacer_47">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="16" column="0">
+     <widget class="QLabel" name="label_90">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Statistical tests</string>
+      </property>
+     </widget>
+    </item>
+    <item row="17" column="1">
+     <widget class="QPushButton" name="anovaButton">
+      <property name="styleSheet">
+       <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+      </property>
+      <property name="text">
+       <string>ANOVA</string>
+      </property>
+     </widget>
+    </item>
+    <item row="16" column="1">
+     <spacer name="horizontalSpacer_34">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="11" column="0" colspan="2">
+     <spacer name="verticalSpacer_48">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="7" column="0">
+     <widget class="QLabel" name="label_91">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Configuration</string>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="1">
+     <spacer name="horizontalSpacer_35">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="8" column="1">
+     <widget class="QComboBox" name="statClassConfig"/>
+    </item>
+    <item row="8" column="0">
+     <widget class="QLabel" name="label_26">
+      <property name="text">
+       <string>comparison type</string>
+      </property>
+     </widget>
+    </item>
+    <item row="9" column="1">
+     <widget class="QComboBox" name="statGroup1combo"/>
+    </item>
+    <item row="9" column="0">
+     <widget class="QLabel" name="statGroup1Lab">
+      <property name="text">
+       <string>group 1</string>
+      </property>
+     </widget>
+    </item>
+    <item row="10" column="0">
+     <widget class="QLabel" name="statGroup2Lab">
+      <property name="text">
+       <string>group 2</string>
+      </property>
+     </widget>
+    </item>
+    <item row="10" column="1">
+     <widget class="QComboBox" name="statGroup2combo"/>
+    </item>
+    <item row="18" column="1">
+     <widget class="QPushButton" name="ttestButton">
+      <property name="styleSheet">
+       <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+      </property>
+      <property name="text">
+       <string>Welch's t-test</string>
+      </property>
+     </widget>
+    </item>
+    <item row="19" column="1">
+     <widget class="QPushButton" name="volcanoButton">
+      <property name="styleSheet">
+       <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+      </property>
+      <property name="text">
+       <string>Volcano</string>
       </property>
      </widget>
     </item>
@@ -3435,8 +3815,8 @@ color: rgb(255, 255, 255);</string>
        <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Dataset info&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:6.6pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8.25pt;&quot;&gt;Dataset info&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
     </item>
@@ -3457,47 +3837,6 @@ p, li { white-space: pre-wrap; }
      </spacer>
     </item>
     <item row="9" column="0">
-     <widget class="QLabel" name="label_62">
-      <property name="font">
-       <font>
-        <pointsize>10</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>Data distribution</string>
-      </property>
-     </widget>
-    </item>
-    <item row="9" column="1">
-     <spacer name="horizontalSpacer_15">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>40</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="10" column="1">
-     <widget class="QPushButton" name="distributionPCA">
-      <property name="styleSheet">
-       <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
-      </property>
-      <property name="text">
-       <string>Plot PCA latent space</string>
-      </property>
-     </widget>
-    </item>
-    <item row="12" column="0">
      <widget class="QLabel" name="label_86">
       <property name="font">
        <font>
@@ -3514,7 +3853,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="12" column="1">
+    <item row="9" column="1">
      <spacer name="horizontalSpacer_24">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -3527,7 +3866,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="13" column="0">
+    <item row="10" column="0">
      <widget class="QLabel" name="FRankLabel">
       <property name="font">
        <font>
@@ -3543,7 +3882,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="13" column="1">
+    <item row="10" column="1">
      <widget class="QComboBox" name="FRankMethod">
       <item>
        <property name="text">
@@ -3562,7 +3901,152 @@ color: rgb(255, 255, 255);</string>
       </item>
      </widget>
     </item>
-    <item row="22" column="0" colspan="2">
+    <item row="11" column="0">
+     <widget class="QLabel" name="FRankParamLab">
+      <property name="font">
+       <font>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>C</string>
+      </property>
+     </widget>
+    </item>
+    <item row="11" column="1">
+     <widget class="QLineEdit" name="FRankParamVal">
+      <property name="text">
+       <string>1.0</string>
+      </property>
+     </widget>
+    </item>
+    <item row="12" column="1">
+     <widget class="QPushButton" name="FRankApply">
+      <property name="styleSheet">
+       <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+      </property>
+      <property name="text">
+       <string>Rank features</string>
+      </property>
+     </widget>
+    </item>
+    <item row="13" column="0" colspan="2">
+     <spacer name="verticalSpacer_23">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="14" column="0">
+     <widget class="QLabel" name="label_87">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Feature selection</string>
+      </property>
+     </widget>
+    </item>
+    <item row="14" column="1">
+     <spacer name="horizontalSpacer_28">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="15" column="0">
+     <widget class="QLabel" name="FselLabel">
+      <property name="font">
+       <font>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Method</string>
+      </property>
+     </widget>
+    </item>
+    <item row="15" column="1">
+     <widget class="QComboBox" name="FSelMethod">
+      <item>
+       <property name="text">
+        <string>None</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Top ranked</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Manual</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+    <item row="16" column="0">
+     <widget class="QLabel" name="FnumberLabel">
+      <property name="font">
+       <font>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Number of features</string>
+      </property>
+     </widget>
+    </item>
+    <item row="16" column="1">
+     <widget class="QLineEdit" name="FnumberValue">
+      <property name="text">
+       <string>100</string>
+      </property>
+     </widget>
+    </item>
+    <item row="17" column="1">
+     <widget class="QPushButton" name="FSelManualUpload">
+      <property name="text">
+       <string>Upload feature list...</string>
+      </property>
+     </widget>
+    </item>
+    <item row="19" column="0" colspan="2">
      <spacer name="verticalSpacer_34">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -3578,7 +4062,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="23" column="0">
+    <item row="20" column="0">
      <widget class="QLabel" name="label_63">
       <property name="font">
        <font>
@@ -3595,7 +4079,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="23" column="1">
+    <item row="20" column="1">
      <spacer name="horizontalSpacer_16">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -3608,7 +4092,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="25" column="0">
+    <item row="22" column="0">
      <widget class="QLabel" name="label_71">
       <property name="font">
        <font>
@@ -3624,7 +4108,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="25" column="1">
+    <item row="22" column="1">
      <widget class="QComboBox" name="ModelSelectCombobox">
       <item>
        <property name="text">
@@ -3648,7 +4132,7 @@ color: rgb(255, 255, 255);</string>
       </item>
      </widget>
     </item>
-    <item row="26" column="0">
+    <item row="23" column="0">
      <widget class="QLabel" name="MLlabel1">
       <property name="font">
        <font>
@@ -3665,14 +4149,14 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="26" column="1">
+    <item row="23" column="1">
      <widget class="QLineEdit" name="MLparam1">
       <property name="text">
        <string>0.99</string>
       </property>
      </widget>
     </item>
-    <item row="27" column="0">
+    <item row="24" column="0">
      <widget class="QLabel" name="MLlabel2">
       <property name="font">
        <font>
@@ -3689,14 +4173,14 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="27" column="1">
+    <item row="24" column="1">
      <widget class="QLineEdit" name="MLparam2">
       <property name="text">
        <string>0.99</string>
       </property>
      </widget>
     </item>
-    <item row="28" column="0" colspan="2">
+    <item row="25" column="0" colspan="2">
      <spacer name="verticalSpacer_33">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -3712,7 +4196,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="29" column="0">
+    <item row="26" column="0">
      <widget class="QLabel" name="label_78">
       <property name="font">
        <font>
@@ -3728,7 +4212,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="29" column="1">
+    <item row="26" column="1">
      <widget class="QRadioButton" name="allTrain">
       <property name="text">
        <string>Training on whole dataset</string>
@@ -3744,7 +4228,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="30" column="1">
+    <item row="27" column="1">
      <widget class="QRadioButton" name="randomSplit">
       <property name="text">
        <string>Random train/test split</string>
@@ -3757,14 +4241,21 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="31" column="1">
+    <item row="28" column="1">
      <widget class="QRadioButton" name="customSplit">
       <property name="text">
        <string>Slide-based train/test customization</string>
       </property>
      </widget>
     </item>
-    <item row="33" column="0" colspan="2">
+    <item row="29" column="1">
+     <widget class="QRadioButton" name="XVall">
+      <property name="text">
+       <string>Leave-one-slide-out cross-validation</string>
+      </property>
+     </widget>
+    </item>
+    <item row="30" column="0" colspan="2">
      <widget class="QLabel" name="namesTableLabel">
       <property name="styleSheet">
        <string notr="true"/>
@@ -3774,7 +4265,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="34" column="0" colspan="2">
+    <item row="31" column="0" colspan="2">
      <widget class="QTableWidget" name="namesTable">
       <column>
        <property name="text">
@@ -3798,7 +4289,7 @@ color: rgb(255, 255, 255);</string>
       </column>
      </widget>
     </item>
-    <item row="35" column="0" colspan="2">
+    <item row="32" column="0" colspan="2">
      <spacer name="verticalSpacer_27">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -3814,7 +4305,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="36" column="0">
+    <item row="33" column="0">
      <widget class="QLabel" name="label_83">
       <property name="font">
        <font>
@@ -3830,7 +4321,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="36" column="1">
+    <item row="33" column="1">
      <widget class="QComboBox" name="BalanceComBox">
       <item>
        <property name="text">
@@ -3854,7 +4345,7 @@ color: rgb(255, 255, 255);</string>
       </item>
      </widget>
     </item>
-    <item row="37" column="0" colspan="2">
+    <item row="34" column="0" colspan="2">
      <spacer name="verticalSpacer_26">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -3870,7 +4361,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="38" column="0">
+    <item row="35" column="0">
      <widget class="QLabel" name="label_79">
       <property name="font">
        <font>
@@ -3886,7 +4377,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="38" column="1">
+    <item row="35" column="1">
      <widget class="QCheckBox" name="saveModelcheckBox">
       <property name="text">
        <string>Export model pipeline</string>
@@ -3896,7 +4387,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="39" column="0" colspan="2">
+    <item row="36" column="0" colspan="2">
      <spacer name="verticalSpacer_8">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -3912,7 +4403,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="40" column="1">
+    <item row="37" column="1">
      <widget class="QPushButton" name="trainModel">
       <property name="styleSheet">
        <string notr="true">background-color: #006666;
@@ -3920,174 +4411,6 @@ color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
        <string>Train and validate</string>
-      </property>
-     </widget>
-    </item>
-    <item row="17" column="0">
-     <widget class="QLabel" name="label_87">
-      <property name="font">
-       <font>
-        <pointsize>10</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>Feature selection</string>
-      </property>
-     </widget>
-    </item>
-    <item row="17" column="1">
-     <spacer name="horizontalSpacer_28">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>40</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="18" column="0">
-     <widget class="QLabel" name="FselLabel">
-      <property name="font">
-       <font>
-        <weight>50</weight>
-        <bold>false</bold>
-       </font>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>Method</string>
-      </property>
-     </widget>
-    </item>
-    <item row="18" column="1">
-     <widget class="QComboBox" name="FSelMethod">
-      <item>
-       <property name="text">
-        <string>None</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>Top ranked</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>Manual</string>
-       </property>
-      </item>
-     </widget>
-    </item>
-    <item row="20" column="1">
-     <widget class="QPushButton" name="FSelManualUpload">
-      <property name="text">
-       <string>Upload feature list...</string>
-      </property>
-     </widget>
-    </item>
-    <item row="19" column="0">
-     <widget class="QLabel" name="FnumberLabel">
-      <property name="font">
-       <font>
-        <weight>50</weight>
-        <bold>false</bold>
-       </font>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>Number of features</string>
-      </property>
-     </widget>
-    </item>
-    <item row="19" column="1">
-     <widget class="QLineEdit" name="FnumberValue">
-      <property name="text">
-       <string>100</string>
-      </property>
-     </widget>
-    </item>
-    <item row="16" column="0" colspan="2">
-     <spacer name="verticalSpacer_23">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Fixed</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="15" column="1">
-     <widget class="QPushButton" name="FRankApply">
-      <property name="styleSheet">
-       <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
-      </property>
-      <property name="text">
-       <string>Rank features</string>
-      </property>
-     </widget>
-    </item>
-    <item row="11" column="0" colspan="2">
-     <spacer name="verticalSpacer_12">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Fixed</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="14" column="1">
-     <widget class="QLineEdit" name="FRankParamVal">
-      <property name="text">
-       <string>1.0</string>
-      </property>
-     </widget>
-    </item>
-    <item row="14" column="0">
-     <widget class="QLabel" name="FRankParamLab">
-      <property name="font">
-       <font>
-        <weight>50</weight>
-        <bold>false</bold>
-       </font>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>C</string>
-      </property>
-     </widget>
-    </item>
-    <item row="32" column="1">
-     <widget class="QRadioButton" name="XVall">
-      <property name="text">
-       <string>Leave-one-slide-out cross-validation</string>
       </property>
      </widget>
     </item>
@@ -4206,8 +4529,8 @@ color: rgb(255, 255, 255);</string>
        <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Data info&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:6.6pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8.25pt;&quot;&gt;Data info&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
     </item>
@@ -4291,8 +4614,8 @@ color: rgb(255, 255, 255);</string>
        <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Model info&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:6.6pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8.25pt;&quot;&gt;Model info&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
     </item>
