@@ -9,15 +9,16 @@ MassVis*ion* is a software solution developed in 3D Slicer platform for end-to-e
 The functionalities include data exploration via various targeted and non-targeted visualization, co-localization to spatial labels (histopathology annotations), dataset curation with spatial- and spectral-guidance, multi-slide dataset merge via feature alignment, denoising via spatial aggregation, AI model training and validation, and whole-slide AI deployment. 
 
 
-<img src="https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/Screenshot.png" alt="screenshot" width="100%"/>
+<img src="https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/Screenshot1.png" alt="screenshot" width="100%"/>
 
 ## Features
-* Data format: structured CSV MSI, hierarchical HDF5 MSI, DESI TXT images, 
-* Visualization: targeted (single-ion heatmap, multi-ion colormap), untargeted (global PCA, regional PCA), pixel spectrum
-* Dataset generation: spatial colocalization to pathological annotation, labelled ROI extraction
-* Multi-slide merge via feature alignment
-* Preprocessing: normalization (TIC, single-ion), subband selection, spatial pixel aggregation
-* AI Model training: data stratification, data balancing, model selection
+* Data format: imzML, structured CSV, hierarchical HDF5, DESI TXT images 
+* Visualization: targeted (single-ion heatmap, multi-ion colormap), untargeted (global contrast PCA, local contrast PCA, UMAP, t-SNE), segmentation, pixel spectrum
+* Dataset generation: spatial co-localization to pathological annotation, spatial annotation and labelled ROI extraction
+* Multi-slide merge: feature alignment, peaks matching
+* Preprocessing: normalization (TIC, TSC, ingle-ion, mean, median, RMS), subband selection, spatial pixel aggregation
+* Statistical analysis: ANOVA, Volcano, Boxplot
+* AI Model training: feature ranking, feature selection, data stratification, data balancing, model selection, cross validation
 * Whole-slide AI deployment: global deployment, masked deployment
 
 ## Demonstration

@@ -11,6 +11,19 @@ set(MODULE_PYTHON_SCRIPTS
 
 set(MODULE_PYTHON_RESOURCES
   Resources/Icons/${MODULE_NAME}.png
+  Resources/Icons/alignment.png
+  Resources/Icons/dataset.png
+  Resources/Icons/file.png
+  Resources/Icons/home.png
+  Resources/Icons/inference.png
+  Resources/Icons/marker.png
+  Resources/Icons/preprocess.png
+  Resources/Icons/report.png
+  Resources/Icons/roi.png
+  Resources/Icons/stat.png
+  Resources/Icons/train.png
+  Resources/Icons/UI_nameM.png
+  Resources/Icons/visualization.png
   Resources/UI/${MODULE_NAME}.ui
   )
 
