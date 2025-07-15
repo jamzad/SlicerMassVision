@@ -1661,6 +1661,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	# set volume dimensions, fill with image requested, get rid of existing overlays
 	def visualizationRunHelper(self,overlay,arraySize,visualization_type='multi', heatmap='Gray'):
 		
+		ScalarClass = ['single', 'similarity']
+
 		# delete all current views as we will load a new volume
 		filename = f'{self.slideName}_{visualization_type}'
 		if (visualization_type == 'single'): filename += 'ion'
@@ -1685,7 +1687,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		imageData = vtk.vtkImageData()
 		imageData.SetDimensions(imagesize)
 
-		imageData.AllocateScalars(voxelType, 1 if visualization_type == 'single' else 3)
+		imageData.AllocateScalars(voxelType, 1 if visualization_type in ScalarClass else 3)
 		imageData.GetPointData().GetScalars().Fill(fillVoxelValue)
 
 		volumeNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLVectorVolumeNode", filename)
@@ -1706,12 +1708,12 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		displayNode.SetLevel(125)
 		
 		# save volume (for single-ion) or image (pca/ multi-ion)
-		image = np.squeeze(overlay) if visualization_type != 'single' else overlay
-		image = sitk.GetImageFromArray(image, isVector= visualization_type != 'single')
-		image = sitk.Cast(image, sitk.sitkVectorUInt8) if visualization_type != 'single' else image
-		sitk.WriteImage(image, os.path.join(self.saveFolder, f'{filename}.{"jpeg" if visualization_type != "single" else "nii"}'))
+		image = np.squeeze(overlay) if visualization_type not in ScalarClass else overlay
+		image = sitk.GetImageFromArray(image, isVector= visualization_type not in ScalarClass)
+		image = sitk.Cast(image, sitk.sitkVectorUInt8) if visualization_type not in ScalarClass else image
+		sitk.WriteImage(image, os.path.join(self.saveFolder, f'{filename}.{"jpeg" if visualization_type not in ScalarClass else "nii"}'))
 		
-		if visualization_type != 'single': 
+		if visualization_type not in ScalarClass: 
 			slicer.util.setSliceViewerLayers(background=volumeNode, foreground=None)
 		else: 
 			# delete current node and reload the volume
@@ -3294,6 +3296,44 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return coloredArray
 
 
+	def roi_similarity_map(self, segMask, segName, segColor, similarity_threshold):
+		from sklearn.metrics.pairwise import cosine_similarity
+
+		pixel_locs, pixel_classes, pixel_colors = [], [], []
+		for i in range(len(segMask)):
+			mask_inds = np.where(segMask[i].ravel())[0]
+			pixel_locs.append(mask_inds)
+			pixel_classes.append([segName[i]]*len(mask_inds))
+			pixel_colors.append([segColor[i]]*len(mask_inds))
+		pixel_locs = np.concatenate(pixel_locs)
+		pixel_classes = np.concatenate(pixel_classes)
+		pixel_colors = np.concatenate(pixel_colors)
+
+		pixel_peaks = self.peaks_norm[pixel_locs]
+
+		peaks_similarity = cosine_similarity(pixel_peaks, self.peaks_norm) # n_mask_pixels, n_all_pixels
+		max_similarity_ind = np.argmax(peaks_similarity, axis=0)
+		max_similarity_value = np.max(peaks_similarity, axis=0) # n_all_pixels,
+		max_similarity_colors = pixel_colors[max_similarity_ind] # n_all_pixels, 3
+		# max_similarity_classes = pixel_classes[max_similarity_ind]
+		# max_similarity_heatmap = max_similarity_colors * max_similarity_value[:, None]
+
+		# max_similarity = max_similarity_value.reshape((self.dim_y,self.dim_x),order='C')
+		# max_similarity = np.expand_dims(max_similarity, axis=0)
+		# self.visualizationRunHelper(max_similarity, max_similarity.shape, visualization_type='similarity', heatmap='Inferno')
+
+		# similarity_heatmap = max_similarity_heatmap.reshape((self.dim_y,self.dim_x,3),order='C')
+		# similarity_heatmap = (np.expand_dims(similarity_heatmap, axis=0)*255).astype('int')
+		# self.visualizationRunHelper(similarity_heatmap, similarity_heatmap.shape, visualization_type='similarity_heatmap')
+
+		similarity_class = max_similarity_colors.copy()
+		similarity_class[max_similarity_value<similarity_threshold] = 0 # remove pixels with similarity lower than a treshold
+		similarity_class = similarity_class.reshape((self.dim_y,self.dim_x,3),order='C')
+		similarity_class = (np.expand_dims(similarity_class, axis=0)*0.9*255).astype('int')
+		self.visualizationRunHelper(similarity_class, similarity_class.shape, visualization_type='similarity_assignment')
+
+
+	
 	def numpyArrayToSlicerLabelMap(self, numpyArray, nodeName, ijkToRASMatrix):
 		# Ensure the array is in Fortran order (column-major order)
 		if not numpyArray.flags['F_CONTIGUOUS']:

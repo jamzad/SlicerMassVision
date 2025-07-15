@@ -25,13 +25,13 @@ class MassVision(ScriptedLoadableModule):
 		self.parent.title = "MassVision"  
 		self.parent.categories = ["Spectral Imaging"]
 		self.parent.dependencies = []
-		self.parent.contributors = ["Med-i Lab, Queen's University (Amoon Jamzad, Jade Warren, Ayesha Syeda)"] 
+		self.parent.contributors = ["Amoon Jamzad (Med-i Lab, Queen's University), Jade Warren, Ayesha Syeda)"] 
 		self.parent.helpText = """
 		MassVision is a software solution developed in 3D Slicer platform for end-to-end AI-driven analysis of Mass Spectrometry Imaging (MSI) data. 
 		
-		The functionalities include data exploration via various targeted, untargeted, and local-contrast visualization, co-localization with reference modality (histopathology annotations), dataset curation with spatial- and spectral-guidance, multi-slide dataset merge via feature alignment, spatial and spectral filtering, AI model training and validation, and whole-slide AI model deployment.		
+		The functionalities include data exploration via various targeted, untargeted, and local-contrast visualization, co-localization with reference modality (histopathology annotations), dataset curation with spatial- and spectral-guidance, multi-slide dataset merge via feature alignment, spatial and spectral filtering, statistical analysis, feature ranking and selection, AI model training and validation, and whole-slide AI model deployment.		
 		
-		Please cite the following publication: TBA MassVision"""
+		"""
 		self.parent.acknowledgementText = """
 
 		"""
@@ -316,6 +316,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.segmentEditor.connect("clicked(bool)", self.showSegmentEditor)
 		self.ui.roiContrast.connect("clicked(bool)", self.onROIContrast)
 		self.ui.roiContrastLDA.connect("clicked(bool)", self.onROIContrastLDA)
+
+		self.ui.roiSimilarity.connect("clicked(bool)", self.onROISimilarity)
+
 		self.ui.segmentVisibility.connect("clicked(bool)", self.onSegmentVisibility)
 		self.ui.createCSVbutton.connect("clicked(bool)",self.onCSVconnect)
 		self.ui.saveScenePush.connect("clicked(bool)",self.onSaveScene)
@@ -677,6 +680,29 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		# logic processes pca in the ROI
 		self.logic.roi_lda_display(label_mask, extend=self.ui.roiCintrastExtend.isChecked())
 
+	def getSegmentData(delf):
+		"""get the mask, color, and name of the segmentations"""
+
+		segmentationNode = slicer.mrmlScene.GetFirstNodeByClass('vtkMRMLSegmentationNode')
+		segments = segmentationNode.GetSegmentation()
+		segment_IDs = segments.GetSegmentIDs()
+		segMask, segName, segColor = [], [], []
+
+		for segment_id in segment_IDs:
+			segment_mask = slicer.util.arrayFromSegmentBinaryLabelmap(segmentationNode, segment_id) # 1,dim_uy,dim_x
+			segment_color = segments.GetSegment(segment_id).GetColor() # r,g,b
+			segment_name = segments.GetSegment(segment_id).GetName()
+
+			segMask.append(segment_mask)
+			segName.append(segment_name)
+			segColor.append(segment_color)
+
+		return segMask, segName, segColor
+
+	def onROISimilarity(self):
+		segMask, segName, segColor = self.getSegmentData()
+		similarity_threshold = self.ui.similarityThreshold.value
+		self.logic.roi_similarity_map(segMask, segName, segColor, similarity_threshold)
 
 	def onSegmentVisibility(self):
 		lm = slicer.mrmlScene.GetFirstNodeByClass('vtkMRMLSegmentationNode')
@@ -2042,16 +2068,32 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		into files requires a custom function. Code is taken from:
 		https://discourse.slicer.org/t/python-scripted-module-development-reload-feature-for-multiple-files/6363/4 
 		"""
+		# logging.debug("Reloading MassVision")
+		# packageName='MassVisionLib'
+		# submoduleNames=['Logic', 'Utils']
+		# import imp
+		# f, filename, description = imp.find_module(packageName)
+		# package = imp.load_module(packageName, f, filename, description)
+		# for submoduleName in submoduleNames:
+		# 	f, filename, description = imp.find_module(submoduleName, package.__path__)
+		# 	try:
+		# 		imp.load_module(packageName+'.'+submoduleName, f, filename, description)
+		# 	finally:
+		# 		f.close()
+		# ScriptedLoadableModuleWidget.onReload(self)
+
+		import importlib
 		logging.debug("Reloading MassVision")
-		packageName='MassVisionLib'
-		submoduleNames=['Logic', 'Utils']
-		import imp
-		f, filename, description = imp.find_module(packageName)
-		package = imp.load_module(packageName, f, filename, description)
-		for submoduleName in submoduleNames:
-			f, filename, description = imp.find_module(submoduleName, package.__path__)
-			try:
-				imp.load_module(packageName+'.'+submoduleName, f, filename, description)
-			finally:
-				f.close()
+		package_name = 'MassVisionLib'
+		submodules   = ['Logic', 'Utils']
+
+		pkg = importlib.import_module(package_name)
+		importlib.reload(pkg)
+
+		for sub in submodules:
+			full_name = f"{package_name}.{sub}"
+			# ensure it’s imported so reload() can find it
+			mod = importlib.import_module(full_name)
+			importlib.reload(mod)
+
 		ScriptedLoadableModuleWidget.onReload(self)
