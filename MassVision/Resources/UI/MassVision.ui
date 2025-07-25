@@ -2289,6 +2289,9 @@ color: rgb(255, 255, 255);</string>
       <layout class="QGridLayout" name="gridLayout_3">
        <item row="2" column="0">
         <widget class="QDoubleSpinBox" name="similarityThreshold">
+         <property name="toolTip">
+          <string>Assignment threshold</string>
+         </property>
          <property name="wrapping">
           <bool>false</bool>
          </property>
