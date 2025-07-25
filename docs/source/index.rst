@@ -25,11 +25,16 @@ Contents
    
    About MassVision
    Getting Started
+   Home Tab
    Data Import
    Visualization
    Dataset Curation
    Multi-slide Alignment
    Dataset Preprocessing
+   Statistical Analysis
    AI Model Training
    AI Model Deployment
+   News and Updates
    Data Structure
+   Formulation
+
