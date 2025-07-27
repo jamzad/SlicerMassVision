@@ -43,7 +43,7 @@ Opening MassVision
 #. Once the module is open, you have access to all tabs for performing your analysis: 
 
     .. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/MassVisionHome.png
-        :width: 400
+        :width: 600
         :align: center
 
 Test Data
