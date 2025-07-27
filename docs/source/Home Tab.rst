@@ -2,7 +2,7 @@ Home Tab
 ========
 
 .. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/HomeTab.png
-   :width: 400
+   :width: 500
    :align: center
 
 Projects

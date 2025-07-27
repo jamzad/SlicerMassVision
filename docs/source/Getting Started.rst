@@ -34,7 +34,7 @@ Opening MassVision
 
 
     .. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/ModuleFinder.png
-        :width: 600
+        :width: 400
 
     .. |ModulesIcon| image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/ModulesIcon.png
                         :height: 30
@@ -43,7 +43,7 @@ Opening MassVision
 #. Once the module is open, you have access to all tabs for performing your analysis: 
 
     .. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/MassVisionHome.png
-        :width: 600
+        :width: 700
         :align: center
 
 Test Data
