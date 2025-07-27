@@ -36,5 +36,5 @@ Contents
    AI Model Deployment
    News and Updates
    Data Structure
-   Formulation
+   Functions and Formulations
 

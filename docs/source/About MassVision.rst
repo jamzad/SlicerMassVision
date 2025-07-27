@@ -1,7 +1,7 @@
 About MassVision
 ================
 
-.. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/UI_nameM.png
+.. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/UI_nameM.png
    :width: 400
    :align: center
 
