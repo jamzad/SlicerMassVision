@@ -235,12 +235,22 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			slicer.util.errorDisplay("Only continuous-mode imzML files with a common m/z axis (i.e., cubical data) are supported for direct import. Please use 'Raw Import' for MSI data with per-spectrum m/z arrays.", windowTitle="Import Error")
 			raise ValueError("Only continuous-mode imzML files with a common m/z axis (i.e., cubical data) are supported for direct import. Please use 'Raw Import' for MSI data with per-spectrum m/z arrays. ")
 		else: 
-			dim_x, dim_y, *_ = np.array(parser.coordinates).max(0)
+			coord = np.array(parser.coordinates)
+			zero_ind = False		# zero_ind: first index is 0
+			dim_x, dim_y, *_ = coord.max(0)
+			if np.min(coord)==0:
+				zero_ind = True
+				dim_x, dim_y, *_ = coord.max(0)+1
+
 			mz, _ = parser.getspectrum(0)
 			peaks = np.zeros((dim_y, dim_x, len(mz)))
 			for i, (x, y, *_) in enumerate(parser.coordinates):
 				_, intensities = parser.getspectrum(i)
-				peaks[y-1, x-1,:] = intensities
+				if zero_ind:
+					peaks[y, x,:] = intensities
+				else:
+					peaks[y-1, x-1,:] = intensities
+
 			peaks = peaks.reshape((dim_y*dim_x,-1),order='C')
 			return peaks, mz, dim_y, dim_x
 	
@@ -1214,10 +1224,20 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			print("No fiducials found.")
 			return False
 		print(f"Number of fiducials: {N}")
+
+		coord = np.array(self.parser.coordinates)
+		zero_ind = False		# zero_ind: first index is 0
+		if np.min(coord)==0:
+			zero_ind = True
+
 		coord_to_index = {(x, y): i for i, (x, y, *_) in enumerate(self.parser.coordinates)}
 		# Create or update a plot for each fiducial
 		for i, (fnode_name, fnode_loc) in enumerate(zip(fnode_names, fnode_locs)):
-			fnode_ind = coord_to_index[(fnode_loc[1]+1, fnode_loc[0]+1)]
+			if zero_ind:
+				fnode_ind = coord_to_index[(fnode_loc[1], fnode_loc[0])]
+			else:
+				fnode_ind = coord_to_index[(fnode_loc[1]+1, fnode_loc[0]+1)]
+
 			mz, spec = self.parser.getspectrum(fnode_ind)
 
 			plotViewNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotViewNode", f"Plot{i+1}")
@@ -2696,7 +2716,13 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# delete the tic file
 		os.remove(tic_filename)
 
-		dim_x, dim_y, *_ = np.array(parser.coordinates).max(0)
+		coord = np.array(parser.coordinates)
+		zero_ind = False		# zero_ind: first index is 0
+		dim_x, dim_y, *_ = coord.max(0)
+		if np.min(coord)==0:
+			zero_ind = True
+			dim_x, dim_y, *_ = coord.max(0)+1
+
 		n_spectra = len(parser.coordinates)
 		mzLengths = parser.mzLengths
 		mz_range = [np.inf, -np.inf]
@@ -2843,7 +2869,13 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		n_spectra = len(parser.coordinates)
 		n_ions = len(mz_ref)
 
-		dim_x, dim_y, *_ = np.array(parser.coordinates).max(0)
+		coord = np.array(parser.coordinates)
+		zero_ind = False		# zero_ind: first index is 0
+		dim_x, dim_y, *_ = coord.max(0)
+		if np.min(coord)==0:
+			zero_ind = True
+			dim_x, dim_y, *_ = coord.max(0)+1
+
 		peak_list = np.zeros((dim_y, dim_x, n_ions))
 		for i, (x, y, *_) in tqdm(enumerate(parser.coordinates), total=n_spectra):
 			mz_raw, peaks_raw = parser.getspectrum(i)
@@ -2865,7 +2897,13 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 			# peak match
 			peaks_aligned, _ = self.peak_matching(mz_raw, peaks_raw, mz_ref, tol=5*mz_res, method='max')
-			peak_list[y-1, x-1] = peaks_aligned
+			
+			if zero_ind:
+				peak_list[y, x] = peaks_aligned
+			else:
+				peak_list[y-1, x-1] = peaks_aligned
+
+			
 
 		peak_list = peak_list.reshape((dim_y*dim_x,-1),order='C')
 		return peak_list, dim_x, dim_y
@@ -3447,21 +3485,41 @@ def dataset_normalization(data, method, **kwargs):
 	return data / scale
 
 def imzML_TIC(parser):
-    dim_x, dim_y, *_ = np.array(parser.coordinates).max(0)
-    tic_img = np.zeros((dim_y, dim_x))
-    for i, (x, y, *_) in enumerate(parser.coordinates):
-        _, intensities = parser.getspectrum(i)
-        tic_img[y-1, x-1] = intensities.sum()
-    return tic_img
+	coord = np.array(parser.coordinates)
+	zero_ind = False		# zero_ind: first index is 0
+	dim_x, dim_y, *_ = coord.max(0)
+	if np.min(coord)==0:
+		zero_ind = True
+		dim_x, dim_y, *_ = coord.max(0)+1
+
+	tic_img = np.zeros((dim_y, dim_x))
+	for i, (x, y, *_) in enumerate(parser.coordinates):
+		_, intensities = parser.getspectrum(i)
+		if zero_ind:
+			tic_img[y, x] = intensities.sum()
+		else:
+			tic_img[y-1, x-1] = intensities.sum()
+
+	return tic_img
 
 def imzML_ionImg(parser, mz, tol):
-    dim_x, dim_y, *_ = np.array(parser.coordinates).max(0)
-    ion_img = np.zeros((dim_y, dim_x))
-    for i, (x, y, *_) in enumerate(parser.coordinates):
-        mzs, intensities = parser.getspectrum(i)
-        mask = (mzs >= (mz-tol)) & (mzs <= (mz+tol))
-        ion_img[y-1, x-1] = intensities[mask].sum()
-    return ion_img
+	coord = np.array(parser.coordinates)
+	zero_ind = False		# zero_ind: first index is 0
+	dim_x, dim_y, *_ = coord.max(0)
+	if np.min(coord)==0:
+		zero_ind = True
+		dim_x, dim_y, *_ = coord.max(0)+1
+
+	ion_img = np.zeros((dim_y, dim_x))
+	for i, (x, y, *_) in enumerate(parser.coordinates):
+		mzs, intensities = parser.getspectrum(i)
+		mask = (mzs >= (mz-tol)) & (mzs <= (mz+tol))
+		if zero_ind:
+			ion_img[y, x] = intensities[mask].sum()
+		else:
+			ion_img[y-1, x-1] = intensities[mask].sum()
+
+	return ion_img
 
 def latent2color(xy):
 	from matplotlib.colors import hsv_to_rgb
