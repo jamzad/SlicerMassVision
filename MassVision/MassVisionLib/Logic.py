@@ -80,6 +80,11 @@ import traceback
 
 from scipy.stats import ttest_ind
 
+import random
+import zlib
+import xml.etree.ElementTree as ET
+import time
+
 from MassVisionLib.Utils import *
 
 
@@ -212,7 +217,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			slicer.util.pip_install("pyimzml")
 			from pyimzml.ImzMLParser import ImzMLParser
 
-		parser = ImzMLParser(imzml_file)
+		# parser = ImzMLParser(imzml_file)
+		parser = open_imzml_like_pyimzml(imzml_file, strict=True, check_n=8)
 
 		formatError = False
 		if len(set(parser.mzOffsets))==1:
@@ -2699,7 +2705,9 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			slicer.util.pip_install("pyimzml")
 			from pyimzml.ImzMLParser import ImzMLParser
 
-		parser = ImzMLParser(filePath)
+		# parser = ImzMLParser(filePath)
+		parser = HybridImzMLParser(filePath, strict=True, check_n=8, auto_install=True, verbose=True)
+
 		tic_image = imzML_TIC(parser)
 
 		# save tic image
@@ -2759,9 +2767,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# peaks = peaks.reshape((dim_y*dim_x,-1),order='C')
 		# return peaks, mz, dim_y, dim_x
 
-	@show_wait_message
+	# @show_wait_message
 	def raw_processing(self, params):
 		status = True
+
+		startTime = time.time()
 		try:
 			mz_select, calibration_shifts, peaks_select, mz_grid, peaks_aggregated = self.raw_mzList_picking(self.parser, params)
 			peak_list, dim_x, dim_y = self.raw_peakList_alignment(self.parser, mz_select, calibration_shifts, params)
@@ -2774,7 +2784,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			print("An error occurred:")
 			traceback.print_exc()
 			status = False
-
+		stopTime = time.time()
+		print(f'Processing completed in {stopTime-startTime:.2f} seconds')
 		return status
 
 	def raw_mzList_picking(self, parser, params):
@@ -2786,31 +2797,42 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		calibration_shifts = []
 		
 		n_spectra = len(parser.coordinates)
-		for i in tqdm(range(n_spectra)):
-			mz_raw, peaks_raw = parser.getspectrum(i)
+
+		# === progress wrapper ===
+		with SlicerProgress(n_spectra, title="Spectra aggregationt",
+							parent=None, show_eta=True,
+							eta_place="label", update_interval=0.5) as prog:
+		# === progress wrapper ===
+
+			for i in range(n_spectra):
+				mz_raw, peaks_raw = parser.getspectrum(i)
+				
+				# lockmass
+				if params["lockmass"]:
+					calibration_shift = self.lockmass_shift_prediction(mz_raw, peaks_raw, lockmass_peak=params["lockmass"], lockmass_range=0.1, method="nearest_peak")
+					mz_raw = mz_raw + calibration_shift
+					calibration_shifts.append(calibration_shift)
+
+				# filter range
+				raw_range = (mz_raw>=vis_range[0])*(mz_raw<=vis_range[1])
+				mz_raw = mz_raw[raw_range]
+				peaks_raw = peaks_raw[raw_range]
 			
-			# lockmass
-			if params["lockmass"]:
-				calibration_shift = self.lockmass_shift_prediction(mz_raw, peaks_raw, lockmass_peak=params["lockmass"], lockmass_range=0.1, method="nearest_peak")
-				mz_raw = mz_raw + calibration_shift
-				calibration_shifts.append(calibration_shift)
+				# interpolate
+				peaks_interp = np.interp(mz_grid, mz_raw, peaks_raw, left=0, right=0)
 
-			# filter range
-			raw_range = (mz_raw>=vis_range[0])*(mz_raw<=vis_range[1])
-			mz_raw = mz_raw[raw_range]
-			peaks_raw = peaks_raw[raw_range]
-		
-			# interpolate
-			peaks_interp = np.interp(mz_grid, mz_raw, peaks_raw, left=0, right=0)
+				# smoothing
+				if params["smoothing"]:
+					peaks_interp = self.smoothing(mz_grid, peaks_interp, kernel_nstd=4, kernel_bandwidth=params["smoothing"])
 
-			# smoothing
-			if params["smoothing"]:
-				peaks_interp = self.smoothing(mz_grid, peaks_interp, kernel_nstd=4, kernel_bandwidth=params["smoothing"])
+				# aggregate
+				peaks_aggregated += peaks_interp
 
-			# aggregate
-			peaks_aggregated += peaks_interp
+				# === progress wrapper ===
+				if not prog.step():   # tick + cancel check
+					break
+				# === progress wrapper ===
 
-		mz_grid, peaks_aggregated
 
 		# peak picking
 		if params["smoothing"]:
@@ -2879,33 +2901,43 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			dim_x, dim_y, *_ = coord.max(0)+1
 
 		peak_list = np.zeros((dim_y, dim_x, n_ions))
-		for i, (x, y, *_) in tqdm(enumerate(parser.coordinates), total=n_spectra):
-			mz_raw, peaks_raw = parser.getspectrum(i)
-			
-			# lockmass
-			if params["lockmass"]:
-				mz_raw = mz_raw + calibration_shifts[i]
 
-			# filter range
-			raw_range = (mz_raw>=vis_range[0])*(mz_raw<=vis_range[1])
-			mz_raw = mz_raw[raw_range]
-			peaks_raw = peaks_raw[raw_range]
+		# === progress wrapper ===
+		with SlicerProgress(n_spectra, title="Peak alignment",
+							parent=None, show_eta=True,
+							eta_place="label", update_interval=0.5) as prog:
+		# === progress wrapper ===
 		
-			# smoothing
-			if params["smoothing"]:
-				peaks_raw = np.interp(mz_grid, mz_raw, peaks_raw, left=0, right=0)
-				peaks_raw = self.smoothing(mz_grid, peaks_raw, kernel_nstd=4, kernel_bandwidth=params["smoothing"])
-				mz_raw = mz_grid
+			for i, (x, y, *_) in enumerate(parser.coordinates):
+				mz_raw, peaks_raw = parser.getspectrum(i)
+				
+				# lockmass
+				if params["lockmass"]:
+					mz_raw = mz_raw + calibration_shifts[i]
 
-			# peak match
-			peaks_aligned, _ = self.peak_matching(mz_raw, peaks_raw, mz_ref, tol=5*mz_res, method='max')
+				# filter range
+				raw_range = (mz_raw>=vis_range[0])*(mz_raw<=vis_range[1])
+				mz_raw = mz_raw[raw_range]
+				peaks_raw = peaks_raw[raw_range]
 			
-			if zero_ind:
-				peak_list[y, x] = peaks_aligned
-			else:
-				peak_list[y-1, x-1] = peaks_aligned
+				# smoothing
+				if params["smoothing"]:
+					peaks_raw = np.interp(mz_grid, mz_raw, peaks_raw, left=0, right=0)
+					peaks_raw = self.smoothing(mz_grid, peaks_raw, kernel_nstd=4, kernel_bandwidth=params["smoothing"])
+					mz_raw = mz_grid
 
-			
+				# peak match
+				peaks_aligned, _ = self.peak_matching(mz_raw, peaks_raw, mz_ref, tol=5*mz_res, method='max')
+				
+				if zero_ind:
+					peak_list[y, x] = peaks_aligned
+				else:
+					peak_list[y-1, x-1] = peaks_aligned
+
+				# === progress wrapper ===
+				if not prog.step():   # tick + cancel check
+					break
+				# === progress wrapper ===
 
 		peak_list = peak_list.reshape((dim_y*dim_x,-1),order='C')
 		return peak_list, dim_x, dim_y
@@ -3809,3 +3841,404 @@ def plot_custom_volcano(log2_fc, neg_log10_p, mz, p_thresh=0.05, fc_thresh=1, to
 #     quotients = data / (reference + 1e-10)
 #     scale_factors = np.median(quotients, axis=1, keepdims=True)
 #     return data / scale_factors
+# hybrid_imzml.py
+
+# hybrid_imzml.py
+
+# ---------------- internal: XML helpers ----------------
+def _ns(root):
+    return {'mz': root.tag.split('}')[0].strip('{')}
+
+def _cv_names(elem, ns):
+    return {cv.get('name') for cv in elem.findall('mz:cvParam', ns)}
+
+def _cv_map(elem, ns):
+    return {cv.get('accession'): cv.get('value') for cv in elem.findall('mz:cvParam', ns)}
+
+def _load_ref_groups(root, ns):
+    groups = {}
+    for g in root.findall('.//mz:referenceableParamGroup', ns):
+        groups[g.get('id')] = _cv_names(g, ns)
+    return groups
+
+def _describe_bda(bda, ref_names, ns):
+    names = set(_cv_names(bda, ns))
+    ref = bda.find('mz:referenceableParamGroupRef', ns)
+    if ref is not None and ref.get('ref') in ref_names:
+        names |= ref_names[ref.get('ref')]
+
+    which = 'mz' if 'm/z array' in names else ('intensity' if 'intensity array' in names else None)
+    if which is None:
+        return None
+
+    # dtype (size) + endianness from CVs
+    base = 'f8' if '64-bit float' in names else ('f4' if '32-bit float' in names else 'f8')
+    endian = '>' if 'big endian' in names else '<'  # default little-endian
+    dtype = np.dtype(endian + base)
+
+    meta = _cv_map(bda, ns)
+    off = meta.get('IMS:1000102')
+    enc = meta.get('IMS:1000104')
+    n = meta.get('IMS:1000103')
+    return {
+        'which': which,
+        'dtype': dtype,
+        'compressed': ('zlib compression' in names),
+        'offset': int(off) if off is not None else 0,
+        'encoded_len': int(enc) if enc is not None else 0,
+        'array_len': int(n) if n is not None else None,
+    }
+
+# ---------------- fallback: simple manual reader ----------------
+class _SafeImzMLImpl:
+    """Read external arrays via offsets + zlib. Mirrors the pyimzML fields you use."""
+    def __init__(self, path):
+        self.imzml_path = str(path)
+        root_base, _ = os.path.splitext(self.imzml_path)
+        self.ibd_path = root_base + '.ibd'
+
+        tree = ET.parse(self.imzml_path)
+        root = tree.getroot()
+        ns = _ns(root)
+        ref_names = _load_ref_groups(root, ns)
+
+        self._spectra = root.findall('.//mz:spectrum', ns)
+        self._desc = []              # [{'mz': {...}, 'i': {...}}, ...]
+        self.coordinates = []        # [(x,y,z), ...]
+        self.mzOffsets = []
+        self.mzLengths = []
+        self.intensityOffsets = []
+        self.intensityLengths = []
+
+        for spec in self._spectra:
+            bdas = spec.find('mz:binaryDataArrayList', ns).findall('mz:binaryDataArray', ns)
+            ds = [_describe_bda(b, ref_names, ns) for b in bdas]
+            ds = [d for d in ds if d is not None]
+            d_mz = next(d for d in ds if d['which'] == 'mz')
+            d_i  = next(d for d in ds if d['which'] == 'intensity')
+            self._desc.append({'mz': d_mz, 'i': d_i})
+
+            self.mzOffsets.append(d_mz['offset'])
+            self.mzLengths.append(d_mz['array_len'])
+            self.intensityOffsets.append(d_i['offset'])
+            self.intensityLengths.append(d_i['array_len'])
+
+            x = int(spec.find(".//mz:cvParam[@accession='IMS:1000050']", ns).get('value'))
+            y = int(spec.find(".//mz:cvParam[@accession='IMS:1000051']", ns).get('value'))
+            z_tag = spec.find(".//mz:cvParam[@accession='IMS:1000052']", ns)
+            z = int(z_tag.get('value')) if z_tag is not None else 1
+            self.coordinates.append((x, y, z))
+
+    def __len__(self):
+        return len(self._desc)
+
+    def _read_array(self, d):
+        with open(self.ibd_path, 'rb') as f:
+            f.seek(d['offset'])
+            blob = f.read(d['encoded_len'])
+        raw = zlib.decompress(blob) if d['compressed'] else blob
+        arr = np.frombuffer(raw, dtype=d['dtype'])
+        if d['array_len'] is not None and arr.size > d['array_len']:
+            arr = arr[:d['array_len']]
+        return arr
+
+    def getspectrum(self, i):
+        d = self._desc[i]
+        return self._read_array(d['mz']), self._read_array(d['i'])
+
+# ---------------- sanity for pyimzML ----------------
+def _sanity_pyimzml_report(py_parser, strict=True, check_n=6, seed=0):
+    """
+    Return (ok: bool, reason: str). Never raises.
+    """
+    try:
+        m = len(py_parser.coordinates)
+        if m == 0:
+            return False, "no spectra"
+        idxs = {0, m - 1, m // 2}
+        rng = random.Random(seed)
+        while len(idxs) < min(check_n, m):
+            idxs.add(rng.randrange(0, m))
+        for i in sorted(idxs):
+            mz, I = py_parser.getspectrum(i)
+            if mz is None or I is None:
+                return False, f"spectrum {i} returned None"
+            mz = np.asarray(mz); I = np.asarray(I)
+            if mz.size == 0 or I.size == 0:
+                return False, f"spectrum {i} empty"
+            if mz.size != I.size:
+                return False, f"spectrum {i} length mismatch (mz={mz.size}, I={I.size})"
+            if not np.isfinite(mz).all() or not np.isfinite(I).all():
+                return False, f"spectrum {i} has non-finite values"
+            if strict and not (np.diff(mz) > 0).all():
+                return False, f"spectrum {i} has non-monotonic m/z"
+        return True, f"passed on {len(idxs)} spectra"
+    except Exception as e:
+        return False, f"exception during sanity: {e}"
+
+# ---------------- public: hybrid wrapper ----------------
+class HybridImzMLParser:
+    """
+    Same surface as pyimzml.ImzMLParser for the attrs you use:
+      - coordinates
+      - mzOffsets, mzLengths
+      - getspectrum(i)
+    Also exposes (if available): intensityOffsets, intensityLengths
+
+    Behavior:
+      * Try pyimzML first; print which backend is used and why.
+      * On any error or failed sanity: fall back to safe reader (printed).
+      * If a later getspectrum() call fails or looks corrupt: switch to safe reader (printed).
+      * When pyimzML is active, __getattr__ delegates so you can access ALL pyimzML attributes.
+    """
+    def __init__(self, filePath, strict=True, check_n=6, seed=0, auto_install=False, verbose=True):
+        self._py = None
+        self._safe = None
+        self._path = str(filePath)
+        self._strict = bool(strict)
+        self._why = ""
+        self._verbose = bool(verbose)
+
+        self.coordinates = None
+        self.mzOffsets = None
+        self.mzLengths = None
+        self.intensityOffsets = None
+        self.intensityLengths = None
+
+        # Try pyimzML first
+        try:
+            try:
+                from pyimzml.ImzMLParser import ImzMLParser
+            except ModuleNotFoundError as e:
+                if auto_install:
+                    import slicer
+                    slicer.util.pip_install("pyimzml")
+                    from pyimzml.ImzMLParser import ImzMLParser
+                else:
+                    raise e
+
+            self._py = ImzMLParser(self._path)
+
+            # expose pyimzML fields directly
+            self.coordinates = list(self._py.coordinates)
+            self.mzOffsets = getattr(self._py, "mzOffsets", None)
+            self.mzLengths = getattr(self._py, "mzLengths", None)
+            self.intensityOffsets = getattr(self._py, "intensityOffsets", getattr(self._py, "intsOffsets", None))
+            self.intensityLengths = getattr(self._py, "intensityLengths", getattr(self._py, "intsLengths", None))
+
+            ok, reason = _sanity_pyimzml_report(self._py, strict=self._strict, check_n=check_n, seed=seed)
+            if ok:
+                self._why = f"pyimzML backend selected; sanity {reason}."
+                if self._verbose:
+                    print(f"[hybrid_imzml] Using backend: pyimzML — {self._why}")
+            else:
+                if self._verbose:
+                    print(f"[hybrid_imzml] pyimzML sanity failed ({reason}). Falling back to 'simple'.")
+                self._fallback_to_safe(f"sanity failed: {reason}")
+
+        except Exception as e:
+            if self._verbose:
+                print(f"[hybrid_imzml] pyimzML unavailable or failed to initialize ({e}). Falling back to 'simple'.")
+            self._fallback_to_safe(f"init error: {e}")
+
+        # Ensure required attributes exist even if pyimzML didn’t expose them
+        if (self.mzOffsets is None or self.mzLengths is None) and self._safe is None:
+            self._safe = _SafeImzMLImpl(self._path)
+            if self._verbose and self._py is not None:
+                print("[hybrid_imzml] pyimzML active but offsets/lengths missing; supplementing from simple reader metadata.")
+        if self._safe is not None:
+            if self.mzOffsets is None:          self.mzOffsets = self._safe.mzOffsets
+            if self.mzLengths is None:          self.mzLengths = self._safe.mzLengths
+            if self.intensityOffsets is None:   self.intensityOffsets = self._safe.intensityOffsets
+            if self.intensityLengths is None:   self.intensityLengths = self._safe.intensityLengths
+            if self.coordinates is None:        self.coordinates = self._safe.coordinates
+
+    # ---------- backend helpers ----------
+    @property
+    def backend(self):
+        return 'pyimzml' if self._py is not None else 'simple'
+
+    def _fallback_to_safe(self, why=""):
+        self._py = None
+        if self._safe is None:
+            self._safe = _SafeImzMLImpl(self._path)
+        self.coordinates = self._safe.coordinates
+        self.mzOffsets = self._safe.mzOffsets
+        self.mzLengths = self._safe.mzLengths
+        self.intensityOffsets = self._safe.intensityOffsets
+        self.intensityLengths = self._safe.intensityLengths
+        self._why = f"simple backend selected; {why or 'pyimzML failed'}."
+        if self._verbose:
+            print(f"[hybrid_imzml] Using backend: simple — {self._why}")
+
+    def __len__(self):
+        if self._py is not None:
+            return len(self._py.coordinates)
+        return len(self._safe)
+
+    # ---------- main API ----------
+    def getspectrum(self, i):
+        if self._py is not None:
+            try:
+                mz, I = self._py.getspectrum(i)
+                mz = np.asarray(mz); I = np.asarray(I)
+                # quick per-spectrum sanity
+                if mz.size == 0 or I.size == 0 or mz.size != I.size:
+                    raise ValueError("empty/length mismatch")
+                if not np.isfinite(mz).all() or not np.isfinite(I).all():
+                    raise ValueError("non-finite values")
+                if self._strict and not (np.diff(mz) > 0).all():
+                    raise ValueError("non-monotonic m/z")
+                return mz, I
+            except Exception as e:
+                if self._verbose:
+                    print(f"[hybrid_imzml] pyimzML getspectrum({i}) failed ({e}). Switching backend to 'simple'.")
+                self._fallback_to_safe(f"getspectrum error at {i}: {e}")
+        return self._safe.getspectrum(i)
+
+    # ---------- delegation so you can use full pyimzML API when active ----------
+    def __getattr__(self, name):
+        if name.startswith('_'):
+            raise AttributeError(name)
+        if self._py is not None:
+            return getattr(self._py, name)
+        if self._safe is not None and hasattr(self._safe, name):
+            return getattr(self._safe, name)
+        raise AttributeError(f"{name!r} not available on current backend ({self.backend}).")
+
+    def __dir__(self):
+        items = set(super().__dir__())
+        if self._py is not None:
+            items.update(dir(self._py))
+        elif self._safe is not None:
+            items.update(dir(self._safe))
+        return sorted(items)
+
+    def __repr__(self):
+        return f"<HybridImzMLParser backend={self.backend!r} why={self._why!r}>"
+
+
+####    ===================   ProgressBar   ===================
+def _dlgCanceled(dlg):
+    """Works whether wasCanceled is a bool property or a callable."""
+    attr = getattr(dlg, 'wasCanceled', None)
+    return bool(attr() if callable(attr) else attr)
+
+def _fmt_eta(seconds):
+    seconds = max(0, int(seconds))
+    h, rem = divmod(seconds, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h:d}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
+
+class SlicerProgress:
+    """
+    Bare progress bar with optional ETA (like tqdm).
+    - Show ETA in the window title (default) or on the label.
+    - Keeps UI responsive and supports Cancel.
+    """
+    def __init__(self, total, title="Processing", parent=None,
+                 show_eta=True, eta_place="title", update_interval=0.25):
+        """
+        total: int total iterations
+        title: window title base text
+        parent: Qt parent (defaults to Slicer's main window)
+        show_eta: True to display ETA
+        eta_place: "title" or "label"
+        update_interval: seconds between ETA text updates
+        """
+        self.total = max(0, int(total))
+        self.parent = parent or slicer.util.mainWindow()
+        self.title_base = title
+        self.show_eta = bool(show_eta)
+        self.eta_place = "label" if eta_place == "label" else "title"
+        self.update_interval = float(update_interval)
+
+        self.dlg = None
+        self._value = 0
+        self._t0 = None
+        self._last_eta_update = 0.0
+
+    def __enter__(self):
+        dlg = qt.QProgressDialog("" if self.eta_place == "title" else "Starting…",
+                                 "Cancel", 0, self.total, self.parent)
+        dlg.setWindowTitle(self.title_base)
+        dlg.setWindowModality(qt.Qt.WindowModal)
+        dlg.setMinimumDuration(0)
+        dlg.setAutoClose(True)
+        dlg.setAutoReset(True)
+        dlg.setValue(0)
+
+        # If we’re not using the label for ETA, hide it for a clean bar-only look
+        if not self.show_eta or self.eta_place == "title":
+            try:
+                dlg.setLabelText("")
+                lbl = dlg.findChild(qt.QLabel)
+                if lbl:
+                    lbl.hide()
+            except Exception:
+                pass
+
+        dlg.setMinimumWidth(500)   
+        dlg.show()
+        self.dlg = dlg
+        self._t0 = time.time()
+        self._last_eta_update = self._t0
+        self._update_eta_text(force=True)
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        if self.dlg:
+            self.dlg.close()
+        return False  # don’t suppress exceptions
+
+    @property
+    def canceled(self):
+        return _dlgCanceled(self.dlg)
+
+    def step(self, inc=1):
+        """Advance progress by 'inc'. Returns False if canceled."""
+        if self.canceled:
+            return False
+        self._value = min(self.total, self._value + int(inc))
+        self.dlg.setValue(self._value)
+        self._update_eta_text()
+        slicer.app.processEvents()
+        return not self.canceled
+
+    def set(self, value):
+        """Set absolute progress. Returns False if canceled."""
+        if self.canceled:
+            return False
+        self._value = max(0, min(self.total, int(value)))
+        self.dlg.setValue(self._value)
+        self._update_eta_text()
+        slicer.app.processEvents()
+        return not self.canceled
+
+    # ---- internals ----
+    def _update_eta_text(self, force=False):
+        if not self.show_eta or self.total <= 0:
+            return
+        t = time.time()
+        if not force and (t - self._last_eta_update) < self.update_interval:
+            return
+        done = max(1, self._value)
+        elapsed = t - self._t0
+        rate = elapsed / done  # seconds per step
+        remaining_steps = max(0, self.total - done)
+        eta = remaining_steps * rate
+        msg = f"ETA { _fmt_eta(eta) }  •  {done}/{self.total}"
+
+        if self.eta_place == "title":
+            self.dlg.setWindowTitle(f"{self.title_base}  —  {msg}")
+        else:
+            # ensure label is visible when using label mode
+            try:
+                lbl = self.dlg.findChild(qt.QLabel)
+                if lbl:
+                    lbl.show()
+                self.dlg.setLabelText(msg)
+            except Exception:
+                pass
+
+        self._last_eta_update = t
