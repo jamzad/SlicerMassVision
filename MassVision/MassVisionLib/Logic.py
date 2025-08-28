@@ -291,37 +291,50 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return peaks, mz, dim_y, dim_x
 
-	# takes in the desi text function and organized the information
-	# into the peaks, mz values, xdimensions, ydimensions
-	def DESI_txt2numpy(self, desi_text):
-		data = []
-		with open(desi_text, 'r') as read_obj:
-			for i,line in enumerate(read_obj):
-				x = line.split()
-				y = [float(num) for num in x]
-				data.append(y)
-						
-		ind = np.argsort(data[3]) # data[3] has unsorted m/z values
-		mz = np.take_along_axis(np.asarray(data[3]), ind, axis=0) # sort with indices
 
-		x, y = [], []
-		peaks = []
-		
-		for i in range(4,len(data)-1):
-			x.append(data[i][1])
-			y.append(data[i][2])
-			p = np.asarray(data[i][3:-2])
-			p = np.take_along_axis(p, ind, axis=0)
-			p = np.expand_dims(p,axis=0)
-			peaks.append(p)
+	def DESI_txt2numpy(self, desi_text):
+		# takes in the desi text function and organized the information
+		# into the peaks, mz values, xdimensions, ydimensions
+		with open(desi_text, 'rb') as _f:
+			n_iter = sum(1 for _ in _f)  
+
+		x, peaks = [], []
+		with open(desi_text, 'r') as read_obj:
+			# === progress wrapper ===
+			with SlicerProgress(n_iter-5, title="Reading spectra...",
+								parent=None, show_eta=True,
+								eta_place="label", update_interval=0.5) as prog:
+			# === progress wrapper ===
+				for i,line in enumerate(read_obj):
+
+					if i < 3 or i > n_iter - 2:
+						continue
+
+					data = [float(num) for num in line.split()]
+					
+					if i==3:
+						ind = np.argsort(data) # data[3] has unsorted m/z values
+						mz = np.take_along_axis(np.asarray(data), ind, axis=0) # sort with indices
+						continue
+
+					x.append(data[1])
+					p = np.asarray(data[3:-2])
+					p = np.take_along_axis(p, ind, axis=0)
+					p = np.expand_dims(p,axis=0)
+					peaks.append(p)
+
+					# === progress wrapper ===
+					if not prog.step():   # tick + cancel check
+						break
+					# === progress wrapper ===
+
 		peaks = np.concatenate(peaks,axis=0)
 
 		## find desi data dimension
-		t = np.asarray(x)
-		t = np.abs(np.diff(t))
-		dim_x = int(np.round(np.max(t)/np.min(t)))+1
-		t = np.asarray(y)
-		dim_y = int(np.round(np.abs(t[0]-t[-1])/np.max(np.abs(np.diff(t)))))+1
+		x = np.asarray(x)
+		x = np.abs(np.diff(x))
+		dim_x = int(np.round(np.max(x)/np.min(x)))+1
+		dim_y = int(np.round((n_iter-5)/dim_x))
 		
 		return peaks, mz, dim_y, dim_x
 			
@@ -1355,13 +1368,14 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		fnode_locs = []
 
 		for fiducial_node in fiducial_nodes:
-			num_fiducials = fiducial_node.GetNumberOfControlPoints()
-			for i in range(num_fiducials):
-				position = [0.0, 0.0, 0.0]
-				fiducial_node.GetNthControlPointPosition(i, position)
-				point_name = fiducial_node.GetNthControlPointLabel(i)
-				fnode_names.append(point_name)
-				fnode_locs.append(self.fiducial_to_index(position))
+			if fiducial_node.GetName() == "spectrum":  # only process the list "spectrum"
+				num_fiducials = fiducial_node.GetNumberOfControlPoints()
+				for i in range(num_fiducials):
+					position = [0.0, 0.0, 0.0]
+					fiducial_node.GetNthControlPointPosition(i, position)
+					point_name = fiducial_node.GetNthControlPointLabel(i)
+					fnode_names.append(point_name)
+					fnode_locs.append(self.fiducial_to_index(position))
 
 		N = len(fnode_locs)
 		if N == 0:
@@ -2797,9 +2811,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		calibration_shifts = []
 		
 		n_spectra = len(parser.coordinates)
-
 		# === progress wrapper ===
-		with SlicerProgress(n_spectra, title="Spectra aggregationt",
+		with SlicerProgress(n_spectra, title="Aggregation and m/z selection",
 							parent=None, show_eta=True,
 							eta_place="label", update_interval=0.5) as prog:
 		# === progress wrapper ===
@@ -3676,7 +3689,7 @@ def plot_custom_boxplot(grouped_data, groups, mz_title, figsize=(5,5), save_path
 	ax.set_xticks(range(1, num_groups + 1))
 	ax.set_xticklabels(groups, rotation=45, ha='right')
 	ax.set_ylabel("intensity")
-	ax.set_title(f'$m/z\ {mz_title}$', style='italic')
+	ax.set_title(fr'$m/z\ {mz_title}$', style='italic')
 	ax.set_ylim(bottom=0)
 	ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
 	ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
@@ -4132,12 +4145,10 @@ def _fmt_eta(seconds):
 
 class SlicerProgress:
     """
-    Bare progress bar with optional ETA (like tqdm).
-    - Show ETA in the window title (default) or on the label.
-    - Keeps UI responsive and supports Cancel.
+    Progress bar with optional ETA
     """
     def __init__(self, total, title="Processing", parent=None,
-                 show_eta=True, eta_place="title", update_interval=0.25):
+                 show_eta=True, eta_place="label", update_interval=0.25):
         """
         total: int total iterations
         title: window title base text
