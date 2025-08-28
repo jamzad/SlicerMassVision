@@ -218,7 +218,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			from pyimzml.ImzMLParser import ImzMLParser
 
 		# parser = ImzMLParser(imzml_file)
-		parser = open_imzml_like_pyimzml(imzml_file, strict=True, check_n=8)
+		parser = HybridImzMLParser(imzml_file, strict=True, check_n=8, auto_install=True, verbose=True)
 
 		formatError = False
 		if len(set(parser.mzOffsets))==1:
@@ -250,12 +250,21 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 			mz, _ = parser.getspectrum(0)
 			peaks = np.zeros((dim_y, dim_x, len(mz)))
-			for i, (x, y, *_) in enumerate(parser.coordinates):
-				_, intensities = parser.getspectrum(i)
-				if zero_ind:
-					peaks[y, x,:] = intensities
-				else:
-					peaks[y-1, x-1,:] = intensities
+			# === progress wrapper ===
+			with SlicerProgress(len(parser.coordinates), title="Reading spectra...",
+								parent=None, show_eta=True,
+								eta_place="label", update_interval=0.5) as prog:
+			# === progress wrapper ===
+				for i, (x, y, *_) in enumerate(parser.coordinates):
+					_, intensities = parser.getspectrum(i)
+					if zero_ind:
+						peaks[y, x,:] = intensities
+					else:
+						peaks[y-1, x-1,:] = intensities
+					# === progress wrapper ===
+					if not prog.step():   # tick + cancel check
+						break
+					# === progress wrapper ===
 
 			peaks = peaks.reshape((dim_y*dim_x,-1),order='C')
 			return peaks, mz, dim_y, dim_x
