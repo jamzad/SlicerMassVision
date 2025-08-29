@@ -1230,7 +1230,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return fold_changes, p_values
 	
 	def RawPlotImg(self, ion_mz, tol_mz, img_heatmap):
-		ion_img = imzML_ionImg(self.parser, ion_mz, tol_mz)
+		ion_img = imzML_ionImg(self.parser, ion_mz, tol_mz, self.dim_x, self.dim_y, self.coord_ind)
 		ion_img = np.expand_dims(ion_img, axis=0)
 		self.visualizationRunHelper(ion_img, ion_img.shape, 'single', heatmap=img_heatmap)
 		return True
@@ -1253,18 +1253,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			return False
 		print(f"Number of fiducials: {N}")
 
-		coord = np.array(self.parser.coordinates)
-		zero_ind = False		# zero_ind: first index is 0
-		if np.min(coord)==0:
-			zero_ind = True
 
-		coord_to_index = {(x, y): i for i, (x, y, *_) in enumerate(self.parser.coordinates)}
+		coord_to_index = {(x, y): i for i, (x, y, *_) in enumerate(self.coord_ind)}
 		# Create or update a plot for each fiducial
 		for i, (fnode_name, fnode_loc) in enumerate(zip(fnode_names, fnode_locs)):
-			if zero_ind:
-				fnode_ind = coord_to_index[(fnode_loc[1], fnode_loc[0])]
-			else:
-				fnode_ind = coord_to_index[(fnode_loc[1]+1, fnode_loc[0]+1)]
+			fnode_ind = coord_to_index[(fnode_loc[1], fnode_loc[0])]
 
 			mz, spec = self.parser.getspectrum(fnode_ind)
 
@@ -2729,9 +2722,19 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			from pyimzml.ImzMLParser import ImzMLParser
 
 		# parser = ImzMLParser(filePath)
-		parser = HybridImzMLParser(filePath, strict=True, check_n=8, auto_install=True, verbose=True)
+		try:
+			parser = ImzMLParser(filePath)
+			ok, reason = _sanity_pyimzml_report(parser, strict=True)
+			if ok:
+				print("Using backend: pyimzML")
+			else:
+				print(f"pyimzML sanity failed ({reason}).")
+				raise Exception()
+		except:
+			print("Falling back to 'simple'.")
+			parser = _SafeImzMLImpl(filePath)
 
-		tic_image = imzML_TIC(parser)
+		tic_image, mz_range, (dim_x, dim_y), coord_ind = imzML_TIC(parser)
 
 		# save tic image
 		tic_image = sitk.GetImageFromArray(np.transpose(tic_image, [0, 1]))
@@ -2749,20 +2752,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# delete the tic file
 		os.remove(tic_filename)
 
-		coord = np.array(parser.coordinates)
-		zero_ind = False		# zero_ind: first index is 0
-		dim_x, dim_y, *_ = coord.max(0)
-		if np.min(coord)==0:
-			zero_ind = True
-			dim_x, dim_y, *_ = coord.max(0)+1
-
-		n_spectra = len(parser.coordinates)
+		n_spectra = len(coord_ind)
 		mzLengths = parser.mzLengths
-		mz_range = [np.inf, -np.inf]
-		for ind in range(n_spectra):
-			mz, _ = parser.getspectrum(ind)
-			mz_range[0] = np.min([mz_range[0], np.min(mz)])
-			mz_range[1] = np.max([mz_range[1], np.max(mz)])
 
 		info = os.path.basename(filePath) +'\n'
 		info += f'spatial:\t {dim_y} x {dim_x} pixels \n'
@@ -2777,6 +2768,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.dim_x = dim_x
 		self.parser = parser
 		self.raw_range = mz_range
+		self.coord_ind = coord_ind
 	
 		return info, mz_range
 
@@ -2796,13 +2788,12 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		startTime = time.time()
 		try:
-			mz_select, calibration_shifts, peaks_select, mz_grid, peaks_aggregated = self.raw_mzList_picking(self.parser, params)
-			peak_list, dim_x, dim_y = self.raw_peakList_alignment(self.parser, mz_select, calibration_shifts, params)
+			mz_select, calibration_shifts, peaks_select, mz_grid, peaks_aggregated = self.raw_mzList_picking(params)
+			peak_list = self.raw_peakList_alignment(mz_select, calibration_shifts, params)
 			
 			self.peaks = peak_list
 			self.mz = mz_select
-			self.dim_y = dim_y
-			self.dim_x = dim_x
+
 		except Exception as e:
 			print("An error occurred:")
 			traceback.print_exc()
@@ -2811,7 +2802,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		print(f'Processing completed in {stopTime-startTime:.2f} seconds')
 		return status
 
-	def raw_mzList_picking(self, parser, params):
+	def raw_mzList_picking(self, params):
 		vis_range = np.round([ params["range"][0] - 1, params["range"][1] + 1], params["decimal_ions"])
 		mz_res = 10**-params["decimal_ions"]
 		mz_grid = np.arange(vis_range[0], vis_range[1], mz_res)
@@ -2819,7 +2810,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		peaks_aggregated = 0
 		calibration_shifts = []
 		
-		n_spectra = len(parser.coordinates)
+		n_spectra = len(self.coord_ind)
 		# === progress wrapper ===
 		with SlicerProgress(n_spectra, title="Aggregation and m/z selection",
 							parent=None, show_eta=True,
@@ -2827,7 +2818,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# === progress wrapper ===
 
 			for i in range(n_spectra):
-				mz_raw, peaks_raw = parser.getspectrum(i)
+				mz_raw, peaks_raw = self.parser.getspectrum(i)
 				
 				# lockmass
 				if params["lockmass"]:
@@ -2906,21 +2897,16 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		
 		return calibration_shift
 
-	def raw_peakList_alignment(self, parser, mz_ref, calibration_shifts, params):
+	def raw_peakList_alignment(self, mz_ref, calibration_shifts, params):
 		
 		vis_range = np.round([ mz_ref.min() - 1, mz_ref.max() + 1], params["decimal_ions"])
 		mz_res = 10**-params["decimal_ions"]
 		mz_grid = np.arange(vis_range[0], vis_range[1], mz_res)
 		
-		n_spectra = len(parser.coordinates)
+		n_spectra = len(self.coord_ind)
 		n_ions = len(mz_ref)
 
-		coord = np.array(parser.coordinates)
-		zero_ind = False		# zero_ind: first index is 0
-		dim_x, dim_y, *_ = coord.max(0)
-		if np.min(coord)==0:
-			zero_ind = True
-			dim_x, dim_y, *_ = coord.max(0)+1
+		dim_x, dim_y = self.dim_x, self.dim_y
 
 		peak_list = np.zeros((dim_y, dim_x, n_ions))
 
@@ -2930,8 +2916,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 							eta_place="label", update_interval=0.5) as prog:
 		# === progress wrapper ===
 		
-			for i, (x, y, *_) in enumerate(parser.coordinates):
-				mz_raw, peaks_raw = parser.getspectrum(i)
+			for i, (x, y, *_) in enumerate(self.coord_ind):
+				mz_raw, peaks_raw = self.parser.getspectrum(i)
 				
 				# lockmass
 				if params["lockmass"]:
@@ -2950,11 +2936,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 				# peak match
 				peaks_aligned, _ = self.peak_matching(mz_raw, peaks_raw, mz_ref, tol=5*mz_res, method='max')
-				
-				if zero_ind:
-					peak_list[y, x] = peaks_aligned
-				else:
-					peak_list[y-1, x-1] = peaks_aligned
+				peak_list[y, x] = peaks_aligned
 
 				# === progress wrapper ===
 				if not prog.step():   # tick + cancel check
@@ -2962,7 +2944,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 				# === progress wrapper ===
 
 		peak_list = peak_list.reshape((dim_y*dim_x,-1),order='C')
-		return peak_list, dim_x, dim_y
+		return peak_list
 
 	def MSIExport(self, savepath):
 		file_type = os.path.splitext(savepath)[-1]
@@ -3578,40 +3560,53 @@ def dataset_normalization(data, method, **kwargs):
 	
 	return data / scale
 
-def imzML_TIC(parser):
+def imzML_TIC(parser, range_report=True):
 	coord = np.array(parser.coordinates)
-	zero_ind = False		# zero_ind: first index is 0
-	dim_x, dim_y, *_ = coord.max(0)
-	if np.min(coord)==0:
-		zero_ind = True
-		dim_x, dim_y, *_ = coord.max(0)+1
+	if np.min(coord)!=0:
+		coord-=1
+		
+	dim_x, dim_y, *_ = coord.max(0)+1
 
+	mz_range = [np.inf, -np.inf]
 	tic_img = np.zeros((dim_y, dim_x))
-	for i, (x, y, *_) in enumerate(parser.coordinates):
-		_, intensities = parser.getspectrum(i)
-		if zero_ind:
+
+	if range_report:
+		# === progress wrapper ===
+		with SlicerProgress(len(coord), title="TIC visualization...",
+							parent=None, show_eta=True,
+							eta_place="label", update_interval=0.5) as prog:
+		# === progress wrapper ===
+			for i, (x, y, *_) in enumerate(coord):
+				mzs, intensities = parser.getspectrum(i)
+				mz_range[0] = np.min([mz_range[0], np.min(mzs)])
+				mz_range[1] = np.max([mz_range[1], np.max(mzs)])
+				tic_img[y, x] = intensities.sum()
+				# === progress wrapper ===
+				if not prog.step():   # tick + cancel check
+					break
+				# === progress wrapper ===
+	else:
+		for i, (x, y, *_) in enumerate(coord):
+			_, intensities = parser.getspectrum(i)
 			tic_img[y, x] = intensities.sum()
-		else:
-			tic_img[y-1, x-1] = intensities.sum()
 
-	return tic_img
+	return tic_img, mz_range, (dim_x, dim_y), coord
 
-def imzML_ionImg(parser, mz, tol):
-	coord = np.array(parser.coordinates)
-	zero_ind = False		# zero_ind: first index is 0
-	dim_x, dim_y, *_ = coord.max(0)
-	if np.min(coord)==0:
-		zero_ind = True
-		dim_x, dim_y, *_ = coord.max(0)+1
-
+def imzML_ionImg(parser, mz, tol, dim_x, dim_y, coord_ind):
 	ion_img = np.zeros((dim_y, dim_x))
-	for i, (x, y, *_) in enumerate(parser.coordinates):
-		mzs, intensities = parser.getspectrum(i)
-		mask = (mzs >= (mz-tol)) & (mzs <= (mz+tol))
-		if zero_ind:
+	# === progress wrapper ===
+	with SlicerProgress(len(coord_ind), title="Ion image visualization...",
+						parent=None, show_eta=True,
+						eta_place="label", update_interval=0.5) as prog:
+	# === progress wrapper ===
+		for i, (x, y, *_) in enumerate(coord_ind):
+			mzs, intensities = parser.getspectrum(i)
+			mask = (mzs >= (mz-tol)) & (mzs <= (mz+tol))
 			ion_img[y, x] = intensities[mask].sum()
-		else:
-			ion_img[y-1, x-1] = intensities[mask].sum()
+			# === progress wrapper ===
+			if not prog.step():   # tick + cancel check
+				break
+			# === progress wrapper ===
 
 	return ion_img
 
@@ -3863,9 +3858,7 @@ def plot_custom_volcano(log2_fc, neg_log10_p, mz, p_thresh=0.05, fc_thresh=1, to
 #     quotients = data / (reference + 1e-10)
 #     scale_factors = np.median(quotients, axis=1, keepdims=True)
 #     return data / scale_factors
-# hybrid_imzml.py
 
-# hybrid_imzml.py
 
 # ---------------- internal: XML helpers ----------------
 def _ns(root):
@@ -3997,147 +3990,6 @@ def _sanity_pyimzml_report(py_parser, strict=True, check_n=6, seed=0):
         return True, f"passed on {len(idxs)} spectra"
     except Exception as e:
         return False, f"exception during sanity: {e}"
-
-# ---------------- public: hybrid wrapper ----------------
-class HybridImzMLParser:
-    """
-    Same surface as pyimzml.ImzMLParser for the attrs you use:
-      - coordinates
-      - mzOffsets, mzLengths
-      - getspectrum(i)
-    Also exposes (if available): intensityOffsets, intensityLengths
-
-    Behavior:
-      * Try pyimzML first; print which backend is used and why.
-      * On any error or failed sanity: fall back to safe reader (printed).
-      * If a later getspectrum() call fails or looks corrupt: switch to safe reader (printed).
-      * When pyimzML is active, __getattr__ delegates so you can access ALL pyimzML attributes.
-    """
-    def __init__(self, filePath, strict=True, check_n=6, seed=0, auto_install=False, verbose=True):
-        self._py = None
-        self._safe = None
-        self._path = str(filePath)
-        self._strict = bool(strict)
-        self._why = ""
-        self._verbose = bool(verbose)
-
-        self.coordinates = None
-        self.mzOffsets = None
-        self.mzLengths = None
-        self.intensityOffsets = None
-        self.intensityLengths = None
-
-        # Try pyimzML first
-        try:
-            try:
-                from pyimzml.ImzMLParser import ImzMLParser
-            except ModuleNotFoundError as e:
-                if auto_install:
-                    import slicer
-                    slicer.util.pip_install("pyimzml")
-                    from pyimzml.ImzMLParser import ImzMLParser
-                else:
-                    raise e
-
-            self._py = ImzMLParser(self._path)
-
-            # expose pyimzML fields directly
-            self.coordinates = list(self._py.coordinates)
-            self.mzOffsets = getattr(self._py, "mzOffsets", None)
-            self.mzLengths = getattr(self._py, "mzLengths", None)
-            self.intensityOffsets = getattr(self._py, "intensityOffsets", getattr(self._py, "intsOffsets", None))
-            self.intensityLengths = getattr(self._py, "intensityLengths", getattr(self._py, "intsLengths", None))
-
-            ok, reason = _sanity_pyimzml_report(self._py, strict=self._strict, check_n=check_n, seed=seed)
-            if ok:
-                self._why = f"pyimzML backend selected; sanity {reason}."
-                if self._verbose:
-                    print(f"[hybrid_imzml] Using backend: pyimzML — {self._why}")
-            else:
-                if self._verbose:
-                    print(f"[hybrid_imzml] pyimzML sanity failed ({reason}). Falling back to 'simple'.")
-                self._fallback_to_safe(f"sanity failed: {reason}")
-
-        except Exception as e:
-            if self._verbose:
-                print(f"[hybrid_imzml] pyimzML unavailable or failed to initialize ({e}). Falling back to 'simple'.")
-            self._fallback_to_safe(f"init error: {e}")
-
-        # Ensure required attributes exist even if pyimzML didn’t expose them
-        if (self.mzOffsets is None or self.mzLengths is None) and self._safe is None:
-            self._safe = _SafeImzMLImpl(self._path)
-            if self._verbose and self._py is not None:
-                print("[hybrid_imzml] pyimzML active but offsets/lengths missing; supplementing from simple reader metadata.")
-        if self._safe is not None:
-            if self.mzOffsets is None:          self.mzOffsets = self._safe.mzOffsets
-            if self.mzLengths is None:          self.mzLengths = self._safe.mzLengths
-            if self.intensityOffsets is None:   self.intensityOffsets = self._safe.intensityOffsets
-            if self.intensityLengths is None:   self.intensityLengths = self._safe.intensityLengths
-            if self.coordinates is None:        self.coordinates = self._safe.coordinates
-
-    # ---------- backend helpers ----------
-    @property
-    def backend(self):
-        return 'pyimzml' if self._py is not None else 'simple'
-
-    def _fallback_to_safe(self, why=""):
-        self._py = None
-        if self._safe is None:
-            self._safe = _SafeImzMLImpl(self._path)
-        self.coordinates = self._safe.coordinates
-        self.mzOffsets = self._safe.mzOffsets
-        self.mzLengths = self._safe.mzLengths
-        self.intensityOffsets = self._safe.intensityOffsets
-        self.intensityLengths = self._safe.intensityLengths
-        self._why = f"simple backend selected; {why or 'pyimzML failed'}."
-        if self._verbose:
-            print(f"[hybrid_imzml] Using backend: simple — {self._why}")
-
-    def __len__(self):
-        if self._py is not None:
-            return len(self._py.coordinates)
-        return len(self._safe)
-
-    # ---------- main API ----------
-    def getspectrum(self, i):
-        if self._py is not None:
-            try:
-                mz, I = self._py.getspectrum(i)
-                mz = np.asarray(mz); I = np.asarray(I)
-                # quick per-spectrum sanity
-                if mz.size == 0 or I.size == 0 or mz.size != I.size:
-                    raise ValueError("empty/length mismatch")
-                if not np.isfinite(mz).all() or not np.isfinite(I).all():
-                    raise ValueError("non-finite values")
-                if self._strict and not (np.diff(mz) > 0).all():
-                    raise ValueError("non-monotonic m/z")
-                return mz, I
-            except Exception as e:
-                if self._verbose:
-                    print(f"[hybrid_imzml] pyimzML getspectrum({i}) failed ({e}). Switching backend to 'simple'.")
-                self._fallback_to_safe(f"getspectrum error at {i}: {e}")
-        return self._safe.getspectrum(i)
-
-    # ---------- delegation so you can use full pyimzML API when active ----------
-    def __getattr__(self, name):
-        if name.startswith('_'):
-            raise AttributeError(name)
-        if self._py is not None:
-            return getattr(self._py, name)
-        if self._safe is not None and hasattr(self._safe, name):
-            return getattr(self._safe, name)
-        raise AttributeError(f"{name!r} not available on current backend ({self.backend}).")
-
-    def __dir__(self):
-        items = set(super().__dir__())
-        if self._py is not None:
-            items.update(dir(self._py))
-        elif self._safe is not None:
-            items.update(dir(self._safe))
-        return sorted(items)
-
-    def __repr__(self):
-        return f"<HybridImzMLParser backend={self.backend!r} why={self._why!r}>"
 
 
 ####    ===================   ProgressBar   ===================
