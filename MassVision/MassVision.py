@@ -139,9 +139,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.LoadingsInfo.hide()
 		self.ui.pcaExtendCheckbox.hide()
 		self.ui.roiCintrastExtend.hide()
-		self.ClearClusterTable()
+		# self.ClearClusterTable()
 		## hide the in-ui table view
-		self.ui.ClusterTable.setVisible(False)
+		# self.ui.ClusterTable.setVisible(False)
 
 		self.ui.csvLoad.hide()
 		self.ui.modellingFile.hide()
@@ -199,6 +199,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		icon_path = self.resourcePath('Icons/marker.png')
 		self.ui.RAWplaceFiducial.setIcon(qt.QIcon(icon_path))
 		self.ui.placeFiducial.setIcon(qt.QIcon(icon_path))
+		self.ui.placeFiducial_sim.setIcon(qt.QIcon(icon_path))
 
 		# Set tab widget tooltip and icons
 		icon_names = ['home', 'file', 'visualization', 'dataset', 'alignment', 'preprocess', 'stat', 'train', 'report', 'inference']
@@ -294,6 +295,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		# Visualization
 		self.ui.spectrumPlot.connect("clicked(bool)", self.onSpectrumPlot)
 		self.ui.placeFiducial.connect("clicked(bool)", lambda checked: self.onPutFiducial("spectrum"))
+
+		self.ui.simHeatmap.connect("clicked(bool)", self.onSimHeatmap)
+		self.ui.SimThumbnail.connect("clicked(bool)", self.onSimThumbnail)
+		self.ui.placeFiducial_sim.connect("clicked(bool)", lambda checked: self.onPutFiducial("similarity", single_point=True))
 
 		self.ui.AbundanceThumbnail.connect("clicked(bool)", self.onAbundanceThumbnail)
 
@@ -446,11 +451,13 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 				self.logic.saveFolder = os.path.dirname(filePath)
 				self.logic.slideName = os.path.basename(filePath)
 
-	def onPutFiducial(self, listName):
-		# Try to get or create the fiducial node
-		try:
-			fiducialNode = slicer.util.getNode(listName)
-		except slicer.util.MRMLNodeNotFoundException:
+	def onPutFiducial(self, listName, single_point=False):
+		fiducialNode = slicer.util.getFirstNodeByName(listName, className="vtkMRMLMarkupsFiducialNode")
+		if single_point and fiducialNode:
+			slicer.mrmlScene.RemoveNode(fiducialNode)
+			fiducialNode = None
+		
+		if not fiducialNode:
 			fiducialNode = slicer.vtkMRMLMarkupsFiducialNode()
 			fiducialNode.SetName(listName)
 			slicer.mrmlScene.AddNode(fiducialNode)
@@ -586,6 +593,12 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.logic.spectrum_plot()
 		return True
 	
+	def onSimHeatmap(self):
+		volumeNode = self.logic.point_similarity_heatmap()
+		sliderWidget = self.ui.simHeatmapSlider
+		interactor = SimHeatmapThresholdOverlay(sliderWidget, volumeNode)
+
+
 	def onPartialPCAButton(self):
 		# get all ROIs
 		all_rois = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsROINode")
@@ -799,7 +812,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 	def onClusterButton(self):
 		n_clusters = int(self.ui.nCluster.currentText)
 		cluster_colors = self.logic.VisCluster(n_clusters)
-		self.ClearClusterTable()
+		# self.ClearClusterTable()
 		self.ui.ClusterInd.clear()
 		for i in range(n_clusters):
 			item = qt.QStandardItem(f'cluster {i+1}')
@@ -815,63 +828,36 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.ClusterTable.resizeRowsToContents()     # Adjust row heights
 		self.ui.ClusterTable.sortItems(1, qt.Qt.DescendingOrder)
 
-
 	def onClusterThumbnail(self):
-		clusterText = self.ui.ClusterInd.currentText
-		cluster_ind = int(clusterText.split(' ')[-1])-1
-		volcano_mz, dice_score, volcano_fc, volcano_pval, pearson_corr = self.logic.ViewClusterThumbnail(cluster_ind)
-		
-		self.ClearClusterTable()
-		# nRows = len(volcano_mz)
-		# self.ui.ClusterTable.setRowCount(nRows)
+		self.TableAndThumbnail("cluster")
 
-		# for i in range(nRows):
-		# 	self.ui.ClusterTable.setItem(i, 0, qt.QTableWidgetItem(str(volcano_mz[i])))
-		# 	self.ui.ClusterTable.setItem(i, 1, qt.QTableWidgetItem(str(np.round(pearson_corr[i],4))))
-		# 	self.ui.ClusterTable.setItem(i, 2, qt.QTableWidgetItem(str( np.round(volcano_fc[i],4))))
-		# 	item = str(np.round(volcano_pval[i],4))
-		# 	if volcano_pval[i]>=300:
-		# 		item = '>300'
-		# 	self.ui.ClusterTable.setItem(i, 3, qt.QTableWidgetItem(item))
-		# 	self.ui.ClusterTable.setItem(i, 4, qt.QTableWidgetItem(str(np.round(dice_score[i],4))))
-		
-		# self.ui.ClusterTable.resizeColumnsToContents()  # Adjust column widths
-		# self.ui.ClusterTable.resizeRowsToContents()     # Adjust row heights
+	def onSimThumbnail(self):
+		self.TableAndThumbnail("similarity")
 
-		# Add ranking as slicer table
+	def TableAndThumbnail(self, mode):
+		if mode=="cluster":
+			clusterText = self.ui.ClusterInd.currentText
+			cluster_ind = int(clusterText.split(' ')[-1])-1
+			volcano_mz, dice_score, volcano_fc, volcano_pval, pearson_corr = \
+				self.logic.ViewTableThumbnail(cluster_ind, mode)
+		elif mode=="similarity":
+			sim_thresh_value = self.ui.simHeatmapSlider.value
+			volcano_mz, dice_score, volcano_fc, volcano_pval, pearson_corr = \
+				self.logic.ViewTableThumbnail(sim_thresh_value, mode)
+
+		# Build DataFrame
 		clusterIons = pd.DataFrame({
 			'm/z': volcano_mz,
-			'Pearson correlation': np.round(pearson_corr,4),
-			'FC [log]': np.round(volcano_fc,4),
-			'p-value [-log]': np.round(volcano_pval,4),
-			'Dice score': np.round(dice_score,4)
-		})		
+			'Pearson correlation': np.round(pearson_corr, 4),
+			'FC [log]': np.round(volcano_fc, 4),
+			'p-value [-log]': np.round(volcano_pval, 4),
+			'Dice score': np.round(dice_score, 4),
+		})
 
-		# create a table node
-		tableNode = slicer.mrmlScene.GetFirstNodeByName("ClusterIons")
-		if not tableNode:
-			tableNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTableNode', 'ClusterIons')
-		else:
-			tableNode.RemoveAllColumns()
+		lm = slicer.app.layoutManager()
+		layoutNode = lm.layoutLogic().GetLayoutNode()
 
-		for col in clusterIons.columns:
-			array = vtk.vtkVariantArray()
-			array.SetName(str(col))
-			for val in clusterIons[col]:
-				array.InsertNextValue(vtk.vtkVariant(str(val)))
-			tableNode.AddColumn(array)
-
-		# lock the table
-		tableNode.SetUseColumnTitleAsColumnHeader(True)
-		tableNode.SetLocked(True)
-
-		# set the table view node
-		tableViewNodes = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
-		if tableViewNodes:
-			tableViewNode = tableViewNodes[0]
-			tableViewNode.SetTableNodeID(tableNode.GetID())
-		
-		# view the table below the ion images
+		# Ensure the layout
 		customLayoutId = 80
 		customLayout = """
 		<layout type="vertical" split="true">
@@ -883,10 +869,44 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		</item>
 		</layout>
 		"""
-		# yellowViewNode = slicer.mrmlScene.GetNodeByID("vtkMRMLSliceNodeYellow")
-		# yellowViewNode.SetLayoutColor((0.9294117647058824, 0.8352941176470589, 0.2980392156862745))
-		slicer.app.layoutManager().layoutLogic().GetLayoutNode().AddLayoutDescription(customLayoutId, customLayout)
-		slicer.app.layoutManager().setLayout(customLayoutId)
+		# Add/refresh description
+		if layoutNode.GetLayoutDescription(customLayoutId) != customLayout:
+			layoutNode.AddLayoutDescription(customLayoutId, customLayout)
+		lm.setLayout(customLayoutId)
+
+		# TableView node (singleton tag "Table")
+		tableViewNode = slicer.mrmlScene.GetSingletonNode("Table", "vtkMRMLTableViewNode")
+		# Fallback if needed:
+		if not tableViewNode:
+			tvs = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
+			tableViewNode = tvs[0] if tvs else None
+
+		# Create/clear the table node and fill it
+		tableNode = slicer.mrmlScene.GetFirstNodeByName("ClusterIons")
+		if not tableNode:
+			tableNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTableNode', 'ClusterIons')
+		else:
+			tableNode.RemoveAllColumns()
+
+		for col in clusterIons.columns:
+			arr = vtk.vtkVariantArray()
+			arr.SetName(str(col))
+			for v in clusterIons[col].values:
+				# keep numeric where possible; vtkVariant will wrap it
+				arr.InsertNextValue(vtk.vtkVariant(v))
+			tableNode.AddColumn(arr)
+
+		tableNode.SetUseColumnTitleAsColumnHeader(True)
+		tableNode.SetLocked(True)
+		tableNode.Modified()  # nudge MRML/UI
+
+		# Bind table to the Table view
+		if tableViewNode:
+			tableViewNode.SetTableNodeID(tableNode.GetID())
+
+		# Process pending UI events
+		slicer.app.processEvents()
+
 
 	### Dataset generation
 
@@ -1335,6 +1355,21 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
 		slicer.util.resetSliceViews()
 		
+		# view the table below the ion images
+		customLayoutId = 90
+		customLayout = """
+		<layout type="horizontal" split="true">
+		<item>
+			<view class="vtkMRMLSliceNode" singletontag="Yellow"/>
+		</item>
+		<item>
+			<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+		</item>
+		</layout>
+		"""
+		slicer.app.layoutManager().layoutLogic().GetLayoutNode().AddLayoutDescription(customLayoutId, customLayout)
+		slicer.app.layoutManager().setLayout(customLayoutId)
+
 		# create a table node
 		tableNode = slicer.mrmlScene.GetFirstNodeByName("BoxplotStats")
 		if not tableNode:
@@ -1359,21 +1394,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		if tableViewNodes:
 			tableViewNode = tableViewNodes[0]
 			tableViewNode.SetTableNodeID(tableNode.GetID())
-		
-		# view the table below the ion images
-		customLayoutId = 90
-		customLayout = """
-		<layout type="horizontal" split="true">
-		<item>
-			<view class="vtkMRMLSliceNode" singletontag="Yellow"/>
-		</item>
-		<item>
-			<view class="vtkMRMLTableViewNode" singletontag="Table"/>
-		</item>
-		</layout>
-		"""
-		slicer.app.layoutManager().layoutLogic().GetLayoutNode().AddLayoutDescription(customLayoutId, customLayout)
-		slicer.app.layoutManager().setLayout(customLayoutId)
+
+
 
 	def onANOVA(self):
 		self.onRunStat(test_method='anova', tabName = "ANOVA")
@@ -1401,39 +1423,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			warning_dialog.exec_()
 			return False
 
-		# create a table node
-		tableNode = slicer.mrmlScene.GetFirstNodeByName(tabName)
-		if not tableNode:
-			tableNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTableNode', tabName)
-		else:
-			tableNode.RemoveAllColumns()
-
-		for col in stat_results.columns:
-			array = vtk.vtkVariantArray()
-			array.SetName(str(col))
-			for val in stat_results[col]:
-				array.InsertNextValue(vtk.vtkVariant(str(val)))
-			tableNode.AddColumn(array)
-
-		# lock the table
-		tableNode.SetUseColumnTitleAsColumnHeader(True)
-		tableNode.SetLocked(True)
-
-		# set the table view node
-		tableViewNodes = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
-		if tableViewNodes:
-			tableViewNode = tableViewNodes[0]
-			tableViewNode.SetTableNodeID(tableNode.GetID())
-
-		# view the table below the ion images
-		# customLayoutId = 70
-		# customLayout = """
-		# <layout type="vertical">
-		# <item>
-		# 	<view class="vtkMRMLTableViewNode" singletontag="Table"/>
-		# </item>
-		# </layout>
-		# """
+		# set the layout
 		if not return_volcano:
 			customLayoutId = 91
 			customLayout = """
@@ -1476,6 +1466,29 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			slicer.app.layoutManager().setLayout(customLayoutId)
 			slicer.util.resetSliceViews()
 
+		# create a table node
+		tableNode = slicer.mrmlScene.GetFirstNodeByName(tabName)
+		if not tableNode:
+			tableNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTableNode', tabName)
+		else:
+			tableNode.RemoveAllColumns()
+
+		for col in stat_results.columns:
+			array = vtk.vtkVariantArray()
+			array.SetName(str(col))
+			for val in stat_results[col]:
+				array.InsertNextValue(vtk.vtkVariant(str(val)))
+			tableNode.AddColumn(array)
+
+		# lock the table
+		tableNode.SetUseColumnTitleAsColumnHeader(True)
+		tableNode.SetLocked(True)
+
+		# set the table view node
+		tableViewNodes = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
+		if tableViewNodes:
+			tableViewNode = tableViewNodes[0]
+			tableViewNode.SetTableNodeID(tableNode.GetID())
 
 		# interactive boxplot on cell click
 		self.tableNode = tableNode
@@ -1497,14 +1510,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 	def onStatCellClicked(self, index):
 		row = index.row()
-		# col = index.column()
-		# colName = self.tableNode.GetColumnName(col)
-		# lastCol = self.tableNode.GetNumberOfColumns() - 1
 		mz_ref = float(self.tableNode.GetCellText(row, 0))
-		print(mz_ref)
 		label_config = self.GetStatConfigParameters()
 		df_summary = self.logic.BoxPlot(mz_ref, label_config)
-		# slicer.util.resetSliceViews()
 		yellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
 		yellowLogic = slicer.app.applicationLogic().GetSliceLogic(yellowNode)
 		yellowLogic.FitSliceToAll()
@@ -2097,3 +2105,71 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			importlib.reload(mod)
 
 		ScriptedLoadableModuleWidget.onReload(self)
+
+
+class SimHeatmapThresholdOverlay:
+	def __init__(self, slider, refVolume):
+		self.refVolume = refVolume
+		self.sim = slicer.util.arrayFromVolume(self.refVolume) 
+		self.slider = slider
+
+		labelNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLLabelMapVolumeNode', 'SimMask')
+		m = vtk.vtkMatrix4x4()
+		refVolume.GetIJKToRASMatrix(m)
+		labelNode.SetIJKToRASMatrix(m)
+		labelNode.SetOrigin(self.refVolume.GetOrigin())
+		labelNode.SetSpacing(self.refVolume.GetSpacing())
+		labelNode.SetAndObserveTransformNodeID(self.refVolume.GetTransformNodeID())
+		self.labelNode = labelNode
+
+		slicer.util.updateVolumeFromArray(self.labelNode, np.zeros_like(self.sim, dtype=np.uint8))
+		self.labelNode.CreateDefaultDisplayNodes()
+
+		lm = slicer.app.layoutManager()
+		layoutNode = lm.layoutLogic().GetLayoutNode()
+		twoUpId = 902
+		twoUpXML = """
+		<layout type="horizontal">
+			<item><view class="vtkMRMLSliceNode" singletontag="Red"/></item>
+			<item><view class="vtkMRMLSliceNode" singletontag="Yellow"/></item>
+		</layout>
+		"""
+		layoutNode.AddLayoutDescription(twoUpId, twoUpXML)
+		lm.setLayout(twoUpId)
+
+		yellowComp = lm.sliceWidget('Yellow').mrmlSliceCompositeNode()
+		yellowComp.SetBackgroundVolumeID(None)      # geometry/background for Yellow
+		yellowComp.SetLabelVolumeID(self.labelNode.GetID())           # show our mask as label
+		yellowComp.SetLabelOpacity(0.9)
+		YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
+		YellowNode.SetOrientation("Axial")
+		RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
+		markupNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsNode")
+		for markupNode in markupNodes:
+			displayNode = markupNode.GetDisplayNode()
+			displayNode.SetViewNodeIDs([RedNode.GetID()])
+
+		redComp = lm.sliceWidget('Red').mrmlSliceCompositeNode()
+		if redComp.GetLabelVolumeID() == self.labelNode.GetID():
+			redComp.SetLabelVolumeID(None)
+
+		lm.sliceWidget('Yellow').sliceLogic().FitSliceToAll()
+
+		# Connect slider for live updates (avoid duplicate connections) ---
+		# Drop any prior handlers on this slider to prevent stacking
+		try:
+			self.slider.valueChanged.disconnect()
+		except Exception:
+			pass
+		self.slider.valueChanged.connect(self.onThresholdChanged)
+
+		# Initialize
+		self.onThresholdChanged(self.slider.value)
+
+	def onThresholdChanged(self, threshold):
+		"""Update label map"""
+		mask = (self.sim >= threshold).astype(np.uint8)                # 0/1 mask
+		slicer.util.updateVolumeFromArray(self.labelNode, mask)
+
+		# Keep Yellow nicely framed without touching Red
+		slicer.app.layoutManager().sliceWidget('Yellow').sliceLogic().FitSliceToAll()

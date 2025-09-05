@@ -85,6 +85,9 @@ import zlib
 import xml.etree.ElementTree as ET
 import time
 
+from sklearn.metrics.pairwise import cosine_similarity
+
+
 from MassVisionLib.Utils import *
 
 
@@ -1143,8 +1146,13 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return pearson_corrs
 
-	def ViewClusterThumbnail(self, cluster_id):
-		segmentation_mask = (self.pixel_clusters == cluster_id).astype(int)
+	def ViewTableThumbnail(self, param, mode):
+		if mode=="cluster":
+			# param is cluster_id the index of the clustering
+			segmentation_mask = (self.pixel_clusters == param).astype(int)
+		elif mode=="similarity":
+			# param is sim_thresh_value threshold for similarity heatmap binarization
+			segmentation_mask = self.similarity_heatmap >= param
 
 		pearson_corrs = self.pearson_corr(segmentation_mask)
 
@@ -1164,11 +1172,15 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		fig, axes = plt.subplots(1, 1+top_n, figsize=(top_n/dim_y*dim_x*3, 1*3), gridspec_kw={'wspace': 0, 'hspace': 0})
 
+		first_label = 'cluster'
+		if mode=="similarity":
+			first_label = 'similarity mask'
+
 		for i, ax in enumerate(axes.flat):
 			if i==0:
 				mask_image = segmentation_mask.reshape((dim_y,dim_x),order='C')
 				ax.imshow(mask_image, cmap='inferno')
-				ax.text(0, 0, 'cluster', color='yellow', fontsize=10, ha='left', va='top', 
+				ax.text(0, 0, first_label, color='yellow', fontsize=10, ha='left', va='top', 
 						bbox=dict(facecolor='black', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
 			else:
 				ion_image = self.peaks_norm[:, mz_inds[i-1]].reshape((dim_y,dim_x),order='C')
@@ -1781,7 +1793,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		widget.SetSliceNode(slicer.util.getNode('vtkMRMLSliceNodeRed'))
 		widget.SetMRMLApplicationLogic(slicer.app.applicationLogic())
 
-		return True
+		return volumeNode
 
 	# uploads the modelling file and saves the file names into the class directory 
 	def modellingFileLoad(self, filename):
@@ -2365,7 +2377,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		saveName = os.path.splitext(self.csvFile)[0]+ f'_{mz_ref}_boxplot.jpeg'
 		plot_custom_boxplot(grouped_data, unique_classes, mz_ref, (5,5), saveName)
-
 		df_summary = boxplot_summary(grouped_data, unique_classes)
 		# table_node = pandas_to_slicer_table(df_summary, 'Statistics')
 
@@ -2378,7 +2389,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		
 		YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
 		YellowNode.SetOrientation("Axial")
-
 		return df_summary
 
 	def plot_latent_pca(self):
@@ -3370,9 +3380,30 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return coloredArray
 
 
-	def roi_similarity_map(self, segMask, segName, segColor, similarity_threshold):
-		from sklearn.metrics.pairwise import cosine_similarity
+	def point_similarity_heatmap(self):
+		fiducial_nodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsFiducialNode")
+		fnode_locs = []
+		for fiducial_node in fiducial_nodes:
+			if fiducial_node.GetName() == "similarity":  # only process the list "similarity"
+				position = [0.0, 0.0, 0.0]
+				fiducial_node.GetNthControlPointPosition(0, position)
+				fnode_locs.append(self.fiducial_to_index(position))
 
+		N = len(fnode_locs)
+		if N == 0:
+			print("No fiducials found.")
+			return False
+
+		fnode_ind = ind_ToFrom_sub(fnode_locs[0], self.dim_x)
+		spec_ref = self.peaks_norm[fnode_ind].reshape(1,-1)
+		peaks_similarity = cosine_similarity(spec_ref, self.peaks_norm) 
+		similarity_heatmap = peaks_similarity.reshape((self.dim_y,self.dim_x),order='C')
+		self.similarity_heatmap = peaks_similarity.ravel()
+		similarity_heatmap_exdim = np.expand_dims(similarity_heatmap, axis=0)
+		volumeNode = self.visualizationRunHelper(similarity_heatmap_exdim, similarity_heatmap_exdim.shape, visualization_type='similarity', heatmap='Inferno')
+		return volumeNode
+
+	def roi_similarity_map(self, segMask, segName, segColor, similarity_threshold):
 		pixel_locs, pixel_classes, pixel_colors = [], [], []
 		for i in range(len(segMask)):
 			mask_inds = np.where(segMask[i].ravel())[0]
@@ -3693,9 +3724,9 @@ def plot_custom_boxplot(grouped_data, groups, mz_title, figsize=(5,5), save_path
 	ax.set_xticks(range(1, num_groups + 1))
 	ax.set_xticklabels(groups, rotation=45, ha='right')
 	ax.set_ylabel("intensity")
-	ax.set_title(fr'$m/z\ {mz_title}$', style='italic')
+	ax.set_title(f"m/z {mz_title}", fontstyle='italic')
 	ax.set_ylim(bottom=0)
-	ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+	# ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
 	ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
 	ax.spines['top'].set_visible(False)
 	ax.spines['right'].set_visible(False)
