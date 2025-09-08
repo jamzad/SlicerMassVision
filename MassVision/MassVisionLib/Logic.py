@@ -80,6 +80,14 @@ import traceback
 
 from scipy.stats import ttest_ind
 
+import random
+import zlib
+import xml.etree.ElementTree as ET
+import time
+
+from sklearn.metrics.pairwise import cosine_similarity
+
+
 from MassVisionLib.Utils import *
 
 
@@ -212,7 +220,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			slicer.util.pip_install("pyimzml")
 			from pyimzml.ImzMLParser import ImzMLParser
 
-		parser = ImzMLParser(imzml_file)
+		# parser = ImzMLParser(imzml_file)
+		parser = HybridImzMLParser(imzml_file, strict=True, check_n=8, auto_install=True, verbose=True)
 
 		formatError = False
 		if len(set(parser.mzOffsets))==1:
@@ -244,12 +253,21 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 			mz, _ = parser.getspectrum(0)
 			peaks = np.zeros((dim_y, dim_x, len(mz)))
-			for i, (x, y, *_) in enumerate(parser.coordinates):
-				_, intensities = parser.getspectrum(i)
-				if zero_ind:
-					peaks[y, x,:] = intensities
-				else:
-					peaks[y-1, x-1,:] = intensities
+			# === progress wrapper ===
+			with SlicerProgress(len(parser.coordinates), title="Reading spectra...",
+								parent=None, show_eta=True,
+								eta_place="label", update_interval=0.5) as prog:
+			# === progress wrapper ===
+				for i, (x, y, *_) in enumerate(parser.coordinates):
+					_, intensities = parser.getspectrum(i)
+					if zero_ind:
+						peaks[y, x,:] = intensities
+					else:
+						peaks[y-1, x-1,:] = intensities
+					# === progress wrapper ===
+					if not prog.step():   # tick + cancel check
+						break
+					# === progress wrapper ===
 
 			peaks = peaks.reshape((dim_y*dim_x,-1),order='C')
 			return peaks, mz, dim_y, dim_x
@@ -285,37 +303,50 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return peaks, mz, dim_y, dim_x
 
-	# takes in the desi text function and organized the information
-	# into the peaks, mz values, xdimensions, ydimensions
-	def DESI_txt2numpy(self, desi_text):
-		data = []
-		with open(desi_text, 'r') as read_obj:
-			for i,line in enumerate(read_obj):
-				x = line.split()
-				y = [float(num) for num in x]
-				data.append(y)
-						
-		ind = np.argsort(data[3]) # data[3] has unsorted m/z values
-		mz = np.take_along_axis(np.asarray(data[3]), ind, axis=0) # sort with indices
 
-		x, y = [], []
-		peaks = []
-		
-		for i in range(4,len(data)-1):
-			x.append(data[i][1])
-			y.append(data[i][2])
-			p = np.asarray(data[i][3:-2])
-			p = np.take_along_axis(p, ind, axis=0)
-			p = np.expand_dims(p,axis=0)
-			peaks.append(p)
+	def DESI_txt2numpy(self, desi_text):
+		# takes in the desi text function and organized the information
+		# into the peaks, mz values, xdimensions, ydimensions
+		with open(desi_text, 'rb') as _f:
+			n_iter = sum(1 for _ in _f)  
+
+		x, peaks = [], []
+		with open(desi_text, 'r') as read_obj:
+			# === progress wrapper ===
+			with SlicerProgress(n_iter-5, title="Reading spectra...",
+								parent=None, show_eta=True,
+								eta_place="label", update_interval=0.5) as prog:
+			# === progress wrapper ===
+				for i,line in enumerate(read_obj):
+
+					if i < 3 or i > n_iter - 2:
+						continue
+
+					data = [float(num) for num in line.split()]
+					
+					if i==3:
+						ind = np.argsort(data) # data[3] has unsorted m/z values
+						mz = np.take_along_axis(np.asarray(data), ind, axis=0) # sort with indices
+						continue
+
+					x.append(data[1])
+					p = np.asarray(data[3:-2])
+					p = np.take_along_axis(p, ind, axis=0)
+					p = np.expand_dims(p,axis=0)
+					peaks.append(p)
+
+					# === progress wrapper ===
+					if not prog.step():   # tick + cancel check
+						break
+					# === progress wrapper ===
+
 		peaks = np.concatenate(peaks,axis=0)
 
 		## find desi data dimension
-		t = np.asarray(x)
-		t = np.abs(np.diff(t))
-		dim_x = int(np.round(np.max(t)/np.min(t)))+1
-		t = np.asarray(y)
-		dim_y = int(np.round(np.abs(t[0]-t[-1])/np.max(np.abs(np.diff(t)))))+1
+		x = np.asarray(x)
+		x = np.abs(np.diff(x))
+		dim_x = int(np.round(np.max(x)/np.min(x)))+1
+		dim_y = int(np.round((n_iter-5)/dim_x))
 		
 		return peaks, mz, dim_y, dim_x
 			
@@ -1115,8 +1146,13 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		return pearson_corrs
 
-	def ViewClusterThumbnail(self, cluster_id):
-		segmentation_mask = (self.pixel_clusters == cluster_id).astype(int)
+	def ViewTableThumbnail(self, param, mode):
+		if mode=="cluster":
+			# param is cluster_id the index of the clustering
+			segmentation_mask = (self.pixel_clusters == param).astype(int)
+		elif mode=="similarity":
+			# param is sim_thresh_value threshold for similarity heatmap binarization
+			segmentation_mask = self.similarity_heatmap >= param
 
 		pearson_corrs = self.pearson_corr(segmentation_mask)
 
@@ -1136,11 +1172,15 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		fig, axes = plt.subplots(1, 1+top_n, figsize=(top_n/dim_y*dim_x*3, 1*3), gridspec_kw={'wspace': 0, 'hspace': 0})
 
+		first_label = 'cluster'
+		if mode=="similarity":
+			first_label = 'similarity mask'
+
 		for i, ax in enumerate(axes.flat):
 			if i==0:
 				mask_image = segmentation_mask.reshape((dim_y,dim_x),order='C')
 				ax.imshow(mask_image, cmap='inferno')
-				ax.text(0, 0, 'cluster', color='yellow', fontsize=10, ha='left', va='top', 
+				ax.text(0, 0, first_label, color='yellow', fontsize=10, ha='left', va='top', 
 						bbox=dict(facecolor='black', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
 			else:
 				ion_image = self.peaks_norm[:, mz_inds[i-1]].reshape((dim_y,dim_x),order='C')
@@ -1202,7 +1242,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return fold_changes, p_values
 	
 	def RawPlotImg(self, ion_mz, tol_mz, img_heatmap):
-		ion_img = imzML_ionImg(self.parser, ion_mz, tol_mz)
+		ion_img = imzML_ionImg(self.parser, ion_mz, tol_mz, self.dim_x, self.dim_y, self.coord_ind)
 		ion_img = np.expand_dims(ion_img, axis=0)
 		self.visualizationRunHelper(ion_img, ion_img.shape, 'single', heatmap=img_heatmap)
 		return True
@@ -1225,18 +1265,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			return False
 		print(f"Number of fiducials: {N}")
 
-		coord = np.array(self.parser.coordinates)
-		zero_ind = False		# zero_ind: first index is 0
-		if np.min(coord)==0:
-			zero_ind = True
 
-		coord_to_index = {(x, y): i for i, (x, y, *_) in enumerate(self.parser.coordinates)}
+		coord_to_index = {(x, y): i for i, (x, y, *_) in enumerate(self.coord_ind)}
 		# Create or update a plot for each fiducial
 		for i, (fnode_name, fnode_loc) in enumerate(zip(fnode_names, fnode_locs)):
-			if zero_ind:
-				fnode_ind = coord_to_index[(fnode_loc[1], fnode_loc[0])]
-			else:
-				fnode_ind = coord_to_index[(fnode_loc[1]+1, fnode_loc[0]+1)]
+			fnode_ind = coord_to_index[(fnode_loc[1], fnode_loc[0])]
 
 			mz, spec = self.parser.getspectrum(fnode_ind)
 
@@ -1349,13 +1382,14 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		fnode_locs = []
 
 		for fiducial_node in fiducial_nodes:
-			num_fiducials = fiducial_node.GetNumberOfControlPoints()
-			for i in range(num_fiducials):
-				position = [0.0, 0.0, 0.0]
-				fiducial_node.GetNthControlPointPosition(i, position)
-				point_name = fiducial_node.GetNthControlPointLabel(i)
-				fnode_names.append(point_name)
-				fnode_locs.append(self.fiducial_to_index(position))
+			if fiducial_node.GetName() == "spectrum":  # only process the list "spectrum"
+				num_fiducials = fiducial_node.GetNumberOfControlPoints()
+				for i in range(num_fiducials):
+					position = [0.0, 0.0, 0.0]
+					fiducial_node.GetNthControlPointPosition(i, position)
+					point_name = fiducial_node.GetNthControlPointLabel(i)
+					fnode_names.append(point_name)
+					fnode_locs.append(self.fiducial_to_index(position))
 
 		N = len(fnode_locs)
 		if N == 0:
@@ -1681,6 +1715,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	# set volume dimensions, fill with image requested, get rid of existing overlays
 	def visualizationRunHelper(self,overlay,arraySize,visualization_type='multi', heatmap='Gray'):
 		
+		ScalarClass = ['single', 'similarity']
+
 		# delete all current views as we will load a new volume
 		filename = f'{self.slideName}_{visualization_type}'
 		if (visualization_type == 'single'): filename += 'ion'
@@ -1705,7 +1741,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		imageData = vtk.vtkImageData()
 		imageData.SetDimensions(imagesize)
 
-		imageData.AllocateScalars(voxelType, 1 if visualization_type == 'single' else 3)
+		imageData.AllocateScalars(voxelType, 1 if visualization_type in ScalarClass else 3)
 		imageData.GetPointData().GetScalars().Fill(fillVoxelValue)
 
 		volumeNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLVectorVolumeNode", filename)
@@ -1726,12 +1762,12 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		displayNode.SetLevel(125)
 		
 		# save volume (for single-ion) or image (pca/ multi-ion)
-		image = np.squeeze(overlay) if visualization_type != 'single' else overlay
-		image = sitk.GetImageFromArray(image, isVector= visualization_type != 'single')
-		image = sitk.Cast(image, sitk.sitkVectorUInt8) if visualization_type != 'single' else image
-		sitk.WriteImage(image, os.path.join(self.saveFolder, f'{filename}.{"jpeg" if visualization_type != "single" else "nii"}'))
+		image = np.squeeze(overlay) if visualization_type not in ScalarClass else overlay
+		image = sitk.GetImageFromArray(image, isVector= visualization_type not in ScalarClass)
+		image = sitk.Cast(image, sitk.sitkVectorUInt8) if visualization_type not in ScalarClass else image
+		sitk.WriteImage(image, os.path.join(self.saveFolder, f'{filename}.{"jpeg" if visualization_type not in ScalarClass else "nii"}'))
 		
-		if visualization_type != 'single': 
+		if visualization_type not in ScalarClass: 
 			slicer.util.setSliceViewerLayers(background=volumeNode, foreground=None)
 		else: 
 			# delete current node and reload the volume
@@ -1757,7 +1793,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		widget.SetSliceNode(slicer.util.getNode('vtkMRMLSliceNodeRed'))
 		widget.SetMRMLApplicationLogic(slicer.app.applicationLogic())
 
-		return True
+		return volumeNode
 
 	# uploads the modelling file and saves the file names into the class directory 
 	def modellingFileLoad(self, filename):
@@ -2341,7 +2377,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		saveName = os.path.splitext(self.csvFile)[0]+ f'_{mz_ref}_boxplot.jpeg'
 		plot_custom_boxplot(grouped_data, unique_classes, mz_ref, (5,5), saveName)
-
 		df_summary = boxplot_summary(grouped_data, unique_classes)
 		# table_node = pandas_to_slicer_table(df_summary, 'Statistics')
 
@@ -2354,7 +2389,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		
 		YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
 		YellowNode.SetOrientation("Axial")
-
 		return df_summary
 
 	def plot_latent_pca(self):
@@ -2697,8 +2731,20 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			slicer.util.pip_install("pyimzml")
 			from pyimzml.ImzMLParser import ImzMLParser
 
-		parser = ImzMLParser(filePath)
-		tic_image = imzML_TIC(parser)
+		# parser = ImzMLParser(filePath)
+		try:
+			parser = ImzMLParser(filePath)
+			ok, reason = _sanity_pyimzml_report(parser, strict=True)
+			if ok:
+				print("Using backend: pyimzML")
+			else:
+				print(f"pyimzML sanity failed ({reason}).")
+				raise Exception()
+		except:
+			print("Falling back to 'simple'.")
+			parser = _SafeImzMLImpl(filePath)
+
+		tic_image, mz_range, (dim_x, dim_y), coord_ind = imzML_TIC(parser)
 
 		# save tic image
 		tic_image = sitk.GetImageFromArray(np.transpose(tic_image, [0, 1]))
@@ -2716,20 +2762,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# delete the tic file
 		os.remove(tic_filename)
 
-		coord = np.array(parser.coordinates)
-		zero_ind = False		# zero_ind: first index is 0
-		dim_x, dim_y, *_ = coord.max(0)
-		if np.min(coord)==0:
-			zero_ind = True
-			dim_x, dim_y, *_ = coord.max(0)+1
-
-		n_spectra = len(parser.coordinates)
+		n_spectra = len(coord_ind)
 		mzLengths = parser.mzLengths
-		mz_range = [np.inf, -np.inf]
-		for ind in range(n_spectra):
-			mz, _ = parser.getspectrum(ind)
-			mz_range[0] = np.min([mz_range[0], np.min(mz)])
-			mz_range[1] = np.max([mz_range[1], np.max(mz)])
 
 		info = os.path.basename(filePath) +'\n'
 		info += f'spatial:\t {dim_y} x {dim_x} pixels \n'
@@ -2744,6 +2778,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.dim_x = dim_x
 		self.parser = parser
 		self.raw_range = mz_range
+		self.coord_ind = coord_ind
 	
 		return info, mz_range
 
@@ -2757,25 +2792,27 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# peaks = peaks.reshape((dim_y*dim_x,-1),order='C')
 		# return peaks, mz, dim_y, dim_x
 
-	@show_wait_message
+	# @show_wait_message
 	def raw_processing(self, params):
 		status = True
+
+		startTime = time.time()
 		try:
-			mz_select, calibration_shifts, peaks_select, mz_grid, peaks_aggregated = self.raw_mzList_picking(self.parser, params)
-			peak_list, dim_x, dim_y = self.raw_peakList_alignment(self.parser, mz_select, calibration_shifts, params)
+			mz_select, calibration_shifts, peaks_select, mz_grid, peaks_aggregated = self.raw_mzList_picking(params)
+			peak_list = self.raw_peakList_alignment(mz_select, calibration_shifts, params)
 			
 			self.peaks = peak_list
 			self.mz = mz_select
-			self.dim_y = dim_y
-			self.dim_x = dim_x
+
 		except Exception as e:
 			print("An error occurred:")
 			traceback.print_exc()
 			status = False
-
+		stopTime = time.time()
+		print(f'Processing completed in {stopTime-startTime:.2f} seconds')
 		return status
 
-	def raw_mzList_picking(self, parser, params):
+	def raw_mzList_picking(self, params):
 		vis_range = np.round([ params["range"][0] - 1, params["range"][1] + 1], params["decimal_ions"])
 		mz_res = 10**-params["decimal_ions"]
 		mz_grid = np.arange(vis_range[0], vis_range[1], mz_res)
@@ -2783,32 +2820,42 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		peaks_aggregated = 0
 		calibration_shifts = []
 		
-		n_spectra = len(parser.coordinates)
-		for i in tqdm(range(n_spectra)):
-			mz_raw, peaks_raw = parser.getspectrum(i)
+		n_spectra = len(self.coord_ind)
+		# === progress wrapper ===
+		with SlicerProgress(n_spectra, title="Aggregation and m/z selection",
+							parent=None, show_eta=True,
+							eta_place="label", update_interval=0.5) as prog:
+		# === progress wrapper ===
+
+			for i in range(n_spectra):
+				mz_raw, peaks_raw = self.parser.getspectrum(i)
+				
+				# lockmass
+				if params["lockmass"]:
+					calibration_shift = self.lockmass_shift_prediction(mz_raw, peaks_raw, lockmass_peak=params["lockmass"], lockmass_range=0.1, method="nearest_peak")
+					mz_raw = mz_raw + calibration_shift
+					calibration_shifts.append(calibration_shift)
+
+				# filter range
+				raw_range = (mz_raw>=vis_range[0])*(mz_raw<=vis_range[1])
+				mz_raw = mz_raw[raw_range]
+				peaks_raw = peaks_raw[raw_range]
 			
-			# lockmass
-			if params["lockmass"]:
-				calibration_shift = self.lockmass_shift_prediction(mz_raw, peaks_raw, lockmass_peak=params["lockmass"], lockmass_range=0.1, method="nearest_peak")
-				mz_raw = mz_raw + calibration_shift
-				calibration_shifts.append(calibration_shift)
+				# interpolate
+				peaks_interp = np.interp(mz_grid, mz_raw, peaks_raw, left=0, right=0)
 
-			# filter range
-			raw_range = (mz_raw>=vis_range[0])*(mz_raw<=vis_range[1])
-			mz_raw = mz_raw[raw_range]
-			peaks_raw = peaks_raw[raw_range]
-		
-			# interpolate
-			peaks_interp = np.interp(mz_grid, mz_raw, peaks_raw, left=0, right=0)
+				# smoothing
+				if params["smoothing"]:
+					peaks_interp = self.smoothing(mz_grid, peaks_interp, kernel_nstd=4, kernel_bandwidth=params["smoothing"])
 
-			# smoothing
-			if params["smoothing"]:
-				peaks_interp = self.smoothing(mz_grid, peaks_interp, kernel_nstd=4, kernel_bandwidth=params["smoothing"])
+				# aggregate
+				peaks_aggregated += peaks_interp
 
-			# aggregate
-			peaks_aggregated += peaks_interp
+				# === progress wrapper ===
+				if not prog.step():   # tick + cancel check
+					break
+				# === progress wrapper ===
 
-		mz_grid, peaks_aggregated
 
 		# peak picking
 		if params["smoothing"]:
@@ -2860,53 +2907,54 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		
 		return calibration_shift
 
-	def raw_peakList_alignment(self, parser, mz_ref, calibration_shifts, params):
+	def raw_peakList_alignment(self, mz_ref, calibration_shifts, params):
 		
 		vis_range = np.round([ mz_ref.min() - 1, mz_ref.max() + 1], params["decimal_ions"])
 		mz_res = 10**-params["decimal_ions"]
 		mz_grid = np.arange(vis_range[0], vis_range[1], mz_res)
 		
-		n_spectra = len(parser.coordinates)
+		n_spectra = len(self.coord_ind)
 		n_ions = len(mz_ref)
 
-		coord = np.array(parser.coordinates)
-		zero_ind = False		# zero_ind: first index is 0
-		dim_x, dim_y, *_ = coord.max(0)
-		if np.min(coord)==0:
-			zero_ind = True
-			dim_x, dim_y, *_ = coord.max(0)+1
+		dim_x, dim_y = self.dim_x, self.dim_y
 
 		peak_list = np.zeros((dim_y, dim_x, n_ions))
-		for i, (x, y, *_) in tqdm(enumerate(parser.coordinates), total=n_spectra):
-			mz_raw, peaks_raw = parser.getspectrum(i)
-			
-			# lockmass
-			if params["lockmass"]:
-				mz_raw = mz_raw + calibration_shifts[i]
 
-			# filter range
-			raw_range = (mz_raw>=vis_range[0])*(mz_raw<=vis_range[1])
-			mz_raw = mz_raw[raw_range]
-			peaks_raw = peaks_raw[raw_range]
+		# === progress wrapper ===
+		with SlicerProgress(n_spectra, title="Peak alignment",
+							parent=None, show_eta=True,
+							eta_place="label", update_interval=0.5) as prog:
+		# === progress wrapper ===
 		
-			# smoothing
-			if params["smoothing"]:
-				peaks_raw = np.interp(mz_grid, mz_raw, peaks_raw, left=0, right=0)
-				peaks_raw = self.smoothing(mz_grid, peaks_raw, kernel_nstd=4, kernel_bandwidth=params["smoothing"])
-				mz_raw = mz_grid
+			for i, (x, y, *_) in enumerate(self.coord_ind):
+				mz_raw, peaks_raw = self.parser.getspectrum(i)
+				
+				# lockmass
+				if params["lockmass"]:
+					mz_raw = mz_raw + calibration_shifts[i]
 
-			# peak match
-			peaks_aligned, _ = self.peak_matching(mz_raw, peaks_raw, mz_ref, tol=5*mz_res, method='max')
+				# filter range
+				raw_range = (mz_raw>=vis_range[0])*(mz_raw<=vis_range[1])
+				mz_raw = mz_raw[raw_range]
+				peaks_raw = peaks_raw[raw_range]
 			
-			if zero_ind:
+				# smoothing
+				if params["smoothing"]:
+					peaks_raw = np.interp(mz_grid, mz_raw, peaks_raw, left=0, right=0)
+					peaks_raw = self.smoothing(mz_grid, peaks_raw, kernel_nstd=4, kernel_bandwidth=params["smoothing"])
+					mz_raw = mz_grid
+
+				# peak match
+				peaks_aligned, _ = self.peak_matching(mz_raw, peaks_raw, mz_ref, tol=5*mz_res, method='max')
 				peak_list[y, x] = peaks_aligned
-			else:
-				peak_list[y-1, x-1] = peaks_aligned
 
-			
+				# === progress wrapper ===
+				if not prog.step():   # tick + cancel check
+					break
+				# === progress wrapper ===
 
 		peak_list = peak_list.reshape((dim_y*dim_x,-1),order='C')
-		return peak_list, dim_x, dim_y
+		return peak_list
 
 	def MSIExport(self, savepath):
 		file_type = os.path.splitext(savepath)[-1]
@@ -3332,6 +3380,65 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return coloredArray
 
 
+	def point_similarity_heatmap(self):
+		fiducial_nodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsFiducialNode")
+		fnode_locs = []
+		for fiducial_node in fiducial_nodes:
+			if fiducial_node.GetName() == "similarity":  # only process the list "similarity"
+				position = [0.0, 0.0, 0.0]
+				fiducial_node.GetNthControlPointPosition(0, position)
+				fnode_locs.append(self.fiducial_to_index(position))
+
+		N = len(fnode_locs)
+		if N == 0:
+			print("No fiducials found.")
+			return False
+
+		fnode_ind = ind_ToFrom_sub(fnode_locs[0], self.dim_x)
+		spec_ref = self.peaks_norm[fnode_ind].reshape(1,-1)
+		peaks_similarity = cosine_similarity(spec_ref, self.peaks_norm) 
+		similarity_heatmap = peaks_similarity.reshape((self.dim_y,self.dim_x),order='C')
+		self.similarity_heatmap = peaks_similarity.ravel()
+		similarity_heatmap_exdim = np.expand_dims(similarity_heatmap, axis=0)
+		volumeNode = self.visualizationRunHelper(similarity_heatmap_exdim, similarity_heatmap_exdim.shape, visualization_type='similarity', heatmap='Inferno')
+		return volumeNode
+
+	def roi_similarity_map(self, segMask, segName, segColor, similarity_threshold):
+		pixel_locs, pixel_classes, pixel_colors = [], [], []
+		for i in range(len(segMask)):
+			mask_inds = np.where(segMask[i].ravel())[0]
+			pixel_locs.append(mask_inds)
+			pixel_classes.append([segName[i]]*len(mask_inds))
+			pixel_colors.append([segColor[i]]*len(mask_inds))
+		pixel_locs = np.concatenate(pixel_locs)
+		pixel_classes = np.concatenate(pixel_classes)
+		pixel_colors = np.concatenate(pixel_colors)
+
+		pixel_peaks = self.peaks_norm[pixel_locs]
+
+		peaks_similarity = cosine_similarity(pixel_peaks, self.peaks_norm) # n_mask_pixels, n_all_pixels
+		max_similarity_ind = np.argmax(peaks_similarity, axis=0)
+		max_similarity_value = np.max(peaks_similarity, axis=0) # n_all_pixels,
+		max_similarity_colors = pixel_colors[max_similarity_ind] # n_all_pixels, 3
+		# max_similarity_classes = pixel_classes[max_similarity_ind]
+		# max_similarity_heatmap = max_similarity_colors * max_similarity_value[:, None]
+
+		# max_similarity = max_similarity_value.reshape((self.dim_y,self.dim_x),order='C')
+		# max_similarity = np.expand_dims(max_similarity, axis=0)
+		# self.visualizationRunHelper(max_similarity, max_similarity.shape, visualization_type='similarity', heatmap='Inferno')
+
+		# similarity_heatmap = max_similarity_heatmap.reshape((self.dim_y,self.dim_x,3),order='C')
+		# similarity_heatmap = (np.expand_dims(similarity_heatmap, axis=0)*255).astype('int')
+		# self.visualizationRunHelper(similarity_heatmap, similarity_heatmap.shape, visualization_type='similarity_heatmap')
+
+		similarity_class = max_similarity_colors.copy()
+		similarity_class[max_similarity_value<similarity_threshold] = 0 # remove pixels with similarity lower than a treshold
+		similarity_class = similarity_class.reshape((self.dim_y,self.dim_x,3),order='C')
+		similarity_class = (np.expand_dims(similarity_class, axis=0)*0.9*255).astype('int')
+		self.visualizationRunHelper(similarity_class, similarity_class.shape, visualization_type='similarity_assignment')
+
+
+	
 	def numpyArrayToSlicerLabelMap(self, numpyArray, nodeName, ijkToRASMatrix):
 		# Ensure the array is in Fortran order (column-major order)
 		if not numpyArray.flags['F_CONTIGUOUS']:
@@ -3484,40 +3591,53 @@ def dataset_normalization(data, method, **kwargs):
 	
 	return data / scale
 
-def imzML_TIC(parser):
+def imzML_TIC(parser, range_report=True):
 	coord = np.array(parser.coordinates)
-	zero_ind = False		# zero_ind: first index is 0
-	dim_x, dim_y, *_ = coord.max(0)
-	if np.min(coord)==0:
-		zero_ind = True
-		dim_x, dim_y, *_ = coord.max(0)+1
+	if np.min(coord)!=0:
+		coord-=1
+		
+	dim_x, dim_y, *_ = coord.max(0)+1
 
+	mz_range = [np.inf, -np.inf]
 	tic_img = np.zeros((dim_y, dim_x))
-	for i, (x, y, *_) in enumerate(parser.coordinates):
-		_, intensities = parser.getspectrum(i)
-		if zero_ind:
+
+	if range_report:
+		# === progress wrapper ===
+		with SlicerProgress(len(coord), title="TIC visualization...",
+							parent=None, show_eta=True,
+							eta_place="label", update_interval=0.5) as prog:
+		# === progress wrapper ===
+			for i, (x, y, *_) in enumerate(coord):
+				mzs, intensities = parser.getspectrum(i)
+				mz_range[0] = np.min([mz_range[0], np.min(mzs)])
+				mz_range[1] = np.max([mz_range[1], np.max(mzs)])
+				tic_img[y, x] = intensities.sum()
+				# === progress wrapper ===
+				if not prog.step():   # tick + cancel check
+					break
+				# === progress wrapper ===
+	else:
+		for i, (x, y, *_) in enumerate(coord):
+			_, intensities = parser.getspectrum(i)
 			tic_img[y, x] = intensities.sum()
-		else:
-			tic_img[y-1, x-1] = intensities.sum()
 
-	return tic_img
+	return tic_img, mz_range, (dim_x, dim_y), coord
 
-def imzML_ionImg(parser, mz, tol):
-	coord = np.array(parser.coordinates)
-	zero_ind = False		# zero_ind: first index is 0
-	dim_x, dim_y, *_ = coord.max(0)
-	if np.min(coord)==0:
-		zero_ind = True
-		dim_x, dim_y, *_ = coord.max(0)+1
-
+def imzML_ionImg(parser, mz, tol, dim_x, dim_y, coord_ind):
 	ion_img = np.zeros((dim_y, dim_x))
-	for i, (x, y, *_) in enumerate(parser.coordinates):
-		mzs, intensities = parser.getspectrum(i)
-		mask = (mzs >= (mz-tol)) & (mzs <= (mz+tol))
-		if zero_ind:
+	# === progress wrapper ===
+	with SlicerProgress(len(coord_ind), title="Ion image visualization...",
+						parent=None, show_eta=True,
+						eta_place="label", update_interval=0.5) as prog:
+	# === progress wrapper ===
+		for i, (x, y, *_) in enumerate(coord_ind):
+			mzs, intensities = parser.getspectrum(i)
+			mask = (mzs >= (mz-tol)) & (mzs <= (mz+tol))
 			ion_img[y, x] = intensities[mask].sum()
-		else:
-			ion_img[y-1, x-1] = intensities[mask].sum()
+			# === progress wrapper ===
+			if not prog.step():   # tick + cancel check
+				break
+			# === progress wrapper ===
 
 	return ion_img
 
@@ -3604,9 +3724,9 @@ def plot_custom_boxplot(grouped_data, groups, mz_title, figsize=(5,5), save_path
 	ax.set_xticks(range(1, num_groups + 1))
 	ax.set_xticklabels(groups, rotation=45, ha='right')
 	ax.set_ylabel("intensity")
-	ax.set_title(f'$m/z\ {mz_title}$', style='italic')
+	ax.set_title(f"m/z {mz_title}", fontstyle='italic')
 	ax.set_ylim(bottom=0)
-	ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+	# ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
 	ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
 	ax.spines['top'].set_visible(False)
 	ax.spines['right'].set_visible(False)
@@ -3769,3 +3889,259 @@ def plot_custom_volcano(log2_fc, neg_log10_p, mz, p_thresh=0.05, fc_thresh=1, to
 #     quotients = data / (reference + 1e-10)
 #     scale_factors = np.median(quotients, axis=1, keepdims=True)
 #     return data / scale_factors
+
+
+# ---------------- internal: XML helpers ----------------
+def _ns(root):
+    return {'mz': root.tag.split('}')[0].strip('{')}
+
+def _cv_names(elem, ns):
+    return {cv.get('name') for cv in elem.findall('mz:cvParam', ns)}
+
+def _cv_map(elem, ns):
+    return {cv.get('accession'): cv.get('value') for cv in elem.findall('mz:cvParam', ns)}
+
+def _load_ref_groups(root, ns):
+    groups = {}
+    for g in root.findall('.//mz:referenceableParamGroup', ns):
+        groups[g.get('id')] = _cv_names(g, ns)
+    return groups
+
+def _describe_bda(bda, ref_names, ns):
+    names = set(_cv_names(bda, ns))
+    ref = bda.find('mz:referenceableParamGroupRef', ns)
+    if ref is not None and ref.get('ref') in ref_names:
+        names |= ref_names[ref.get('ref')]
+
+    which = 'mz' if 'm/z array' in names else ('intensity' if 'intensity array' in names else None)
+    if which is None:
+        return None
+
+    # dtype (size) + endianness from CVs
+    base = 'f8' if '64-bit float' in names else ('f4' if '32-bit float' in names else 'f8')
+    endian = '>' if 'big endian' in names else '<'  # default little-endian
+    dtype = np.dtype(endian + base)
+
+    meta = _cv_map(bda, ns)
+    off = meta.get('IMS:1000102')
+    enc = meta.get('IMS:1000104')
+    n = meta.get('IMS:1000103')
+    return {
+        'which': which,
+        'dtype': dtype,
+        'compressed': ('zlib compression' in names),
+        'offset': int(off) if off is not None else 0,
+        'encoded_len': int(enc) if enc is not None else 0,
+        'array_len': int(n) if n is not None else None,
+    }
+
+# ---------------- fallback: simple manual reader ----------------
+class _SafeImzMLImpl:
+    """Read external arrays via offsets + zlib. Mirrors the pyimzML fields you use."""
+    def __init__(self, path):
+        self.imzml_path = str(path)
+        root_base, _ = os.path.splitext(self.imzml_path)
+        self.ibd_path = root_base + '.ibd'
+
+        tree = ET.parse(self.imzml_path)
+        root = tree.getroot()
+        ns = _ns(root)
+        ref_names = _load_ref_groups(root, ns)
+
+        self._spectra = root.findall('.//mz:spectrum', ns)
+        self._desc = []              # [{'mz': {...}, 'i': {...}}, ...]
+        self.coordinates = []        # [(x,y,z), ...]
+        self.mzOffsets = []
+        self.mzLengths = []
+        self.intensityOffsets = []
+        self.intensityLengths = []
+
+        for spec in self._spectra:
+            bdas = spec.find('mz:binaryDataArrayList', ns).findall('mz:binaryDataArray', ns)
+            ds = [_describe_bda(b, ref_names, ns) for b in bdas]
+            ds = [d for d in ds if d is not None]
+            d_mz = next(d for d in ds if d['which'] == 'mz')
+            d_i  = next(d for d in ds if d['which'] == 'intensity')
+            self._desc.append({'mz': d_mz, 'i': d_i})
+
+            self.mzOffsets.append(d_mz['offset'])
+            self.mzLengths.append(d_mz['array_len'])
+            self.intensityOffsets.append(d_i['offset'])
+            self.intensityLengths.append(d_i['array_len'])
+
+            x = int(spec.find(".//mz:cvParam[@accession='IMS:1000050']", ns).get('value'))
+            y = int(spec.find(".//mz:cvParam[@accession='IMS:1000051']", ns).get('value'))
+            z_tag = spec.find(".//mz:cvParam[@accession='IMS:1000052']", ns)
+            z = int(z_tag.get('value')) if z_tag is not None else 1
+            self.coordinates.append((x, y, z))
+
+    def __len__(self):
+        return len(self._desc)
+
+    def _read_array(self, d):
+        with open(self.ibd_path, 'rb') as f:
+            f.seek(d['offset'])
+            blob = f.read(d['encoded_len'])
+        raw = zlib.decompress(blob) if d['compressed'] else blob
+        arr = np.frombuffer(raw, dtype=d['dtype'])
+        if d['array_len'] is not None and arr.size > d['array_len']:
+            arr = arr[:d['array_len']]
+        return arr
+
+    def getspectrum(self, i):
+        d = self._desc[i]
+        return self._read_array(d['mz']), self._read_array(d['i'])
+
+# ---------------- sanity for pyimzML ----------------
+def _sanity_pyimzml_report(py_parser, strict=True, check_n=6, seed=0):
+    """
+    Return (ok: bool, reason: str). Never raises.
+    """
+    try:
+        m = len(py_parser.coordinates)
+        if m == 0:
+            return False, "no spectra"
+        idxs = {0, m - 1, m // 2}
+        rng = random.Random(seed)
+        while len(idxs) < min(check_n, m):
+            idxs.add(rng.randrange(0, m))
+        for i in sorted(idxs):
+            mz, I = py_parser.getspectrum(i)
+            if mz is None or I is None:
+                return False, f"spectrum {i} returned None"
+            mz = np.asarray(mz); I = np.asarray(I)
+            if mz.size == 0 or I.size == 0:
+                return False, f"spectrum {i} empty"
+            if mz.size != I.size:
+                return False, f"spectrum {i} length mismatch (mz={mz.size}, I={I.size})"
+            if not np.isfinite(mz).all() or not np.isfinite(I).all():
+                return False, f"spectrum {i} has non-finite values"
+            if strict and not (np.diff(mz) > 0).all():
+                return False, f"spectrum {i} has non-monotonic m/z"
+        return True, f"passed on {len(idxs)} spectra"
+    except Exception as e:
+        return False, f"exception during sanity: {e}"
+
+
+####    ===================   ProgressBar   ===================
+def _dlgCanceled(dlg):
+    """Works whether wasCanceled is a bool property or a callable."""
+    attr = getattr(dlg, 'wasCanceled', None)
+    return bool(attr() if callable(attr) else attr)
+
+def _fmt_eta(seconds):
+    seconds = max(0, int(seconds))
+    h, rem = divmod(seconds, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h:d}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
+
+class SlicerProgress:
+    """
+    Progress bar with optional ETA
+    """
+    def __init__(self, total, title="Processing", parent=None,
+                 show_eta=True, eta_place="label", update_interval=0.25):
+        """
+        total: int total iterations
+        title: window title base text
+        parent: Qt parent (defaults to Slicer's main window)
+        show_eta: True to display ETA
+        eta_place: "title" or "label"
+        update_interval: seconds between ETA text updates
+        """
+        self.total = max(0, int(total))
+        self.parent = parent or slicer.util.mainWindow()
+        self.title_base = title
+        self.show_eta = bool(show_eta)
+        self.eta_place = "label" if eta_place == "label" else "title"
+        self.update_interval = float(update_interval)
+
+        self.dlg = None
+        self._value = 0
+        self._t0 = None
+        self._last_eta_update = 0.0
+
+    def __enter__(self):
+        dlg = qt.QProgressDialog("" if self.eta_place == "title" else "Starting…",
+                                 "Cancel", 0, self.total, self.parent)
+        dlg.setWindowTitle(self.title_base)
+        dlg.setWindowModality(qt.Qt.WindowModal)
+        dlg.setMinimumDuration(0)
+        dlg.setAutoClose(True)
+        dlg.setAutoReset(True)
+        dlg.setValue(0)
+
+        # If we’re not using the label for ETA, hide it for a clean bar-only look
+        if not self.show_eta or self.eta_place == "title":
+            try:
+                dlg.setLabelText("")
+                lbl = dlg.findChild(qt.QLabel)
+                if lbl:
+                    lbl.hide()
+            except Exception:
+                pass
+
+        dlg.setMinimumWidth(500)   
+        dlg.show()
+        self.dlg = dlg
+        self._t0 = time.time()
+        self._last_eta_update = self._t0
+        self._update_eta_text(force=True)
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        if self.dlg:
+            self.dlg.close()
+        return False  # don’t suppress exceptions
+
+    @property
+    def canceled(self):
+        return _dlgCanceled(self.dlg)
+
+    def step(self, inc=1):
+        """Advance progress by 'inc'. Returns False if canceled."""
+        if self.canceled:
+            return False
+        self._value = min(self.total, self._value + int(inc))
+        self.dlg.setValue(self._value)
+        self._update_eta_text()
+        slicer.app.processEvents()
+        return not self.canceled
+
+    def set(self, value):
+        """Set absolute progress. Returns False if canceled."""
+        if self.canceled:
+            return False
+        self._value = max(0, min(self.total, int(value)))
+        self.dlg.setValue(self._value)
+        self._update_eta_text()
+        slicer.app.processEvents()
+        return not self.canceled
+
+    # ---- internals ----
+    def _update_eta_text(self, force=False):
+        if not self.show_eta or self.total <= 0:
+            return
+        t = time.time()
+        if not force and (t - self._last_eta_update) < self.update_interval:
+            return
+        done = max(1, self._value)
+        elapsed = t - self._t0
+        rate = elapsed / done  # seconds per step
+        remaining_steps = max(0, self.total - done)
+        eta = remaining_steps * rate
+        msg = f"ETA { _fmt_eta(eta) }  •  {done}/{self.total}"
+
+        if self.eta_place == "title":
+            self.dlg.setWindowTitle(f"{self.title_base}  —  {msg}")
+        else:
+            # ensure label is visible when using label mode
+            try:
+                lbl = self.dlg.findChild(qt.QLabel)
+                if lbl:
+                    lbl.show()
+                self.dlg.setLabelText(msg)
+            except Exception:
+                pass
+
+        self._last_eta_update = t
