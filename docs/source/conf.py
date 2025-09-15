@@ -10,8 +10,8 @@ project = 'MassVision'
 copyright = '2024'
 author = 'Amoon Jamzad'
 
-release = '0.6'
-version = '0.6.2'
+release = '1.0'
+version = '1.0.0'
 
 # -- General configuration
 
@@ -34,8 +34,8 @@ templates_path = ['_templates']
 # -- Options for HTML output
 
 html_theme = 'sphinx_rtd_theme'
-html_static_path = ['images']
-html_logo = "images/logo.png"
+html_static_path = ['Images']
+html_logo = "Images/logo.png"
 
 # -- Options for EPUB output
 epub_show_urls = 'footnote'

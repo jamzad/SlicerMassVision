@@ -4,8 +4,12 @@ The process of of extracting labeled dataset for downstream analysis includes co
  
 Co-localization
 *******
-   .. image:: https://www.dropbox.com/scl/fi/cumbv2xfwfgixyxdhuqxz/registration.gif?rlkey=cvi87xl1jz5l9y1vn2te4ktru&st=6fxm9mkb&raw=1
+
+   .. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/colocalization.gif
        :width: 600
+       
+   .. .. image:: https://www.dropbox.com/scl/fi/cumbv2xfwfgixyxdhuqxz/registration.gif?rlkey=cvi87xl1jz5l9y1vn2te4ktru&st=6fxm9mkb&raw=1
+   ..     :width: 600
 
 #. In 'Co-localization' section, click on the 'Landmark Registration'to switch to the **Landmark Registration** module in 3D Slicer. 
 #. In the pop-up dialog box, designate an MSI visualization as the **Fixed Volume**, and the pathology image as the **Moving Volume**, and then click **Apply**.
@@ -18,6 +22,7 @@ Co-localization
 
    .. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/RegistrationMenu.png
        :width: 300
+       :align: center
 
 #. Now that the parameters are set, you have to select landmark pairs on MSI and pathology images. Click **Add** under **Landmarks** to add your first fiducial.   
 #. After selecting a landmark on the MSI image, a corresponding dot will appear on the histopathology image. Drag the landmark on both images to point to the same physical location. If necessary, re-fit the images to the viewers by clicking on **Fit** button.
@@ -32,8 +37,11 @@ Co-localization
 ROI Selection
 ********
 
-   .. image:: https://www.dropbox.com/scl/fi/03ff1aci9qgbgr735k9up/roiselection.gif?rlkey=7sb5fvcdh12g2ra7jnr3x2n2f&st=wqfd5fht&raw=1
+   .. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/roi.gif
        :width: 600
+
+   .. .. image:: https://www.dropbox.com/scl/fi/03ff1aci9qgbgr735k9up/roiselection.gif?rlkey=7sb5fvcdh12g2ra7jnr3x2n2f&st=wqfd5fht&raw=1
+   ..     :width: 600
 
 #. In the *Dataset Generation* tab in **ROI selection** section, you can select two visualizations; one as the **Main** reference and the other as the **Guide** for your ROI selection. 
 
