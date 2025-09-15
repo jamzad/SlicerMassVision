@@ -32,7 +32,7 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>2</number>
+   <number>7</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
@@ -2617,7 +2617,7 @@ color: rgb(255, 255, 255);</string>
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Aligned dataset info&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Dataset info&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
     </item>
@@ -4358,17 +4358,17 @@ color: rgb(255, 255, 255);</string>
       </item>
       <item>
        <property name="text">
-        <string>down-sample</string>
+        <string>Undersampling</string>
        </property>
       </item>
       <item>
        <property name="text">
-        <string>mid-sample</string>
+        <string>Oversampling</string>
        </property>
       </item>
       <item>
        <property name="text">
-        <string>up-sample</string>
+        <string>Hybrid</string>
        </property>
       </item>
      </widget>

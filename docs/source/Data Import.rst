@@ -6,7 +6,13 @@ To import rectilinear or raw MSI data, or histopathology images, navigate to the
 
 Import MSI Data
 ---------------
-#. Click 'Select file...' under MSI data. A file dialog box will open, allowing you to browse and select the file. MassVision supports modality independent structured MSI files (.csv), hierarchical HDF5 files (.h5), and DESI MSI image files from Waters (.txt). Select the format from the dropdown menu, select the file, and click 'Open' to load the data.
+#. Click 'Select file...' under MSI data. A file dialog box will open, allowing you to browse and select the file. MassVision supports different formats including:
+
+   - Modality-independent structured MSI files (.csv)
+   - Modality-independent hierarchical HDF5 files (.h5)
+   - DESI MSI image files from Waters (.txt)
+   
+#. Select the format from the dropdown menu, select the file, and click 'Open' to load the data.
 
    .. note::
       The instruction on how to structure your MSI data into CSV or HDF5 compatible with MassVision can be found in `Data Structure <https://slicermassvision.readthedocs.io/en/latest/Data%20Structure.html#data-structure>`_ page.

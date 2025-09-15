@@ -1914,11 +1914,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		X_train_balanced, y_train_balanced, track_info_train_balanced = [], [], []
 
-		if balanceType == 'down-sample':
+		if balanceType.lower() == 'undersampling':
 			sample_per_class = int(class_counts.min())
-		elif balanceType == 'up-sample':
+		elif balanceType.lower() == 'oversampling':
 			sample_per_class = int(class_counts.max())
-		elif balanceType == 'mid-sample':
+		elif balanceType.lower() == 'hybrid':
 			sample_per_class = int(class_counts.mean())
 
 		for cls in class_names:

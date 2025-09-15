@@ -7,6 +7,7 @@ Co-localization
 
    .. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/docs/source/Images/colocalization.gif
        :width: 600
+       :align: center
        
    .. .. image:: https://www.dropbox.com/scl/fi/cumbv2xfwfgixyxdhuqxz/registration.gif?rlkey=cvi87xl1jz5l9y1vn2te4ktru&st=6fxm9mkb&raw=1
    ..     :width: 600

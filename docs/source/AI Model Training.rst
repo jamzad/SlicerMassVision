@@ -1,36 +1,64 @@
-AI Model Training 
-########
+Supervised AI Model Training 
+============================
 
-The **AI Model Training** tab is designed for exploration of the data, and training and validation of AI models.
+This tab facilitates feature selection, data partitioning, data balancing, and training supervised methods for tissue type classification.
 
-Import 
----------
-Click on **Select file** under "Import CSV dataset". A dialog box will appear allowing you to browse your local storage and select the desired CSV file. You will be prompted by the successful load message and the information about the dataset including number of slides, number of classes, number of total spectra, and number of spectra per classes will appear in the available text box
+Dataset Import 
+--------------
+Click on **Select file** under "Import CSV dataset". A dialog box will appear allowing you to browse your local storage and select the desired CSV file. After loading, a success message will be shown and dataset information will be displayed, including the number of slides, number of classes, total spectra, and spectra per class.
 
-Data Distribution
--------
-To view the scatter plot of spectra in lower dimension, click on **Plot PCA latent space** under "Data Distribution". The scatter plot is color coded both for slides and class label Differentiation. The generated image of scatter plots will also be saved to the same path as the imported CSV dataset. 
+Feature Ranking
+---------------
+MassVision provides users with multiple feature ranking options. The hyperparameters associated with each method can also be tuned according to the user’s needs. Current methods include:
 
-Model Training
--------
-#. Select the AI model from the available list (PCA-LDA, SVM, Random Forest, PLS-DA) under **Model type**.
-#. Choose the data partitioning configuration from **Data split scheme** to determine the division of data for train and validation.
+    - Linear Support Vector Classification
+    - Partial Least Squares Discriminant Analysis
+    - Linear Discriminant Analysis
 
-    Options:    
-        - Training on whole dataset: use the whole dataset for training and report the training performance measures.
-        - Random train/test split: divide the data randomly into train/test and report the performance measures for both train and test set.
-        - Slide-based train/test customization: user can choose which slides/patients from the dataset included in train or test by selecting the appropriate checkboxes from the provided list. The performance report would be for both train and test set.
+Feature Selection
+-----------------
+Users can control which ions (features) are included in the classification step by choosing from several feature selection options:
 
-#. To balance the training data and equalize the number of spectra in each class, select one of the available options from **Data balancing**.
+    - **None:** Use the complete set of ions in the dataset without restriction.
+    - **Top ranked:** Apply one of the available feature ranking algorithms and specify the number of top-ranked ions to retain. This allows classification to focus on the most informative features.
+    - **Manual:** Upload a CSV file containing a single column with the indices of hand-picked ions. Only these ions will be used for classification.
+
+Model Training/Validation
+-------------------------
+
+Model
+*****
+Select the AI model from the available list under **Model type** and set the hyperparameters according to your research needs. The available classification models include:
     
-    Options:
-        - None: no balancing
-        - Down-sample: randomly exclude spectra from classes to have the same number of spectra as the the minority class.
-        - Up-sample: randomly repeat spectra within each class to reach the number of spectra in the majority class
-        - Mid-sample: up-sample the classes with low number of spectra, while down-sample the classes with high number of spectra, to the average spectrum per class value
+    - Principal Component Analysis followed by Linear Discriminant Analysis
+    - Linear Support Vector Classification
+    - Random Forest
+    - Partial Least Squares Discriminant Analysis
 
-#. if you want to save the model for later use on the whole slide, please check the box for **Export model pipeline**.
+Data partitioning
+*****************
+Choose the data partitioning configuration from **Data split scheme** to determine how data is divided for training and validation. Available options include:
+  
+    - **Training on whole dataset:** use the entire dataset for training and report performance measures on the training set.
+    - **Random train/test split:** randomly divide the data into training and test sets, and report performance measures for both.
+    - **Slide-based train/test customization:** manually select which slides/patients are included in the training or test sets using the provided checkboxes. Performance measures are reported for both sets.
+    - **Leave-one-slide-out cross-validation:** run the slide-based customization iteratively, leaving one patient/slide out as the test set each time, and report the average performance metrics across folds for both training and test sets.
 
-#. When you are satisfied with the parameters, click on **Train and validate** at the bottom of the tab to start the training. If the model export box is checked, a dialog will appear for thr user to specify the name and the location for saving. You will then be taken to the **Performance Report** tab to review the details of the train and test data distribution, along with performance measures for classification, and additional visualizations like LDA scatter plots. 
+Data balancing
+**************
+To mitigate biases from imbalanced training data, MassVision supports three class-based balancing strategies available in the **Data balancing** dropdown:
+    
+    - **None:** no balancing is applied. 
+    - **Undersampling:** randomly exclude spectra from majority classes until each class has the same number of spectra as the minority class.
+    - **Oversampling:** randomly replicate spectra from minority classes until each class reaches the number of spectra in the majority class.
+    - **Hybrid:** up-sample minority classes and down-sample majority classes to the average number of spectra per class.
 
+Train/validate
+**************
+Once you are satisfied with the parameters, click **Train and validate** at the bottom of the tab to start training.  
+If the **Export model pipeline** box is checked, a dialog will appear prompting you to specify the name and location for saving.  
 
+After training, you will be redirected to the **Performance Report** tab, where you can review details of the training and test data distribution, performance measures, and—if applicable—visualizations such as LDA scatter plots. 
+
+.. important::
+   To save the trained classification pipeline for later use on whole-MSI data, be sure to check the box for **Export model pipeline**.
