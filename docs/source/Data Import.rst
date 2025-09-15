@@ -33,7 +33,7 @@ Raw MSI
 -------
 
 .. image:: https://raw.githubusercontent.com/jamzad/SlicerDESI/main/docs/source/Images/raw.png
-    :width: 450
+    :width: 400
     :align: center
 
 MassVision can be used for processing and exploring raw MSI data in **imzML** format.

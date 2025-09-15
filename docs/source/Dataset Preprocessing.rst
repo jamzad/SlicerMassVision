@@ -11,6 +11,7 @@ Click on **Select file** under "Import CSV dataset". A dialog box will appear al
 Normalization 
 -------------
 To perform spectrum normalization on the dataset, check the box beside **Normalization**. MassVision currently support 6 spectrum normalization methods:
+
     - TIC (total ion current) 
     - TSC (total signal current)
     - Reference ion

@@ -82,9 +82,10 @@ After clustering, select a specific cluster from the dropdown menu, which is col
 Nonlinear visualization
 ***********************
 
-MassVision supports non-linear dimensionality reduction approaches including **t-SNE** and **UMAP**. Users can select the **Method** from the dropdown menu and adjust the relevant parameters fpr visualization 
-    - t-SNE: perplexity and early exaggeration
-    - UMAP: number of neighbors and minimum distance
+MassVision supports non-linear dimensionality reduction approaches including **t-SNE** and **UMAP**. Users can select the **Method** from the dropdown menu and adjust the relevant parameters fpr visualization.
+
+    - **t-SNE** parameters: perplexity and early exaggeration
+    - **UMAP** parameters: number of neighbors and minimum distance
 
 Pixel Spectrum
 **************
