@@ -31,6 +31,7 @@ class MassVision(ScriptedLoadableModule):
 		
 		The functionalities include data exploration via various targeted, untargeted, and local-contrast visualization, co-localization with reference modality (histopathology annotations), dataset curation with spatial- and spectral-guidance, multi-slide dataset merge via feature alignment, spatial and spectral filtering, statistical analysis, feature ranking and selection, AI model training and validation, and whole-slide AI model deployment.		
 		
+		Please cite the following publication: Jamzad, A.; Warren, J.; Syeda, A.; Kaufmann, M.; Iaboni, N.; Nicol, C.; Rudan, J.; Ren, K.; Hurlbut, D.; Varma, S.; Fichtinger, G.; Mousavi, P. MassVision: An Open-Source End-to-End Platform for AI-Driven Mass Spectrometry Imaging Analysis. Analytical Chemistry 2025. https://doi.org/10.1021/acs.analchem.5c04018.
 		"""
 		self.parent.acknowledgementText = """
 
