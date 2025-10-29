@@ -293,6 +293,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
 		# Visualization
+		self.ui.visNorm_spectra.currentTextChanged.connect(self.visRenormalize)
+		self.ui.visNorm_ions.currentTextChanged.connect(self.visRenormalize)
+
 		self.ui.spectrumPlot.connect("clicked(bool)", self.onSpectrumPlot)
 		self.ui.placeFiducial.connect("clicked(bool)", lambda checked: self.onPutFiducial("spectrum"))
 
@@ -515,7 +518,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		process_done = self.logic.raw_processing(params)
 		if process_done:
-			self.logic.normalize()
+			self.visRenormalize()
 			self.logic.heatmap_display()
 			self.populateMzLists()
 			info = self.logic.getDataInformation()
@@ -523,20 +526,26 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
 	def onTextFileSelect(self):
-		file_info = self.logic.textFileSelect()
+		file_info = self.textFileSelect()
 		if file_info!=('',''):
 			# self.ui.filenameTextBrowser.setText(f'{file_info[0]}{file_info[1]}')
 			self.ui.ImportlineEdit.setText(f'{file_info[0]}{file_info[1]}')
 			self.ui.ImportlineEdit.setToolTip(f'{file_info[0]}{file_info[1]}')
 			self.onTextFileLoad()
 
+	def textFileSelect(self):
+		fileExplorer = qt.QFileDialog()
+		filePaths = fileExplorer.getOpenFileName(None, "Import MSI data", "", "Structured CSV (*.csv);;Hierarchical HDF5 (*.h5);;Waters DESI Text (*.txt);;Continuous imzML (*.imzml);;All Files (*)")
+		data_path_temp = filePaths
+		slide_name = data_path_temp.split('/')[-1]
+		lengthy = len(slide_name)
+		data_path = data_path_temp[:-lengthy]
+		return data_path, slide_name
+	
 	def onTextFileLoad(self):
-		# on the text file load runs the text file load and shows the confirmation button
-
-		# file_load = self.logic.textFileLoad(self.ui.filenameTextBrowser.toPlainText())
 		file_load = self.logic.textFileLoad(self.ui.ImportlineEdit.text)
 		if file_load:
-			tic_normalized = self.logic.normalize()
+			tic_normalized = self.visRenormalize()
 			info = self.logic.getDataInformation() if tic_normalized else 'Error in TIC Normalization'
 		else:
 			info = 'Error in File Load. Please check the data and try again.'
@@ -570,7 +579,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		file_load = self.logic.REIMSLoad(self.ui.filenameREIMSBrowser.toPlainText())
 		if file_load:
-			tic_normalized = self.logic.normalize()
+			tic_normalized = self.visRenormalize()
 			info = self.logic.getREIMSInfo() if tic_normalized else 'Error in TIC Normalization'
 		else:
 			info = 'Error in File Load. Please check the data and try again.'
@@ -589,6 +598,12 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.logic.MSIExport(savepath)
 
 	### Visualization tab
+	def visRenormalize(self):
+		spec_norm_method = self.ui.visNorm_spectra.currentText
+		ion_norm_method = self.ui.visNorm_ions.currentText
+		norm_flag = self.logic.normalize(spec_norm_method, ion_norm_method)
+		return norm_flag
+	
 	def onSpectrumPlot(self):
 		self.logic.spectrum_plot()
 		return True
@@ -1782,7 +1797,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 	### Model deployment tab
 	def onDeploySelect(self):
-		file_loc = self.logic.textFileSelect()
+		file_loc = self.textFileSelect()
 		if file_loc!=('',''):
 			self.ui.deployLoclineEdit.setText(f'{file_loc[0]}{file_loc[1]}')
 			self.ui.deployLoclineEdit.setToolTip(f'{file_loc[0]}{file_loc[1]}')
@@ -1794,7 +1809,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		info = self.logic.getDataInformation()
 		self.ui.deployInfo.setText(info)
 		## make the visualization options available for this slide
-		self.logic.normalize()
+		self.visRenormalize()
 		self.logic.heatmap_display()
 		self.populateMzLists()
 		self.updateDepVisList()

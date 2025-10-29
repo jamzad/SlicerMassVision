@@ -841,6 +841,15 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			scaler = StandardScaler()
 			peaks_feat_norm = scaler.fit_transform(peaks)
 			return peaks_feat_norm
+	
+	def log_transform_advance(self, peaks, scale_func='median', scale=100):
+		## bi-symmetric log transform to handle both positive and negative values
+		## useful for feature space
+		transformed = peaks.copy()
+		scale_func = getattr(np, scale_func)
+		scale = scale / scale_func(np.abs(transformed[ transformed!=0]))
+		transformed = np.sign(transformed) * np.log1p(np.abs(scale*transformed))
+		return transformed
 
 	def pca_plot_mask(self,peaks_pca,mask_ind,dim_y,dim_x):
 			peaks_pca = self.ion_minmax_normalize(peaks_pca)
@@ -852,8 +861,21 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			return pca_image
 	
 	# normalizes the peaks
-	def normalize(self):
-			self.peaks_norm = self.ion_minmax_normalize(self.tic_normalize(self.peaks))
+	def normalize(self, spec_method, ion_method):
+			if spec_method.lower() == "tic":
+				spec_norm = self.tic_normalize(self.peaks)
+			elif spec_method.lower() == "log":
+				spec_norm = self.log_transform_advance(self.peaks)
+			else: #"None"
+				spec_norm = self.peaks
+			
+			if ion_method.lower() == "min-max":
+				self.peaks_norm = self.ion_minmax_normalize(spec_norm)
+			elif ion_method.lower() == "z-score":
+				self.peaks_norm = self.ion_zscore_normalize(spec_norm)
+			else: #"None"
+				self.peaks_norm = spec_norm
+
 			return True
 		
 	def nonlinear_display(self, method, param1, param2):
@@ -2597,17 +2619,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		lm.setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
 
 		return True
-
-
-	def textFileSelect(self):
-		fileExplorer = qt.QFileDialog()
-		filePaths = fileExplorer.getOpenFileName(None, "Import MSI data", "", "Structured CSV (*.csv);;Hierarchical HDF5 (*.h5);;Waters DESI Text (*.txt);;Continuous imzML (*.imzml);;All Files (*)")
-		data_path_temp = filePaths
-		slide_name = data_path_temp.split('/')[-1]
-		lengthy = len(slide_name)
-		data_path = data_path_temp[:-lengthy]
-		return data_path, slide_name
-
 
 	def REIMSSelect(self):
 		fileExplorer = qt.QFileDialog()
