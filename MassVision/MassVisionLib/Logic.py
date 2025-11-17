@@ -169,6 +169,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.selected_features_indices = None
 		self.parser = None
 		self.raw_range = None
+		self.AppMode = 0
 
 
 	def setDefaultParameters(self, parameterNode):
@@ -180,37 +181,38 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		if not parameterNode.GetParameter("Invert"):
 			parameterNode.SetParameter("Invert", "false")
 
-	def process(self, inputVolume, outputVolume, imageThreshold, invert=False, showResult=True):
-		"""
-		Run the processing algorithm.
-		Can be used without GUI widget.
-		:param inputVolume: volume to be thresholded
-		:param outputVolume: thresholding result
-		:param imageThreshold: values above/below this threshold will be set to 0
-		:param invert: if True then values above the threshold will be set to 0, otherwise values below are set to 0
-		:param showResult: show output volume in slice viewers
-		"""
+	# def process(self, inputVolume, outputVolume, imageThreshold, invert=False, showResult=True):
 
-		if not inputVolume or not outputVolume:
-			raise ValueError("Input or output volume is invalid")
+	# 	"""
+	# 	Run the processing algorithm.
+	# 	Can be used without GUI widget.
+	# 	:param inputVolume: volume to be thresholded
+	# 	:param outputVolume: thresholding result
+	# 	:param imageThreshold: values above/below this threshold will be set to 0
+	# 	:param invert: if True then values above the threshold will be set to 0, otherwise values below are set to 0
+	# 	:param showResult: show output volume in slice viewers
+	# 	"""
 
-		import time
-		startTime = time.time()
-		logging.info('Processing started')
+	# 	if not inputVolume or not outputVolume:
+	# 		raise ValueError("Input or output volume is invalid")
 
-		# Compute the thresholded output volume using the "Threshold Scalar Volume" CLI module
-		cliParams = {
-			'InputVolume': inputVolume.GetID(),
-			'OutputVolume': outputVolume.GetID(),
-			'ThresholdValue' : imageThreshold,
-			'ThresholdType' : 'Above' if invert else 'Below'
-			}
-		cliNode = slicer.cli.run(slicer.modules.thresholdscalarvolume, None, cliParams, wait_for_completion=True, update_display=showResult)
-		# We don't need the CLI module node anymore, remove it to not clutter the scene with it
-		slicer.mrmlScene.RemoveNode(cliNode)
+	# 	import time
+	# 	startTime = time.time()
+	# 	logging.info('Processing started')
 
-		stopTime = time.time()
-		logging.info(f'Processing completed in {stopTime-startTime:.2f} seconds')
+	# 	# Compute the thresholded output volume using the "Threshold Scalar Volume" CLI module
+	# 	cliParams = {
+	# 		'InputVolume': inputVolume.GetID(),
+	# 		'OutputVolume': outputVolume.GetID(),
+	# 		'ThresholdValue' : imageThreshold,
+	# 		'ThresholdType' : 'Above' if invert else 'Below'
+	# 		}
+	# 	cliNode = slicer.cli.run(slicer.modules.thresholdscalarvolume, None, cliParams, wait_for_completion=True, update_display=showResult)
+	# 	# We don't need the CLI module node anymore, remove it to not clutter the scene with it
+	# 	slicer.mrmlScene.RemoveNode(cliNode)
+
+	# 	stopTime = time.time()
+	# 	logging.info(f'Processing completed in {stopTime-startTime:.2f} seconds')
 
 	
 	def MSI_contImzML2numpy(self, imzml_file):
@@ -271,6 +273,15 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 			peaks = peaks.reshape((dim_y*dim_x,-1),order='C')
 			return peaks, mz, dim_y, dim_x
+	
+	def EMB_numpy(self, npy_file):
+		peaks = np.load(npy_file)
+		# latent = latent.astype(np.float64)
+		peaks = np.transpose(peaks, [1,2,0])
+		dim_y, dim_x, n_features = peaks.shape
+		mz = np.arange(n_features)
+		peaks = peaks.reshape((dim_y*dim_x,-1),order='C')
+		return peaks, mz, dim_y, dim_x
 	
 	def MSI_h52numpy(self, h5_file):
 		with h5py.File(h5_file, 'r') as h5file:
@@ -886,9 +897,13 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 				slicer.util.pip_install("umap-learn")
 				from umap import UMAP
 			
+			# dim_reduction = UMAP(n_components=3, n_neighbors=param1, min_dist=param2)
+			# peaks_reduced = dim_reduction.fit_transform(self.peaks_norm)
+			# peaks_reduced = MinMaxScaler().fit_transform( peaks_reduced )
 			dim_reduction = UMAP(n_components=3, n_neighbors=param1, min_dist=param2)
 			peaks_reduced = dim_reduction.fit_transform(self.peaks_norm)
 			peaks_reduced = MinMaxScaler().fit_transform( peaks_reduced )
+			peaks_reduced = latent2color(peaks_reduced)
 
 		elif method=="t-SNE":
 			try:
@@ -2564,59 +2579,82 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return list(self.df.columns[self.peak_start_col:])
 		# return list(self.mz)
 
-	def fileSelect(self):
-		# read and display image practise in juptyter
-		fileExplorer = qt.QFileDialog()
-		filePaths = fileExplorer.getOpenFileNames()
-		filePaths = str(filePaths)[1:-2][1:-1]
-		return filePaths
-	
-	def HistofileSelect(self):
-		fileExplorer = qt.QFileDialog()
-		filePath = fileExplorer.getOpenFileName(None, "Open pathology image", "", "Image Files (*.png *.tif* *.jpg *.jpeg);;All Files (*)")
-		return filePath
 		
-	# gets the histopath they want to upload, uploads it and puts it in the slicer view
-	def loadHistopathology(self, tryer):
-		import matplotlib.image as mpimg
+	# def loadHistopathology(self, tryer):
+	# 	import matplotlib.image as mpimg
 
-		img=mpimg.imread(tryer)
-		# plt.imsave(self.saveFolder + 'histo.jpg',img)
-		# slicer.util.loadVolume(self.saveFolder + 'histo.jpg')
-		plt.imsave(self.savenameBase + '_histo.jpg',img)
+	# 	img=mpimg.imread(tryer)
+	# 	# plt.imsave(self.saveFolder + 'histo.jpg',img)
+	# 	# slicer.util.loadVolume(self.saveFolder + 'histo.jpg')
+	# 	plt.imsave(self.savenameBase + '_histo.jpg',img)
 
-		slicer.util.loadVolume(self.savenameBase + '_histo.jpg', {"singleFile": True})
-		os.remove(self.savenameBase + '_histo.jpg')
-		# lm = slicer.app.layoutManager()
-		# lm.setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutSideBySideView)
+	# 	slicer.util.loadVolume(self.savenameBase + '_histo.jpg', {"singleFile": True})
+	# 	os.remove(self.savenameBase + '_histo.jpg')
+	# 	# lm = slicer.app.layoutManager()
+	# 	# lm.setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutSideBySideView)
 		
-		# redCompositeNode = lm.sliceWidget('Red').mrmlSliceCompositeNode()
-		# tic_image_id = slicer.util.getNode(f'{self.slideName}_tic2d').GetID()
-		# redCompositeNode.SetBackgroundVolumeID(tic_image_id)
-		# yellowCompositeNode = lm.sliceWidget('Yellow').mrmlSliceCompositeNode()
-		# histo_image_id = slicer.util.getNode(self.slideName + '_histo').GetID()
-		# yellowCompositeNode.SetBackgroundVolumeID(histo_image_id) # histo
-		# sliceWidget = lm.sliceWidget('Yellow').sliceLogic().GetSliceNode().SetOrientation("Axial")
+	# 	# redCompositeNode = lm.sliceWidget('Red').mrmlSliceCompositeNode()
+	# 	# tic_image_id = slicer.util.getNode(f'{self.slideName}_tic2d').GetID()
+	# 	# redCompositeNode.SetBackgroundVolumeID(tic_image_id)
+	# 	# yellowCompositeNode = lm.sliceWidget('Yellow').mrmlSliceCompositeNode()
+	# 	# histo_image_id = slicer.util.getNode(self.slideName + '_histo').GetID()
+	# 	# yellowCompositeNode.SetBackgroundVolumeID(histo_image_id) # histo
+	# 	# sliceWidget = lm.sliceWidget('Yellow').sliceLogic().GetSliceNode().SetOrientation("Axial")
+	# 	slicer.util.resetSliceViews()
+
+	def loadHistopathology(self, path):
+		volumeNode = slicer.util.loadVolume(path, {"singleFile": True})
+		if self.AppMode==0 and self.slideName is not None:
+			volumeNode.SetName(self.slideName + '_histo')
+
+		if self.AppMode==0:
+			volumeNode.SetSpacing(0.254, 0.254, 1) # compatibility with older versions
+		elif self.AppMode==1:
+			im_dx, im_dy, _ = volumeNode.GetImageData().GetDimensions()
+			volumeNode.SetSpacing(self.dim_x/im_dx, self.dim_y/im_dy, 1)
+			volumeNode.SetOrigin(0.5*(1-self.dim_x/im_dx), 0.5*(1-self.dim_y/im_dy), 0)
+
 		slicer.util.resetSliceViews()
+		return volumeNode
 
+	# def heatmap_display(self):
+	# 	tic = np.reshape(self.peaks.sum(axis=1), [self.dim_y, self.dim_x], order='C')
+	# 	TIC = sitk.GetImageFromArray(np.transpose(tic, [0, 1]))
+		
+	# 	### REIMS
+	# 	if self.dim_y==1:
+	# 		TIC.SetSpacing((1,self.REIMS_H))
+	# 		# print("REIMS detected. Spacing chnaged to",TIC.GetSpacing())
+	# 	### REIMS
+		
+	# 	tic_filename = os.path.join(self.saveFolder, f'{self.slideName}_tic2d.nrrd')
+	# 	sitk.WriteImage(TIC, tic_filename)    
+	# 	slicer.util.loadVolume(tic_filename, {"singleFile": True, "name": f'{self.slideName}_tic2d'})
+
+	# 	os.remove(tic_filename)
+	# 	lm = slicer.app.layoutManager()
+	# 	lm.setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
+
+	# 	return True
+	
 	def heatmap_display(self):
-
-
 		tic = np.reshape(self.peaks.sum(axis=1), [self.dim_y, self.dim_x], order='C')
-		TIC = sitk.GetImageFromArray(np.transpose(tic, [0, 1]))
-		
-		### REIMS
-		if self.dim_y==1:
-			TIC.SetSpacing((1,self.REIMS_H))
-			# print("REIMS detected. Spacing chnaged to",TIC.GetSpacing())
-		### REIMS
-		
-		tic_filename = os.path.join(self.saveFolder, f'{self.slideName}_tic2d.nrrd')
-		sitk.WriteImage(TIC, tic_filename)    
-		slicer.util.loadVolume(tic_filename, {"singleFile": True})
-		os.remove(tic_filename)
+		tic3d = tic[np.newaxis, :, :] # Slicer expects [slices, rows, cols] = [z, y, x]
+
+		# Create a scalar volume node from the array
+		volumeNode = slicer.util.addVolumeFromArray(tic3d.astype(float))
+		volumeNode.SetIJKToRASDirections(-1,0,0, 0,-1,0, 0,0,1)
+		volumeNode.SetName(f"{self.slideName}_tic2d")
+		slicer.util.setSliceViewerLayers(background=volumeNode)
+
+		# Optional: set spacing if you know pixel size
+		# volumeNode.SetSpacing(self.spacing_x, self.spacing_y, 1.0)
+
+		# Set layout
 		lm = slicer.app.layoutManager()
 		lm.setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
+		
+		slicer.util.resetSliceViews()
 
 		return True
 
@@ -2696,6 +2734,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	# Reads in the text file and converts it to a numpy array and saves
 	def textFileLoad(self, name):
 
+		# slide_name = os.path.splitext(os.path.basename(filePaths))[0]
+		# data_path = os.path.dirname(filePaths)
 		slide_name = os.path.basename(name)
 		data_path = os.path.dirname(name)
 		data_extension = os.path.splitext(slide_name)[1].lower()
@@ -2708,6 +2748,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			[peaks, mz, dim_y, dim_x] = self.MSI_h52numpy(name)
 		elif data_extension == '.imzml':
 			[peaks, mz, dim_y, dim_x] = self.MSI_contImzML2numpy(name)
+		elif data_extension == '.npy':
+			[peaks, mz, dim_y, dim_x] = self.EMB_numpy(name)
 		else:
 			pass
 		
@@ -2720,7 +2762,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# save path for pca image
 		self.saveFolder = data_path
 		self.slideName = os.path.splitext(slide_name)[0]
-		self.savenameBase = os.path.splitext(name)[0]
+		self.savenameBase = os.path.join(data_path, self.slideName)
 
 		# add each value
 		# self.selectedmz = []
@@ -3537,11 +3579,18 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.val_cases = cases
 
 	def getDataInformation(self):
-		infostr = f'{self.slideName} \n'
-		infostr += f'spatial:\t {self.dim_y} x {self.dim_x} pixels \n'
-		infostr += f'spectra:\t {self.dim_y*self.dim_x} \n'
-		infostr += f'm/z per pixel:\t {len(self.mz)} \n'
-		infostr += f'm/z range: \t {self.mz.min()} - {self.mz.max()} \n'
+		if self.AppMode==0:
+			infostr = f"""{self.slideName}
+spatial:\t {self.dim_y} x {self.dim_x} pixels
+spectra:\t {self.dim_y*self.dim_x}
+m/z per pixel:\t {len(self.mz)}
+m/z range: \t {self.mz.min()} - {self.mz.max()}"""
+
+		elif self.AppMode==1:
+			infostr = f"""{self.slideName}
+pixels:\t {self.dim_y}x{self.dim_x} 
+features:\t {len(self.mz)} """
+
 		return infostr
 	
 	def getREIMSInfo(self):
