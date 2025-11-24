@@ -32,7 +32,7 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>0</number>
+   <number>2</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
@@ -325,57 +325,20 @@ color: rgb(255, 255, 255);</string>
        <bool>false</bool>
       </property>
       <layout class="QGridLayout" name="gridLayout_5">
-       <item row="0" column="3">
-        <spacer name="horizontalSpacer_36">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Expanding</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLabel" name="label_32">
+       <item row="1" column="1">
+        <widget class="QRadioButton" name="EMB_mode">
          <property name="text">
-          <string>Active Mode:</string>
+          <string>EmbedVision</string>
          </property>
         </widget>
        </item>
-       <item row="0" column="4">
+       <item row="0" column="1">
         <widget class="QRadioButton" name="MSI_mode">
          <property name="text">
-          <string>MSI</string>
+          <string>MassVision</string>
          </property>
          <property name="checked">
           <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="5">
-        <widget class="QRadioButton" name="EMB_mode">
-         <property name="text">
-          <string>Embeddings</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="6">
-        <widget class="QPushButton" name="ModeChangeButton">
-         <property name="text">
-          <string>Change Mode</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="2">
-        <widget class="QLabel" name="modeLabel">
-         <property name="text">
-          <string>MSI</string>
          </property>
         </widget>
        </item>
@@ -1339,7 +1302,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="8" column="0">
+    <item row="9" column="0">
      <widget class="QLabel" name="label_13">
       <property name="font">
        <font>
@@ -1353,7 +1316,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="8" column="1">
+    <item row="9" column="1">
      <spacer name="horizontalSpacer_2">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -1366,7 +1329,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="9" column="0">
+    <item row="10" column="0">
      <widget class="QLabel" name="redImageLabel">
       <property name="font">
        <font>
@@ -1384,10 +1347,10 @@ color: rgb(255, 0, 0);</string>
       </property>
      </widget>
     </item>
-    <item row="9" column="1">
+    <item row="10" column="1">
      <widget class="QComboBox" name="mzlist_2"/>
     </item>
-    <item row="10" column="0">
+    <item row="11" column="0">
      <widget class="QLabel" name="greenImageLabel">
       <property name="font">
        <font>
@@ -1406,10 +1369,10 @@ color: rgb(255, 0, 0);</string>
       </property>
      </widget>
     </item>
-    <item row="10" column="1">
+    <item row="11" column="1">
      <widget class="QComboBox" name="mzlist_3"/>
     </item>
-    <item row="11" column="0">
+    <item row="12" column="0">
      <widget class="QLabel" name="blueImageLabel">
       <property name="font">
        <font>
@@ -1426,10 +1389,10 @@ color: rgb(255, 0, 0);</string>
       </property>
      </widget>
     </item>
-    <item row="11" column="1">
+    <item row="12" column="1">
      <widget class="QComboBox" name="mzlist_4"/>
     </item>
-    <item row="12" column="0">
+    <item row="13" column="0">
      <widget class="QLabel" name="yellowImageLabel">
       <property name="font">
        <font>
@@ -1447,10 +1410,10 @@ color: rgb(255, 0, 0);</string>
       </property>
      </widget>
     </item>
-    <item row="12" column="1">
+    <item row="13" column="1">
      <widget class="QComboBox" name="mzlist_7"/>
     </item>
-    <item row="13" column="0">
+    <item row="14" column="0">
      <widget class="QLabel" name="magentaImageLabel">
       <property name="font">
        <font>
@@ -1468,10 +1431,10 @@ color: rgb(255, 0, 0);</string>
       </property>
      </widget>
     </item>
-    <item row="13" column="1">
+    <item row="14" column="1">
      <widget class="QComboBox" name="mzlist_5"/>
     </item>
-    <item row="14" column="0">
+    <item row="15" column="0">
      <widget class="QLabel" name="cyanImageLabel">
       <property name="font">
        <font>
@@ -1488,10 +1451,10 @@ color: rgb(255, 0, 0);</string>
       </property>
      </widget>
     </item>
-    <item row="14" column="1">
+    <item row="15" column="1">
      <widget class="QComboBox" name="mzlist_6"/>
     </item>
-    <item row="15" column="0">
+    <item row="16" column="0">
      <widget class="QLabel" name="whiteImageLabel">
       <property name="font">
        <font>
@@ -1508,10 +1471,10 @@ color: rgb(255, 0, 0);</string>
       </property>
      </widget>
     </item>
-    <item row="15" column="1">
+    <item row="16" column="1">
      <widget class="QComboBox" name="mzlist"/>
     </item>
-    <item row="16" column="1">
+    <item row="17" column="1">
      <widget class="QPushButton" name="multiIonButton">
       <property name="styleSheet">
        <string notr="true">background-color: #006666;
@@ -1522,7 +1485,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="17" column="0" colspan="2">
+    <item row="18" column="0" colspan="2">
      <spacer name="verticalSpacer_24">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -1538,7 +1501,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="18" column="0">
+    <item row="19" column="0">
      <widget class="QLabel" name="label_15">
       <property name="font">
        <font>
@@ -1552,7 +1515,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="18" column="1">
+    <item row="19" column="1">
      <spacer name="horizontalSpacer_3">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -1565,7 +1528,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="19" column="1">
+    <item row="20" column="1">
      <widget class="QPushButton" name="PCA_button">
       <property name="styleSheet">
        <string notr="true">background-color: #006666;
@@ -1576,7 +1539,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="20" column="0">
+    <item row="21" column="0">
      <widget class="QPushButton" name="ROIforLocalContrast">
       <property name="maximumSize">
        <size>
@@ -1607,7 +1570,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="20" column="1">
+    <item row="21" column="1">
      <widget class="QPushButton" name="partialPCA">
       <property name="styleSheet">
        <string notr="true">background-color: #006666;
@@ -1618,7 +1581,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="21" column="1">
+    <item row="22" column="1">
      <widget class="QCheckBox" name="pcaExtendCheckbox">
       <property name="text">
        <string>Extend the local contrast to whole slide</string>
@@ -1628,7 +1591,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="22" column="1">
+    <item row="23" column="1">
      <widget class="QPushButton" name="ContrastThumbnail">
       <property name="styleSheet">
        <string notr="true">background-color: #006666;
@@ -1639,7 +1602,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="23" column="0" colspan="2">
+    <item row="24" column="0" colspan="2">
      <widget class="QTextBrowser" name="LoadingsInfo">
       <property name="html">
        <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
@@ -1650,7 +1613,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="25" column="0" colspan="2">
+    <item row="26" column="0" colspan="2">
      <spacer name="verticalSpacer_28">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -1666,7 +1629,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="26" column="0">
+    <item row="27" column="0">
      <widget class="QLabel" name="label_16">
       <property name="font">
        <font>
@@ -1680,7 +1643,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="26" column="1">
+    <item row="27" column="1">
      <spacer name="horizontalSpacer_30">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -1693,7 +1656,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="27" column="0">
+    <item row="28" column="0">
      <widget class="QLabel" name="label_17">
       <property name="font">
        <font>
@@ -1707,7 +1670,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="27" column="1">
+    <item row="28" column="1">
      <widget class="QComboBox" name="nCluster">
       <item>
        <property name="text">
@@ -1806,7 +1769,7 @@ p, li { white-space: pre-wrap; }
       </item>
      </widget>
     </item>
-    <item row="28" column="1">
+    <item row="29" column="1">
      <widget class="QPushButton" name="Cluster_button">
       <property name="styleSheet">
        <string notr="true">background-color: #006666;
@@ -1817,7 +1780,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="29" column="0">
+    <item row="30" column="0">
      <widget class="QLabel" name="label_19">
       <property name="font">
        <font>
@@ -1831,10 +1794,10 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="29" column="1">
+    <item row="30" column="1">
      <widget class="QComboBox" name="ClusterInd"/>
     </item>
-    <item row="30" column="1">
+    <item row="31" column="1">
      <widget class="QPushButton" name="ClusterThumbnail">
       <property name="styleSheet">
        <string notr="true">background-color: #006666;
@@ -1845,7 +1808,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="32" column="0" colspan="2">
+    <item row="33" column="0" colspan="2">
      <spacer name="verticalSpacer_29">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -1861,7 +1824,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="33" column="0">
+    <item row="34" column="0">
      <widget class="QLabel" name="label_20">
       <property name="font">
        <font>
@@ -1875,7 +1838,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="34" column="0">
+    <item row="35" column="0">
      <widget class="QLabel" name="label_21">
       <property name="font">
        <font>
@@ -1889,7 +1852,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="34" column="1">
+    <item row="35" column="1">
      <widget class="QComboBox" name="NLVisMethod">
       <item>
        <property name="text">
@@ -1903,7 +1866,7 @@ color: rgb(255, 255, 255);</string>
       </item>
      </widget>
     </item>
-    <item row="35" column="0">
+    <item row="36" column="0">
      <widget class="QLabel" name="NLVisLabel1">
       <property name="font">
        <font>
@@ -1917,14 +1880,14 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="35" column="1">
+    <item row="36" column="1">
      <widget class="QLineEdit" name="NLVisParam1">
       <property name="text">
        <string>15</string>
       </property>
      </widget>
     </item>
-    <item row="36" column="0">
+    <item row="37" column="0">
      <widget class="QLabel" name="NLVisLabel2">
       <property name="font">
        <font>
@@ -1938,14 +1901,14 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="36" column="1">
+    <item row="37" column="1">
      <widget class="QLineEdit" name="NLVisParam2">
       <property name="text">
        <string>0.1</string>
       </property>
      </widget>
     </item>
-    <item row="37" column="1">
+    <item row="38" column="1">
      <widget class="QPushButton" name="UmapButton">
       <property name="styleSheet">
        <string notr="true">background-color: #006666;
@@ -1956,23 +1919,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="38" column="0" colspan="2">
-     <spacer name="verticalSpacer_32">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Fixed</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>40</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="39" column="0">
+    <item row="41" column="0">
      <widget class="QLabel" name="label_11">
       <property name="font">
        <font>
@@ -1986,7 +1933,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="39" column="1">
+    <item row="41" column="1">
      <spacer name="horizontalSpacer_7">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -1999,14 +1946,14 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="40" column="0">
+    <item row="42" column="0">
      <widget class="QPushButton" name="placeFiducial">
       <property name="text">
        <string>select spectra</string>
       </property>
      </widget>
     </item>
-    <item row="40" column="1">
+    <item row="42" column="1">
      <widget class="QPushButton" name="spectrumPlot">
       <property name="styleSheet">
        <string notr="true">background-color: #006666;
@@ -2017,7 +1964,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="41" column="0" colspan="2">
+    <item row="43" column="0" colspan="2">
      <spacer name="verticalSpacer_49">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -2030,14 +1977,14 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="42" column="0">
+    <item row="44" column="0">
      <widget class="QPushButton" name="placeFiducial_sim">
       <property name="text">
        <string>select spectrum</string>
       </property>
      </widget>
     </item>
-    <item row="42" column="1">
+    <item row="44" column="1">
      <widget class="QPushButton" name="simHeatmap">
       <property name="styleSheet">
        <string notr="true">background-color: #006666;
@@ -2048,7 +1995,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="43" column="0">
+    <item row="45" column="0">
      <widget class="QLabel" name="NLVisLabel2_2">
       <property name="font">
        <font>
@@ -2062,7 +2009,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="43" column="1">
+    <item row="45" column="1">
      <widget class="qMRMLSliderWidget" name="simHeatmapSlider">
       <property name="decimals">
        <number>2</number>
@@ -2087,7 +2034,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="44" column="1">
+    <item row="46" column="1">
      <widget class="QPushButton" name="SimThumbnail">
       <property name="styleSheet">
        <string notr="true">background-color: #006666;
@@ -2098,7 +2045,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="45" column="0" colspan="2">
+    <item row="47" column="0" colspan="2">
      <spacer name="verticalSpacer">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -2111,20 +2058,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="46" column="0" colspan="2">
-     <spacer name="verticalSpacer_2">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>40</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="0" column="0" colspan="2">
+    <item row="49" column="0" colspan="2">
      <widget class="ctkCollapsibleButton" name="CollapsibleButton_2">
       <property name="text">
        <string>Advanced options</string>
@@ -2136,46 +2070,27 @@ color: rgb(255, 255, 255);</string>
        <bool>false</bool>
       </property>
       <layout class="QGridLayout" name="gridLayout_4">
-       <item row="1" column="1">
+       <item row="1" column="6">
         <widget class="QLabel" name="label_ionNorm">
          <property name="text">
-          <string>per ion image </string>
+          <string>ion image </string>
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
         </widget>
        </item>
-       <item row="3" column="4" colspan="2">
-        <spacer name="verticalSpacer_50">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Fixed</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="label_31">
-         <property name="font">
-          <font>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
+       <item row="1" column="4">
+        <widget class="QLabel" name="label_pixelNorm">
          <property name="text">
-          <string>Normalization:</string>
+          <string> spectrum </string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
         </widget>
        </item>
-       <item row="1" column="2">
+       <item row="1" column="7">
         <widget class="QComboBox" name="visNorm_ions">
          <property name="currentIndex">
           <number>1</number>
@@ -2195,6 +2110,19 @@ color: rgb(255, 255, 255);</string>
            <string>Z-score</string>
           </property>
          </item>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_31">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Normalization:</string>
+         </property>
         </widget>
        </item>
        <item row="1" column="5">
@@ -2219,18 +2147,40 @@ color: rgb(255, 255, 255);</string>
          </item>
         </widget>
        </item>
-       <item row="1" column="4">
-        <widget class="QLabel" name="label_pixelNorm">
-         <property name="text">
-          <string> per spectrum </string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
       </layout>
      </widget>
+    </item>
+    <item row="39" column="0" colspan="2">
+     <spacer name="verticalSpacer_32">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="48" column="0" colspan="2">
+     <spacer name="verticalSpacer_51">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
     </item>
    </layout>
   </widget>
@@ -2444,51 +2394,29 @@ color: rgb(255, 255, 255);</string>
        <bool>false</bool>
       </property>
       <layout class="QGridLayout" name="gridLayout_3">
-       <item row="2" column="0">
-        <widget class="QDoubleSpinBox" name="similarityThreshold">
-         <property name="toolTip">
-          <string>Assignment threshold</string>
-         </property>
-         <property name="wrapping">
-          <bool>false</bool>
-         </property>
-         <property name="frame">
-          <bool>true</bool>
-         </property>
-         <property name="maximum">
-          <double>1.000000000000000</double>
-         </property>
-         <property name="singleStep">
-          <double>0.050000000000000</double>
-         </property>
-         <property name="value">
-          <double>0.700000000000000</double>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1" colspan="3">
-        <widget class="QPushButton" name="roiSimilarity">
-         <property name="styleSheet">
-          <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
-         </property>
-         <property name="text">
-          <string>Similarity-based pixel assignment</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0" colspan="4">
+       <item row="1" column="0" colspan="5">
         <widget class="QPushButton" name="roiContrastLDA">
          <property name="styleSheet">
           <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
          </property>
          <property name="text">
-          <string>LDA-based pixel assignment</string>
+          <string>LDA-based assignment</string>
          </property>
         </widget>
        </item>
-       <item row="0" column="0" colspan="4">
+       <item row="3" column="2" colspan="3">
+        <widget class="QPushButton" name="roiSimilarity">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Similarity-based assignment</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0" colspan="5">
         <widget class="QPushButton" name="roiContrast">
          <property name="styleSheet">
           <string notr="true">background-color: #006666;
@@ -2496,6 +2424,22 @@ color: rgb(255, 255, 255);</string>
          </property>
          <property name="text">
           <string>ROI contrast visualization</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="qMRMLLinearTransformSlider" name="similarityThreshold">
+         <property name="singleStep">
+          <double>0.010000000000000</double>
+         </property>
+         <property name="pageStep">
+          <double>0.100000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>1.000000000000000</double>
+         </property>
+         <property name="value">
+          <double>0.900000000000000</double>
          </property>
         </widget>
        </item>
@@ -5145,6 +5089,11 @@ color: rgb(255, 255, 255);</string>
    <class>ctkSliderWidget</class>
    <extends>QWidget</extends>
    <header>ctkSliderWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>qMRMLLinearTransformSlider</class>
+   <extends>qMRMLSliderWidget</extends>
+   <header>qMRMLLinearTransformSlider.h</header>
   </customwidget>
   <customwidget>
    <class>qMRMLSliderWidget</class>

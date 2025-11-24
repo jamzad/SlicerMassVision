@@ -425,26 +425,24 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		modeButtonGroup.addButton(self.ui.MSI_mode, 0)
 		modeButtonGroup.addButton(self.ui.EMB_mode, 1)
 		self.ui.modeButtonGroup = modeButtonGroup
-		self.ui.ModeChangeButton.connect("clicked(bool)", self.onModeChangeButton)
+		self.ui.modeButtonGroup.connect("buttonToggled(QAbstractButton*,bool)", self.onModeChangeButton)
 		
 	### Mode Selector
-	def onModeChangeButton(self):
-		selectedId = self.ui.modeButtonGroup.checkedId()
-		currentMode = self.AppMode
-		if selectedId==currentMode:
-			pass
-		
-		elif selectedId==0:
-			self.ui.modeLabel.setText("MSI")
+	def onModeChangeButton(self, btn, checked):
+		if not checked:
+			return
+			
+		selectedId = self.ui.modeButtonGroup.id(btn)
+		self.AppMode = selectedId
+		self.logic.AppMode = self.AppMode
+
+		if selectedId==0:
 			slicer.mrmlScene.Clear()
 			slicer.util.reloadScriptedModule('MassVision')
 			self.resetTabwidgetScroll()
-			self.AppMode = 0
-			self.logic.AppMode = self.AppMode
 			print("Mode changed to MassVision")
 
-		else:
-			self.ui.modeLabel.setText("Embeddings")
+		elif selectedId==1:
 			slicer.mrmlScene.Clear()
 			
 			# disable irrelevant tabs
@@ -481,17 +479,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			[getattr(self.ui, obj).setVisible(False) for obj in objs ]
 
 			# change labels
-			self.ui.label_importMSI.setText("Import Embeddings")
-			self.ui.label_importPATH.setText("Import Image")
-			self.ui.label_ionNorm.setText("feature")
-			self.ui.label_pixelNorm.setText("pixel")
 			updateUITexts(self.ui)
-
-			# self.ui.label_singleVis.setText("Single feature")
-			# self.ui.singleIonMzLabel.setText("Feature")
-			# self.ui.singleIonMzLabel_2.setText("Most abundant features")
-			
-
 			
 			# Set logo in UI
 			logo_path = self.resourcePath('Icons/embeddings_logo.png')
@@ -503,8 +491,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			# change settings
 			self.ui.visNorm_spectra.setCurrentIndex(0)
 
-			self.AppMode = 1
-			self.logic.AppMode = self.AppMode
 			print("Mode changed to EmbedVision")
 
 
@@ -532,7 +518,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			slicer.mrmlScene.Clear()
 			slicer.util.reloadScriptedModule('MassVision')
 			print('MODULE RELOADED')
-
 
 
 	def onLoadScene(self):
@@ -2351,6 +2336,11 @@ import re
 
 def updateUITexts(ui):
 	## change the labels for EmbedVision
+	ui.label_importMSI.setText("Import Embeddings")
+	ui.label_importPATH.setText("Import Image")
+	ui.label_ionNorm.setText("feature")
+	ui.label_pixelNorm.setText("pixel")
+
 	import re
 	repl_map = {
 		"ion": "feature",
