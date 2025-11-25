@@ -1003,7 +1003,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return True
 	
 	def ViewAbundanceThumbnail(self):
-		total_abundance = self.tic_normalize(self.peaks).sum(axis=0)
+		total_abundance = self.tic_normalize(np.abs(self.peaks)).sum(axis=0)
 		sorted_indices = np.argsort(-total_abundance)
 
 		dim_y = self.dim_y
@@ -1021,10 +1021,15 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		for i, ax in enumerate(axes.flat):
 			if i==0:
-				tic_image = self.peaks.sum(axis=1).reshape((dim_y,dim_x),order='C')
+				if self.AppMode==0:
+					image_data = self.peaks.sum(axis=1).reshape((dim_y,dim_x),order='C')
+					image_label = "TIC"
+				elif self.AppMode==1:
+					image_data = self.peaks.std(axis=1).reshape((dim_y,dim_x),order='C')
+					image_label = "STD"
 				# tic_image = tic_image[::2,::2]
-				ax.imshow(tic_image, cmap='gray')
-				ax.text(0, 0, 'TIC', color='yellow', fontsize=10, ha='left', va='top', 
+				ax.imshow(image_data, cmap='gray')
+				ax.text(0, 0, image_label, color='yellow', fontsize=10, ha='left', va='top', 
 						bbox=dict(facecolor='black', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
 			else:
 				ion_image = self.peaks_norm[:, sorted_indices[i-1]].reshape((dim_y,dim_x),order='C')
@@ -1032,7 +1037,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 				ax.imshow(ion_image, cmap='inferno')
 				ax.text(0, 0, str(self.mz[ sorted_indices[i-1] ])+f' (#{i})', color='black', fontsize=10, ha='left', va='top', 
 						bbox=dict(facecolor='yellow', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
-			ax.axis('off')  # Turn off axes
+			ax.axis('off')
 
 		plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
 
@@ -1051,6 +1056,18 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# YellowNode.SetOrientation("Axial")
 		# slicer.util.resetSliceViews()
 
+		##### buffer
+		volumeNode = self.fig2vectorVolume(fig)
+		volumeNode.SetName(f"{self.slideName}_thumbAbundance")
+		slicer.util.setSliceViewerLayers(background=volumeNode)
+		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
+		slicer.util.getNode("vtkMRMLSliceNodeYellow").SetOrientation("Axial")
+		self.showMarkupsInRedOnly()
+		slicer.util.resetSliceViews()
+
+		return True
+	
+	def fig2vectorVolume(self, fig):
 		fig.canvas.draw()
 		width_px, height_px = fig.canvas.get_width_height()
 		buf = np.frombuffer(fig.canvas.tostring_argb(), dtype=np.uint8)
@@ -1065,13 +1082,16 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		volumeNode.CreateDefaultStorageNode()
 
 		volumeNode.SetIJKToRASDirections(-1,0,0, 0,-1,0, 0,0,1)
-		volumeNode.SetName(f"{self.slideName}_thumbAbundance")
-		slicer.util.setSliceViewerLayers(background=volumeNode)
-		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
-		slicer.util.resetSliceViews()
 
-		return True
-	
+		return volumeNode
+
+	def showMarkupsInRedOnly(self):
+		redViewID = slicer.util.getNode("vtkMRMLSliceNodeRed").GetID()
+		for markupNode in slicer.util.getNodesByClass("vtkMRMLMarkupsNode"):
+			displayNode = markupNode.GetDisplayNode()
+			if displayNode:
+				displayNode.SetViewNodeIDs([redViewID])
+
 	def ViewContrastThumbnail(self):
 		mz_inds = self.contrast_thumbnail_inds
 		dim_y = self.dim_y
@@ -1120,26 +1140,35 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
 
-		# save plot
-		filename = f"{self.savenameBase}_thumbCont.jpeg"
-		plt.savefig(filename, bbox_inches='tight')
-		plt.close()
+		# # save plot
+		# filename = f"{self.savenameBase}_thumbCont.jpeg"
+		# plt.savefig(filename, bbox_inches='tight')
+		# plt.close()
 
-		# display plot
-		RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
-		markupNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsNode")
-		for markupNode in markupNodes:
-			displayNode = markupNode.GetDisplayNode()
-			displayNode.SetViewNodeIDs([RedNode.GetID()])
+		# # display plot
+		# RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
+		# markupNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsNode")
+		# for markupNode in markupNodes:
+		# 	displayNode = markupNode.GetDisplayNode()
+		# 	displayNode.SetViewNodeIDs([RedNode.GetID()])
 
-		YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
-		YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
+		# YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
+		# YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
 
-		volumeNode = slicer.util.loadVolume(filename, {"singleFile": True})
+		# volumeNode = slicer.util.loadVolume(filename, {"singleFile": True})
+		# slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
+
+		# YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
+		# YellowNode.SetOrientation("Axial")
+		# slicer.util.resetSliceViews()
+
+		##### buffer
+		volumeNode = self.fig2vectorVolume(fig)
+		volumeNode.SetName(f"{self.slideName}_thumbCont")
+		slicer.util.setSliceViewerLayers(background=volumeNode)
 		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
-
-		YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
-		YellowNode.SetOrientation("Axial")
+		slicer.util.getNode("vtkMRMLSliceNodeYellow").SetOrientation("Axial")
+		self.showMarkupsInRedOnly()
 		slicer.util.resetSliceViews()
 
 	def VisCluster(self, n_clusters):
@@ -1251,26 +1280,35 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
 
-		# save plot
-		filename = f"{self.savenameBase}_thumbCluster.jpeg"
-		plt.savefig(filename, bbox_inches='tight')
-		plt.close()
+		# # save plot
+		# filename = f"{self.savenameBase}_thumbCluster.jpeg"
+		# plt.savefig(filename, bbox_inches='tight')
+		# plt.close()
 
-		# display plot
-		RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
-		markupNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsNode")
-		for markupNode in markupNodes:
-			displayNode = markupNode.GetDisplayNode()
-			displayNode.SetViewNodeIDs([RedNode.GetID()])
+		# # display plot
+		# RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
+		# markupNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsNode")
+		# for markupNode in markupNodes:
+		# 	displayNode = markupNode.GetDisplayNode()
+		# 	displayNode.SetViewNodeIDs([RedNode.GetID()])
 
-		YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
-		YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
+		# YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
+		# YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
 
-		volumeNode = slicer.util.loadVolume(filename, {"singleFile": True})
+		# volumeNode = slicer.util.loadVolume(filename, {"singleFile": True})
+		# slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
+
+		# YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
+		# YellowNode.SetOrientation("Axial")
+		# slicer.util.resetSliceViews()
+
+		##### buffer
+		volumeNode = self.fig2vectorVolume(fig)
+		volumeNode.SetName(f"{self.slideName}_thumbCluster")
+		slicer.util.setSliceViewerLayers(background=volumeNode)
 		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
-
-		YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
-		YellowNode.SetOrientation("Axial")
+		slicer.util.getNode("vtkMRMLSliceNodeYellow").SetOrientation("Axial")
+		self.showMarkupsInRedOnly()
 		slicer.util.resetSliceViews()
 		
 		top_n_table = 20 
@@ -1678,77 +1716,45 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 	# gets the segmentations, saves as an excel file
 	def csvGeneration(self, filename):
-		import csv
-		# open the file in the write mode
-		# filename = self.savenameBase + '_dataset.csv'
-		f = open(filename, 'w',newline='')
-		# create the csv writer
-		writer = csv.writer(f)
-		
-		# header row
-		row = ['Slide','Class','Y','X']
-		row += [self.mz[i] for i in range(len(self.mz))]
-		writer.writerow(row)
+		csv_columns = ['Slide','Class','Y','X'] + [str(x) for x in self.mz] #[int(self.dim_y), int(self.dim_x)]+list(self.mz)
 
-		# actual data rows
-		# lm = slicer.mrmlScene.GetFirstNodeByName("Segmentation")
-		lm = slicer.mrmlScene.GetFirstNodeByClass('vtkMRMLSegmentationNode')
-		segments = lm.GetSegmentation()
-		
-		## template pathology classes
-		# segmentation = segmentationNode.GetSegmentation()
-		# segment = segmentation.GetNthSegment(0)
-		# segment.SetName("NewName")
-		# slicer.mrmlScene.GetFirstNodeByClass('vtkMRMLSegmentationNode').SetName('Segmentation')
-		# segmentationNode = getNode('Segmentation')
-		# segmentation = segmentationNode.GetSegmentation()
-		# segmentId = segmentation.GetSegmentIdBySegmentName('Segment_1')
-		# segment = segmentation.GetSegment(segmentId)
-		# segment.RemoveAllRepresentations()
+		segmentationNode = slicer.util.getNodesByClass('vtkMRMLSegmentationNode')[0]
+		segmentation = segmentationNode.GetSegmentation()
+		segIDs = segmentation.GetSegmentIDs()
+		segNames = [segmentation.GetSegment(segID).GetName() for segID in segIDs]
+		n_classes = len(segIDs)
 
-		names, i = [], 0
-		segment_id = segments.GetNthSegmentID(i)
+		csv_data = []
+		for i in range(n_classes):
+			img = slicer.util.arrayFromSegmentBinaryLabelmap(segmentationNode, segIDs[i])[0]
+			y, x = np.where(img)
+			n_pixels = len(x)
+			if n_pixels>0:
+				inds = np.where(img.reshape(-1, order="C"))[0]
+				y_col = y.reshape(-1,1)
+				x_col = x.reshape(-1,1)
+				name_col = np.array([self.slideName]*n_pixels).reshape(-1,1)
+				class_col = np.array([segNames[i].lower()]*n_pixels).reshape(-1,1)
+				seg_data = np.concatenate((name_col, class_col, y_col, x_col, self.peaks[inds]), axis=1)
+				csv_data.append(seg_data)
 
-		while segment_id:
-			names += [segment_id]
-			segment_id = segments.GetNthSegmentID(i + 1)
-			i += 1
+		csv_data = np.concatenate(csv_data, axis=0)
+		df = pd.DataFrame(csv_data, columns=csv_columns)
+		df.to_csv(filename, index=False)
 
-		for (i, name) in enumerate(names):
-			segment_name = segments.GetNthSegment(i).GetName()
-		 
-			a = slicer.util.arrayFromSegmentBinaryLabelmap(lm, name)
-			shapey = a.shape
-			
-			for x in range(shapey[1]):
-				for y in range(shapey[2]):
-					if a[0][x][y] == 1:
-						row2 = []
-						#################################
-						row2.append(self.slideName)
-						#################################
-						row2.append(segment_name.lower())
-						row2.append(x)
-						row2.append(y)
-						
-						
-						for i in range(len(self.mz)): 
-							# row2.append(self.peaks_3D[x][y][i])
-							xy = ind_ToFrom_sub([x,y], self.dim_x)
-							row2.append(self.peaks[xy][i])
+		sample_label = ["spectra", "pixels"]
+		branches = ["├── ", "└── "]
 
-						writer.writerow(row2)
-		f.close()
-	
-		df = pd.read_csv(filename)
-		retstr = 'Dataset successfully created \n'
-		retstr += f'File:\t \t {self.slideName}_dataset.csv \n'
-		retstr += f'Number of classes:\t {len(set(df["Class"]))}\n'
-		retstr += f'Total number of spectra:\t {len(df["Class"])}\n'
-		# retstr += f'Spectra per class:\n'
+		retstr = 'Dataset successfully created! \n'
+		retstr += os.path.basename(filename) + '\n\n'
+		retstr += f"classes:\t {n_classes} \n"
+		retstr += f"{sample_label[self.AppMode]}:\t {csv_data.shape[0]} \n"
+
 		class_names,class_lens = np.unique(df["Class"], return_counts=1)
-		for x,y in zip(class_names,class_lens):
-			retstr += f'{str(y).ljust( len( str(sum(class_lens)) ) )} spectra in class {x} \n'
+		for i, (x,y) in enumerate(zip(class_names,class_lens)):
+			branch = branches[int(i==(n_classes-1))]
+			retstr += f'{branch} {str(y).ljust( len( str(sum(class_lens)) )+2 )} {sample_label[self.AppMode]} in  {x} \n'
+
 		return retstr
 
 	# gets the segmentations, saves them as images to directory they are working in 
@@ -2661,13 +2667,18 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	# 	return True
 	
 	def heatmap_display(self):
-		tic = np.reshape(self.peaks.sum(axis=1), [self.dim_y, self.dim_x], order='C')
-		tic3d = tic[np.newaxis, :, :] # Slicer expects [slices, rows, cols] = [z, y, x]
+		if self.AppMode==0:
+			image_data = self.peaks.sum(axis=1).reshape([self.dim_y, self.dim_x], order='C')
+			image_name = f"{self.slideName}_tic"
+		elif self.AppMode==1:
+			image_data = self.peaks.std(axis=1).reshape([self.dim_y, self.dim_x], order='C')
+			image_name = f"{self.slideName}_std"
+		image_data = image_data[np.newaxis, :, :] # Slicer expects [slices, rows, cols] = [z, y, x]
 
 		# Create a scalar volume node from the array
-		volumeNode = slicer.util.addVolumeFromArray(tic3d.astype(float))
+		volumeNode = slicer.util.addVolumeFromArray(image_data.astype(float))
 		volumeNode.SetIJKToRASDirections(-1,0,0, 0,-1,0, 0,0,1)
-		volumeNode.SetName(f"{self.slideName}_tic2d")
+		volumeNode.SetName(image_name)
 		slicer.util.setSliceViewerLayers(background=volumeNode)
 
 		# Optional: set spacing if you know pixel size

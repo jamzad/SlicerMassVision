@@ -112,6 +112,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.layout.addWidget(uiWidget)
 		self.ui = slicer.util.childWidgetVariables(uiWidget)
 
+		self.cases_config = {}
+		self.logic = MassVisionLogic()
+		self.logic.AppMode = self.AppMode
+
 		# Set scene in MRML widgets. Make sure that in Qt designer the top-level qMRMLWidget's
 		# "mrmlSceneChanged(vtkMRMLScene*)" signal in is connected to each MRML widget's.
 		# "setMRMLScene(vtkMRMLScene*)" slot.
@@ -119,10 +123,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		# Create logic class. Logic implements all computations that should be possible to run
 		# in batch mode, without a graphical user interface.
-		self.cases_config = {}
-		self.logic = MassVisionLogic()
 
-		self.logic.AppMode = self.AppMode
+
+		
 
 		# set the first tab as the default loading tab
 		self.ui.tabWidget.setCurrentIndex(0)
@@ -415,10 +418,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		self.ui.deployRun.connect("clicked(bool)", self.onApplyDeployment)	
 
-
-		# Make sure parameter node is initialized (needed for module reload)
-		self.initializeParameterNode()
-
 		# Mode change for ViT Embeddings
 		modeButtonGroup = qt.QButtonGroup()
 		modeButtonGroup.setExclusive(True)
@@ -427,6 +426,15 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.modeButtonGroup = modeButtonGroup
 		self.ui.modeButtonGroup.connect("buttonToggled(QAbstractButton*,bool)", self.onModeChangeButton)
 		
+		last_AppMode = slicer.app.settings().value("MassVision/Mode")
+		if last_AppMode==1:
+			self.ui.EMB_mode.setChecked(True)
+			self.AppMode = 1
+
+		# Make sure parameter node is initialized (needed for module reload)
+		self.initializeParameterNode()
+
+
 	### Mode Selector
 	def onModeChangeButton(self, btn, checked):
 		if not checked:
@@ -435,6 +443,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		selectedId = self.ui.modeButtonGroup.id(btn)
 		self.AppMode = selectedId
 		self.logic.AppMode = self.AppMode
+		slicer.app.settings().setValue("MassVision/Mode", self.AppMode)
 
 		if selectedId==0:
 			slicer.mrmlScene.Clear()
@@ -471,15 +480,19 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			for i in range(4, 10):  # 3 to 9 inclusive
 				btn = getattr(self.ui, f"Go2tab{i}")
 				btn.setEnabled(False)
-			btns = ["database1", "database2"]
-			[getattr(self.ui, btn).setEnabled(False) for btn in btns ]
+			# btns = ["database1", "database2"]
+			# [getattr(self.ui, btn).setEnabled(False) for btn in btns ]
 
 			# hide unnecessary actions
-			objs = ["CollapsibleRaw", "label_export", "ExportPushBotton"]
+			objs = ["database1", "database2", "label_30",
+				"CollapsibleRaw", "label_export", "ExportPushBotton",
+				"label_68", "gotoRegistration", "hspacer_11", "vspacer_12"]
 			[getattr(self.ui, obj).setVisible(False) for obj in objs ]
 
 			# change labels
 			updateUITexts(self.ui)
+			self.ui.PCA_button.setText("PCA (global contrast)")
+			self.ui.partialPCA.setText("P3CA (local contrast)")
 			
 			# Set logo in UI
 			logo_path = self.resourcePath('Icons/embeddings_logo.png')
@@ -637,6 +650,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.dataInfo = info
 		self.ui.dataInformation.setText(info)
 		self.logic.heatmap_display()
+		# if self.AppMode==0:
+		# 	self.logic.heatmap_display()
+		# elif self.AppMode==1:
+		# 	self.logic.pca_display()
 		self.populateMzLists()
   
 	def onHistoSelect(self):
