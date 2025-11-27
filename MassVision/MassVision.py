@@ -4,12 +4,11 @@ MassVision
 
 """
 
-from operator import truediv
-import vtk, qt, ctk, slicer
+import vtk, qt, slicer
 from slicer.ScriptedLoadableModule import *
 from slicer.util import VTKObservationMixin
-# import os, unittest, logging, json
 import logging
+import os
 from MassVisionLib.Logic import * 
 
 
@@ -99,6 +98,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self._updatingGUIFromParameterNode = False
 		self.parameterSetNode = None
 		self.REIMS = 0
+		self.AppMode = 0 #0:MSI, 1:Embeddings
+		self.EmbedColor = "#80350E"
 
 	def setup(self):
 		"""
@@ -111,6 +112,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.layout.addWidget(uiWidget)
 		self.ui = slicer.util.childWidgetVariables(uiWidget)
 
+		self.cases_config = {}
+		self.logic = MassVisionLogic()
+		self.logic.AppMode = self.AppMode
+
 		# Set scene in MRML widgets. Make sure that in Qt designer the top-level qMRMLWidget's
 		# "mrmlSceneChanged(vtkMRMLScene*)" signal in is connected to each MRML widget's.
 		# "setMRMLScene(vtkMRMLScene*)" slot.
@@ -118,8 +123,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		# Create logic class. Logic implements all computations that should be possible to run
 		# in batch mode, without a graphical user interface.
-		self.cases_config = {}
-		self.logic = MassVisionLogic()
+
+
+		
 
 		# set the first tab as the default loading tab
 		self.ui.tabWidget.setCurrentIndex(0)
@@ -228,9 +234,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 				child.setVisible(False)
 
 		# Collapse Python console
-		# pythonConsoleDock = slicer.util.mainWindow().findChild(qt.QDockWidget, "PythonConsoleDockWidget")
-		# if pythonConsoleDock:
-		# 	pythonConsoleDock.setVisible(False)
+		pythonConsoleDock = slicer.util.mainWindow().findChild(qt.QDockWidget, "PythonConsoleDockWidget")
+		if pythonConsoleDock:
+			pythonConsoleDock.setVisible(False)
 
 		# Layout to red view
 		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
@@ -267,6 +273,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://github.com/jamzad/SlicerMassVision/releases/tag/test-data")))
 		self.ui.codeBase.clicked.connect(
 			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://github.com/jamzad/SlicerMassVision")))
+		self.ui.publication.clicked.connect(
+			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://pubs.acs.org/doi/10.1021/acs.analchem.5c04018")))
 
 		self.ui.database1.clicked.connect(
 			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://hmdb.ca/")))
@@ -294,6 +302,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
 		# Visualization
+		self.ui.visNorm_spectra.currentTextChanged.connect(self.visRenormalize)
+		self.ui.visNorm_ions.currentTextChanged.connect(self.visRenormalize)
+
 		self.ui.spectrumPlot.connect("clicked(bool)", self.onSpectrumPlot)
 		self.ui.placeFiducial.connect("clicked(bool)", lambda checked: self.onPutFiducial("spectrum"))
 
@@ -409,10 +420,102 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		self.ui.deployRun.connect("clicked(bool)", self.onApplyDeployment)	
 
+		# Mode change for ViT Embeddings
+		modeButtonGroup = qt.QButtonGroup()
+		modeButtonGroup.setExclusive(True)
+		modeButtonGroup.addButton(self.ui.MSI_mode, 0)
+		modeButtonGroup.addButton(self.ui.EMB_mode, 1)
+		self.ui.modeButtonGroup = modeButtonGroup
+		self.ui.modeButtonGroup.connect("buttonToggled(QAbstractButton*,bool)", self.onModeChangeButton)
+		
+		last_AppMode = slicer.app.settings().value("MassVision/Mode")
+		if last_AppMode==1:
+			self.ui.EMB_mode.setChecked(True)
+			self.AppMode = 1
 
 		# Make sure parameter node is initialized (needed for module reload)
 		self.initializeParameterNode()
 
+
+	### Mode Selector
+	def onModeChangeButton(self, btn, checked):
+		if not checked:
+			return
+			
+		selectedId = self.ui.modeButtonGroup.id(btn)
+		self.AppMode = selectedId
+		self.logic.AppMode = self.AppMode
+		slicer.app.settings().setValue("MassVision/Mode", self.AppMode)
+
+		if selectedId==0:
+			slicer.mrmlScene.Clear()
+			slicer.util.reloadScriptedModule('MassVision')
+			self.resetTabwidgetScroll()
+			print("Mode changed to MassVision")
+
+		elif selectedId==1:
+			slicer.mrmlScene.Clear()
+			
+			# disable irrelevant tabs
+			[self.ui.tabWidget.setTabEnabled(x,False) for x in range(4,self.ui.tabWidget.count)]
+
+			# change style and color
+			target_bg  = "background-color: #006666;"
+			target_fg  = "color: rgb(255, 255, 255);"
+			newStyle = f"""
+			QPushButton:enabled {{
+				background-color: {self.EmbedColor};
+				color: rgb(255, 255, 255);
+			}}
+			"""
+			for _, w in vars(self.ui).items():
+				if isinstance(w, qt.QPushButton):
+					ss = w.styleSheet
+					if target_bg in ss and target_fg in ss:
+						w.setStyleSheet(newStyle)
+			
+			btns = ["ROIforLocalContrast", "RAWplaceFiducial", "placeFiducial", "placeFiducial_sim"]
+			[recolorButtonIcon(getattr(self.ui, btn), color=self.EmbedColor) for btn in btns]
+			[recolorTabIcon(self.ui.tabWidget, i, color=self.EmbedColor) for i in range(self.ui.tabWidget.count)]
+
+			# disable unnecessary buttons
+			for i in range(4, 10):  # 3 to 9 inclusive
+				btn = getattr(self.ui, f"Go2tab{i}")
+				btn.setEnabled(False)
+			# btns = ["database1", "database2"]
+			# [getattr(self.ui, btn).setEnabled(False) for btn in btns ]
+
+			# hide unnecessary actions
+			objs = ["database1", "database2", "label_30",
+				"CollapsibleRaw", "label_export", "ExportPushBotton",
+				"label_68", "gotoRegistration", "hspacer_11", "vspacer_12"]
+			[getattr(self.ui, obj).setVisible(False) for obj in objs ]
+
+			# change labels
+			updateUITexts(self.ui)
+			self.ui.PCA_button.setText("PCA (global contrast)")
+			self.ui.partialPCA.setText("P3CA (local contrast)")
+			
+			# Set logo in UI
+			logo_path = self.resourcePath('Icons/embeddings_logo.png')
+			self.ui.logo.setPixmap(qt.QPixmap(logo_path))
+
+			# reset the scroll
+			self.resetTabwidgetScroll()
+
+			# change settings
+			self.ui.visNorm_spectra.setCurrentIndex(0)
+
+			self.ui.CollapsibleMode.collapsed = True
+			print("Mode changed to EmbedVision")
+
+
+	def resetTabwidgetScroll(self):
+		scrollArea = self.ui.tabWidget.parent()
+		while scrollArea and not isinstance(scrollArea, qt.QScrollArea):
+			scrollArea = scrollArea.parent()
+		if scrollArea:
+			scrollArea.verticalScrollBar().setValue(0)
 
 	### Data Import Tab
 
@@ -431,7 +534,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			slicer.mrmlScene.Clear()
 			slicer.util.reloadScriptedModule('MassVision')
 			print('MODULE RELOADED')
-
 
 
 	def onLoadScene(self):
@@ -516,7 +618,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		process_done = self.logic.raw_processing(params)
 		if process_done:
-			self.logic.normalize()
+			self.visRenormalize()
 			self.logic.heatmap_display()
 			self.populateMzLists()
 			info = self.logic.getDataInformation()
@@ -524,20 +626,26 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
 	def onTextFileSelect(self):
-		file_info = self.logic.textFileSelect()
-		if file_info!=('',''):
-			# self.ui.filenameTextBrowser.setText(f'{file_info[0]}{file_info[1]}')
-			self.ui.ImportlineEdit.setText(f'{file_info[0]}{file_info[1]}')
-			self.ui.ImportlineEdit.setToolTip(f'{file_info[0]}{file_info[1]}')
+		file_path = self.textFileSelect()
+		if file_path:
+			self.ui.ImportlineEdit.setText(file_path)
+			self.ui.ImportlineEdit.setToolTip(file_path)
 			self.onTextFileLoad()
 
-	def onTextFileLoad(self):
-		# on the text file load runs the text file load and shows the confirmation button
+	def textFileSelect(self):
+		fileExplorer = qt.QFileDialog()
+		
+		if self.AppMode==0:
+			filePaths = fileExplorer.getOpenFileName(None, "Import MSI data", "", "Structured CSV (*.csv);;Hierarchical HDF5 (*.h5);;Waters DESI Text (*.txt);;Continuous imzML (*.imzml);;All Files (*)")
+		elif self.AppMode==1:
+			filePaths = fileExplorer.getOpenFileName(None, "Import Image Embeddings", "", "NumPy array (*.npy);;Hierarchical HDF5 (*.h5);;Structured CSV (*.csv);;All Files (*)")
 
-		# file_load = self.logic.textFileLoad(self.ui.filenameTextBrowser.toPlainText())
+		return filePaths
+	
+	def onTextFileLoad(self):
 		file_load = self.logic.textFileLoad(self.ui.ImportlineEdit.text)
 		if file_load:
-			tic_normalized = self.logic.normalize()
+			tic_normalized = self.visRenormalize()
 			info = self.logic.getDataInformation() if tic_normalized else 'Error in TIC Normalization'
 		else:
 			info = 'Error in File Load. Please check the data and try again.'
@@ -545,17 +653,29 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.dataInfo = info
 		self.ui.dataInformation.setText(info)
 		self.logic.heatmap_display()
+		# if self.AppMode==0:
+		# 	self.logic.heatmap_display()
+		# elif self.AppMode==1:
+		# 	self.logic.pca_display()
 		self.populateMzLists()
   
 	def onHistoSelect(self):
-		# histoPath = self.logic.fileSelect()
-		histoPath = self.logic.HistofileSelect()
+		histoPath = self.HistofileSelect()
 		if histoPath:
 			self.ui.HistoLineEdit.setText(histoPath)
 			self.ui.HistoLineEdit.setToolTip(histoPath)
 			self.onloadHisto()
 			
+	def HistofileSelect(self):
+		fileExplorer = qt.QFileDialog()
 
+		if self.AppMode==0:
+			filePath = fileExplorer.getOpenFileName(None, "Open pathology image", "", "Image Files (*.png *.tif* *.jpg *.jpeg);;All Files (*)")
+		elif self.AppMode==1:
+			filePath = fileExplorer.getOpenFileName(None, "Open image", "", "Image Files (*.png *.tif* *.jpg *.jpeg);;All Files (*)")
+		
+		return filePath
+	
 	def onloadHisto(self):
 		# when load histopathology is selected runs load histopathology
 		self.logic.loadHistopathology(self.ui.HistoLineEdit.text)
@@ -571,7 +691,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		file_load = self.logic.REIMSLoad(self.ui.filenameREIMSBrowser.toPlainText())
 		if file_load:
-			tic_normalized = self.logic.normalize()
+			tic_normalized = self.visRenormalize()
 			info = self.logic.getREIMSInfo() if tic_normalized else 'Error in TIC Normalization'
 		else:
 			info = 'Error in File Load. Please check the data and try again.'
@@ -590,6 +710,12 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.logic.MSIExport(savepath)
 
 	### Visualization tab
+	def visRenormalize(self):
+		spec_norm_method = self.ui.visNorm_spectra.currentText
+		ion_norm_method = self.ui.visNorm_ions.currentText
+		norm_flag = self.logic.normalize(spec_norm_method, ion_norm_method)
+		return norm_flag
+	
 	def onSpectrumPlot(self):
 		self.logic.spectrum_plot()
 		return True
@@ -854,6 +980,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			'p-value [-log]': np.round(volcano_pval, 4),
 			'Dice score': np.round(dice_score, 4),
 		})
+		if self.AppMode==1:
+			clusterIons = clusterIons.rename(columns={"m/z": "feature"})
+		# clusterIons.to_csv(self.logic.savenameBase+"_test.csv")
 
 		lm = slicer.app.layoutManager()
 		layoutNode = lm.layoutLogic().GetLayoutNode()
@@ -889,12 +1018,20 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		else:
 			tableNode.RemoveAllColumns()
 
+		# for col in clusterIons.columns:
+		# 	arr = vtk.vtkVariantArray()
+		# 	arr.SetName(str(col))
+		# 	for v in clusterIons[col].values:
+		# 		# keep numeric where possible; vtkVariant will wrap it
+		# 		arr.InsertNextValue(vtk.vtkVariant(v))
+		# 	tableNode.AddColumn(arr)
+
 		for col in clusterIons.columns:
-			arr = vtk.vtkVariantArray()
+			# convert to string to handle mixed data type
+			arr = vtk.vtkStringArray()
 			arr.SetName(str(col))
 			for v in clusterIons[col].values:
-				# keep numeric where possible; vtkVariant will wrap it
-				arr.InsertNextValue(vtk.vtkVariant(v))
+				arr.InsertNextValue(str(v))
 			tableNode.AddColumn(arr)
 
 		tableNode.SetUseColumnTitleAsColumnHeader(True)
@@ -1783,10 +1920,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 	### Model deployment tab
 	def onDeploySelect(self):
-		file_loc = self.logic.textFileSelect()
-		if file_loc!=('',''):
-			self.ui.deployLoclineEdit.setText(f'{file_loc[0]}{file_loc[1]}')
-			self.ui.deployLoclineEdit.setToolTip(f'{file_loc[0]}{file_loc[1]}')
+		file_path = self.textFileSelect()
+		if file_path:
+			self.ui.deployLoclineEdit.setText(file_path)
+			self.ui.deployLoclineEdit.setToolTip(file_path)
 			self.onDeployLoad()
    
 	def onDeployLoad(self):
@@ -1795,7 +1932,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		info = self.logic.getDataInformation()
 		self.ui.deployInfo.setText(info)
 		## make the visualization options available for this slide
-		self.logic.normalize()
+		self.visRenormalize()
 		self.logic.heatmap_display()
 		self.populateMzLists()
 		self.updateDepVisList()
@@ -2048,28 +2185,28 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		self._parameterNode.EndModify(wasModified)
 
-	def onApplyButton(self):
-		"""
-		Run processing when user clicks "Apply" button.
-		"""
-		try:
-			# Compute output
-			self.logic.process(self.ui.inputSelector.currentNode(), 
-												 self.ui.outputSelector.currentNode(),
-												 self.ui.imageThresholdSliderWidget.value, 
-												 self.ui.invertOutputCheckBox.checked)
-			# Compute inverted output (if needed)
-			if self.ui.invertedOutputSelector.currentNode():
-				# If additional output volume is selected then result with inverted threshold is written there
-				self.logic.process(self.ui.inputSelector.currentNode(), 
-													 self.ui.invertedOutputSelector.currentNode(),
-													 self.ui.imageThresholdSliderWidget.value, 
-													 not self.ui.invertOutputCheckBox.checked, 
-													 showResult=False)
-		except Exception as e:
-			slicer.util.errorDisplay("Failed to compute results: "+str(e))
-			import traceback
-			traceback.print_exc()
+	# def onApplyButton(self):
+	# 	"""
+	# 	Run processing when user clicks "Apply" button.
+	# 	"""
+	# 	try:
+	# 		# Compute output
+	# 		self.logic.process(self.ui.inputSelector.currentNode(), 
+	# 											 self.ui.outputSelector.currentNode(),
+	# 											 self.ui.imageThresholdSliderWidget.value, 
+	# 											 self.ui.invertOutputCheckBox.checked)
+	# 		# Compute inverted output (if needed)
+	# 		if self.ui.invertedOutputSelector.currentNode():
+	# 			# If additional output volume is selected then result with inverted threshold is written there
+	# 			self.logic.process(self.ui.inputSelector.currentNode(), 
+	# 												 self.ui.invertedOutputSelector.currentNode(),
+	# 												 self.ui.imageThresholdSliderWidget.value, 
+	# 												 not self.ui.invertOutputCheckBox.checked, 
+	# 												 showResult=False)
+	# 	except Exception as e:
+	# 		slicer.util.errorDisplay("Failed to compute results: "+str(e))
+	# 		import traceback
+	# 		traceback.print_exc()
 
 	def onReload(self):
 		"""
@@ -2174,3 +2311,112 @@ class SimHeatmapThresholdOverlay:
 
 		# Keep Yellow nicely framed without touching Red
 		slicer.app.layoutManager().sliceWidget('Yellow').sliceLogic().FitSliceToAll()
+
+
+
+###### Helper function for EmbedVision mode change
+def recolorQIcon(icon, color="#80350E", size=qt.QSize(16, 16)):
+    src = icon.pixmap(size)
+    src = qt.QPixmap(src)  # copy
+
+    targetColor = qt.QColor(color)
+
+    # Start fully transparent
+    colored = qt.QPixmap(src.size())
+    colored.fill(qt.Qt.transparent)
+
+    painter = qt.QPainter(colored)
+
+    # 1) Copy original (with alpha) into `colored`
+    painter.setCompositionMode(qt.QPainter.CompositionMode_Source)
+    painter.drawPixmap(0, 0, src)
+
+    # 2) Replace RGB with targetColor, keep alpha
+    painter.setCompositionMode(qt.QPainter.CompositionMode_SourceIn)
+    painter.fillRect(colored.rect(), targetColor)
+
+    painter.end()
+
+    return qt.QIcon(colored)
+
+def recolorButtonIcon(btn, color="#80350E"):
+    icon = btn.icon
+    size = btn.iconSize
+    newIcon = recolorQIcon(icon, color=color, size=size)
+    btn.setIcon(newIcon)
+
+def recolorTabIcon(tabWidget, index, color="#80350E"):
+    icon = tabWidget.tabIcon(index)  
+    size = tabWidget.tabBar().iconSize
+    newIcon = recolorQIcon(icon, color=color, size=size)
+    tabWidget.setTabIcon(index, newIcon)
+
+import qt
+import re
+
+def updateUITexts(ui):
+	## change the labels for EmbedVision
+	ui.label_importMSI.setText("Import Embeddings")
+	ui.label_importPATH.setText("Import Image")
+	ui.label_ionNorm.setText("feature")
+	ui.label_pixelNorm.setText("pixel")
+
+	import re
+	repl_map = {
+		"ion": "feature",
+		"ions": "features",
+		"pixel spectrum": "pixel data",
+		"spectrum": "pixel",
+		"spectra": "pixels",
+		"m/z": "",
+	}
+
+	# Build one big regex that matches ANY key in repl_map
+	# Longer keys first so "pixel spectrum" wins over "spectrum"
+	keys = sorted(repl_map.keys(), key=len, reverse=True)
+
+	parts = []
+	for key in keys:
+		# If it's purely letters/spaces, treat as word/phrase → add \b boundaries
+		if key.replace(" ", "").isalpha():
+			part = r"\b" + re.escape(key) + r"\b"
+		else:
+			# e.g. "m/z" → just escape, no word boundaries
+			part = re.escape(key)
+		parts.append(part)
+
+	pattern = re.compile("(" + "|".join(parts) + ")", re.IGNORECASE)
+
+	def match_case(src: str, dst: str) -> str:
+		"""Adjust dst to roughly match the casing style of src."""
+		if not dst:
+			return dst
+		if src.isupper():
+			return dst.upper()
+		if src.istitle():
+			# "Pixel Spectrum" → "Pixel Data"
+			return dst.title()
+		if src[0].isupper():
+			# "Ion" → "Feature"
+			return dst.capitalize()
+		# default: all lower
+		return dst.lower()
+
+	def replacer(m: re.Match) -> str:
+		src = m.group(0)          # actual matched text from UI
+		key = src.lower()         # normalize for lookup
+		base = repl_map.get(key, src)
+		return match_case(src, base)
+
+	for name, w in vars(ui).items():
+		if isinstance(w, (qt.QPushButton, qt.QLabel)):
+			old_text = w.text
+			if not old_text:
+				continue
+
+			new_text = pattern.sub(replacer, old_text)
+
+			if new_text != old_text:
+				w.text = new_text
+				# print(f"{name}: '{old_text}' -> '{new_text}'")
+

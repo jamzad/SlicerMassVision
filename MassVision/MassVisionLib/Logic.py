@@ -1,13 +1,6 @@
-# from cProfile import label
-# from lib2to3.refactor import get_fixers_from_package
-from math import pi
 import os
 import SimpleITK as sitk
-# from pyexpat import model
-# import unittest
-import logging
-import vtk, qt, ctk, slicer
-from vtk.util import numpy_support
+import vtk, qt, slicer
 
 try:
 	import matplotlib
@@ -17,16 +10,10 @@ except ModuleNotFoundError:
 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-from matplotlib.ticker import ScalarFormatter
 
 ## fix Mac crash
 matplotlib.use('Agg')
 
-# try:
-# 		import cv2
-# except ModuleNotFoundError:
-# 		slicer.util.pip_install("opencv-python")
-# 		import cv2
 try:
 	from PIL import Image as PILImage
 except:
@@ -44,10 +31,10 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, OneHotEncoder, LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import LinearSVC
-from sklearn.cross_decomposition import PLSRegression, PLSCanonical
+from sklearn.cross_decomposition import PLSRegression
 from sklearn.utils import resample
 from sklearn.cluster import KMeans
-from sklearn.metrics import confusion_matrix, balanced_accuracy_score, accuracy_score, roc_auc_score, recall_score
+from sklearn.metrics import balanced_accuracy_score, accuracy_score
 
 
 try:
@@ -169,6 +156,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.selected_features_indices = None
 		self.parser = None
 		self.raw_range = None
+		self.AppMode = 0
 
 
 	def setDefaultParameters(self, parameterNode):
@@ -180,37 +168,38 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		if not parameterNode.GetParameter("Invert"):
 			parameterNode.SetParameter("Invert", "false")
 
-	def process(self, inputVolume, outputVolume, imageThreshold, invert=False, showResult=True):
-		"""
-		Run the processing algorithm.
-		Can be used without GUI widget.
-		:param inputVolume: volume to be thresholded
-		:param outputVolume: thresholding result
-		:param imageThreshold: values above/below this threshold will be set to 0
-		:param invert: if True then values above the threshold will be set to 0, otherwise values below are set to 0
-		:param showResult: show output volume in slice viewers
-		"""
+	# def process(self, inputVolume, outputVolume, imageThreshold, invert=False, showResult=True):
 
-		if not inputVolume or not outputVolume:
-			raise ValueError("Input or output volume is invalid")
+	# 	"""
+	# 	Run the processing algorithm.
+	# 	Can be used without GUI widget.
+	# 	:param inputVolume: volume to be thresholded
+	# 	:param outputVolume: thresholding result
+	# 	:param imageThreshold: values above/below this threshold will be set to 0
+	# 	:param invert: if True then values above the threshold will be set to 0, otherwise values below are set to 0
+	# 	:param showResult: show output volume in slice viewers
+	# 	"""
 
-		import time
-		startTime = time.time()
-		logging.info('Processing started')
+	# 	if not inputVolume or not outputVolume:
+	# 		raise ValueError("Input or output volume is invalid")
 
-		# Compute the thresholded output volume using the "Threshold Scalar Volume" CLI module
-		cliParams = {
-			'InputVolume': inputVolume.GetID(),
-			'OutputVolume': outputVolume.GetID(),
-			'ThresholdValue' : imageThreshold,
-			'ThresholdType' : 'Above' if invert else 'Below'
-			}
-		cliNode = slicer.cli.run(slicer.modules.thresholdscalarvolume, None, cliParams, wait_for_completion=True, update_display=showResult)
-		# We don't need the CLI module node anymore, remove it to not clutter the scene with it
-		slicer.mrmlScene.RemoveNode(cliNode)
+	# 	import time
+	# 	startTime = time.time()
+	# 	logging.info('Processing started')
 
-		stopTime = time.time()
-		logging.info(f'Processing completed in {stopTime-startTime:.2f} seconds')
+	# 	# Compute the thresholded output volume using the "Threshold Scalar Volume" CLI module
+	# 	cliParams = {
+	# 		'InputVolume': inputVolume.GetID(),
+	# 		'OutputVolume': outputVolume.GetID(),
+	# 		'ThresholdValue' : imageThreshold,
+	# 		'ThresholdType' : 'Above' if invert else 'Below'
+	# 		}
+	# 	cliNode = slicer.cli.run(slicer.modules.thresholdscalarvolume, None, cliParams, wait_for_completion=True, update_display=showResult)
+	# 	# We don't need the CLI module node anymore, remove it to not clutter the scene with it
+	# 	slicer.mrmlScene.RemoveNode(cliNode)
+
+	# 	stopTime = time.time()
+	# 	logging.info(f'Processing completed in {stopTime-startTime:.2f} seconds')
 
 	
 	def MSI_contImzML2numpy(self, imzml_file):
@@ -271,6 +260,15 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 			peaks = peaks.reshape((dim_y*dim_x,-1),order='C')
 			return peaks, mz, dim_y, dim_x
+	
+	def EMB_numpy(self, npy_file):
+		peaks = np.load(npy_file)
+		# latent = latent.astype(np.float64)
+		peaks = np.transpose(peaks, [1,2,0])
+		dim_y, dim_x, n_features = peaks.shape
+		mz = np.arange(n_features)
+		peaks = peaks.reshape((dim_y*dim_x,-1),order='C')
+		return peaks, mz, dim_y, dim_x
 	
 	def MSI_h52numpy(self, h5_file):
 		with h5py.File(h5_file, 'r') as h5file:
@@ -841,6 +839,15 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			scaler = StandardScaler()
 			peaks_feat_norm = scaler.fit_transform(peaks)
 			return peaks_feat_norm
+	
+	def log_transform_advance(self, peaks, scale_func='median', scale=100):
+		## bi-symmetric log transform to handle both positive and negative values
+		## useful for feature space
+		transformed = peaks.copy()
+		scale_func = getattr(np, scale_func)
+		scale = scale / scale_func(np.abs(transformed[ transformed!=0]))
+		transformed = np.sign(transformed) * np.log1p(np.abs(scale*transformed))
+		return transformed
 
 	def pca_plot_mask(self,peaks_pca,mask_ind,dim_y,dim_x):
 			peaks_pca = self.ion_minmax_normalize(peaks_pca)
@@ -852,8 +859,21 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			return pca_image
 	
 	# normalizes the peaks
-	def normalize(self):
-			self.peaks_norm = self.ion_minmax_normalize(self.tic_normalize(self.peaks))
+	def normalize(self, spec_method, ion_method):
+			if spec_method.lower() == "tic":
+				spec_norm = self.tic_normalize(self.peaks)
+			elif spec_method.lower() == "log":
+				spec_norm = self.log_transform_advance(self.peaks)
+			else: #"None"
+				spec_norm = self.peaks
+			
+			if ion_method.lower() == "min-max":
+				self.peaks_norm = self.ion_minmax_normalize(spec_norm)
+			elif ion_method.lower() == "z-score":
+				self.peaks_norm = self.ion_zscore_normalize(spec_norm)
+			else: #"None"
+				self.peaks_norm = spec_norm
+
 			return True
 		
 	def nonlinear_display(self, method, param1, param2):
@@ -864,9 +884,13 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 				slicer.util.pip_install("umap-learn")
 				from umap import UMAP
 			
+			# dim_reduction = UMAP(n_components=3, n_neighbors=param1, min_dist=param2)
+			# peaks_reduced = dim_reduction.fit_transform(self.peaks_norm)
+			# peaks_reduced = MinMaxScaler().fit_transform( peaks_reduced )
 			dim_reduction = UMAP(n_components=3, n_neighbors=param1, min_dist=param2)
 			peaks_reduced = dim_reduction.fit_transform(self.peaks_norm)
 			peaks_reduced = MinMaxScaler().fit_transform( peaks_reduced )
+			peaks_reduced = latent2color(peaks_reduced)
 
 		elif method=="t-SNE":
 			try:
@@ -966,58 +990,95 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return True
 	
 	def ViewAbundanceThumbnail(self):
-		total_abundance = self.tic_normalize(self.peaks).sum(axis=0)
+		total_abundance = self.tic_normalize(np.abs(self.peaks)).sum(axis=0)
 		sorted_indices = np.argsort(-total_abundance)
 
 		dim_y = self.dim_y
 		dim_x = self.dim_x
-		n_row = 7
-		n_col = 8
-		fig_scale = 2
 
-		fig, axes = plt.subplots(n_row, n_col, figsize=(fig_scale*n_col/dim_y*dim_x, fig_scale*n_row), gridspec_kw={'wspace': 0, 'hspace': 0})
+		n_ionImages = 50
+		max_width = 15 #inches
+		fig_dpi = 75
+
+		n_row, n_col = best_thumbnail_grid(n_ionImages, dim_y, dim_x)
+		fig_size = np.array( (n_col*dim_x/fig_dpi, n_row*dim_y/fig_dpi) )
+		fig_size = fig_size/np.max(fig_size)*max_width
+
+		fig, axes = plt.subplots(n_row, n_col, figsize=fig_size, dpi=fig_dpi, gridspec_kw={'wspace': 0, 'hspace': 0})
 
 		for i, ax in enumerate(axes.flat):
 			if i==0:
-				tic_image = self.peaks.sum(axis=1).reshape((dim_y,dim_x),order='C')
-				tic_image = tic_image[::2,::2]
-				ax.imshow(tic_image, cmap='gray')
-				ax.text(0, 0, 'TIC', color='yellow', fontsize=10, ha='left', va='top', 
+				if self.AppMode==0:
+					image_data = self.peaks.sum(axis=1).reshape((dim_y,dim_x),order='C')
+					image_label = "TIC"
+				elif self.AppMode==1:
+					image_data = self.peaks.std(axis=1).reshape((dim_y,dim_x),order='C')
+					image_label = "STD"
+				# tic_image = tic_image[::2,::2]
+				ax.imshow(image_data, cmap='gray')
+				ax.text(0, 0, image_label, color='yellow', fontsize=10, ha='left', va='top', 
 						bbox=dict(facecolor='black', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
 			else:
 				ion_image = self.peaks_norm[:, sorted_indices[i-1]].reshape((dim_y,dim_x),order='C')
-				ion_image = ion_image[::2,::2]
+				# ion_image = ion_image[::2,::2]
 				ax.imshow(ion_image, cmap='inferno')
 				ax.text(0, 0, str(self.mz[ sorted_indices[i-1] ])+f' (#{i})', color='black', fontsize=10, ha='left', va='top', 
 						bbox=dict(facecolor='yellow', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
-			ax.axis('off')  # Turn off axes
+			ax.axis('off')
 
 		plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
 
-		# save plot
-		filename = os.path.join(self.saveFolder, self.slideName + f'_thumbAbundance.jpeg')
-		plt.savefig(filename, bbox_inches='tight', dpi=100)
-		plt.close()
+		##### save method
+		# filename = os.path.join(self.saveFolder, self.slideName + f'_thumbAbundance.jpeg')
+		# plt.savefig(filename, bbox_inches='tight')
+		# plt.close()
 
-		# display plot
-		RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
-		markupNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsNode")
-		for markupNode in markupNodes:
-			displayNode = markupNode.GetDisplayNode()
-			displayNode.SetViewNodeIDs([RedNode.GetID()])
+		# YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
+		# YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
 
-		YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
-		YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
+		# volumeNode = slicer.util.loadVolume(filename, {"singleFile": True})
+		# slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
 
-		volumeNode = slicer.util.loadVolume(filename, {"singleFile": True})
+		# YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
+		# YellowNode.SetOrientation("Axial")
+		# slicer.util.resetSliceViews()
+
+		##### buffer
+		volumeNode = self.fig2vectorVolume(fig)
+		volumeNode.SetName(f"{self.slideName}_thumbAbundance")
+		slicer.util.setSliceViewerLayers(background=volumeNode)
 		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
-
-		YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
-		YellowNode.SetOrientation("Axial")
+		slicer.util.getNode("vtkMRMLSliceNodeYellow").SetOrientation("Axial")
+		self.showMarkupsInRedOnly()
 		slicer.util.resetSliceViews()
 
 		return True
 	
+	def fig2vectorVolume(self, fig):
+		fig.canvas.draw()
+		width_px, height_px = fig.canvas.get_width_height()
+		buf = np.frombuffer(fig.canvas.tostring_argb(), dtype=np.uint8)
+		img = buf.reshape(height_px, width_px, 4)   # shape (H, W, 4) 
+		plt.close(fig) 
+
+		img = img[np.newaxis, :, :, 1:4]   # shape (1, H, W, 3) 
+		volumeNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLVectorVolumeNode')
+		slicer.util.updateVolumeFromArray(volumeNode, img)
+
+		volumeNode.CreateDefaultDisplayNodes()
+		volumeNode.CreateDefaultStorageNode()
+
+		volumeNode.SetIJKToRASDirections(-1,0,0, 0,-1,0, 0,0,1)
+
+		return volumeNode
+
+	def showMarkupsInRedOnly(self):
+		redViewID = slicer.util.getNode("vtkMRMLSliceNodeRed").GetID()
+		for markupNode in slicer.util.getNodesByClass("vtkMRMLMarkupsNode"):
+			displayNode = markupNode.GetDisplayNode()
+			if displayNode:
+				displayNode.SetViewNodeIDs([redViewID])
+
 	def ViewContrastThumbnail(self):
 		mz_inds = self.contrast_thumbnail_inds
 		dim_y = self.dim_y
@@ -1025,30 +1086,29 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		top_n = int(len(mz_inds)/3)
 
-		# fig, axes = plt.subplots(3, top_n, figsize=(top_n/dim_y*dim_x*2, 3*2), gridspec_kw={'wspace': 0, 'hspace': 0})
+		n_row = 3
+		n_col = top_n+1
+		max_width = 15 #inches
+		fig_dpi = 100
 
-		# for i, ax in enumerate(axes.flat):
-		# 	ion_image = self.peaks_norm[:, mz_inds[i]].reshape((dim_y,dim_x),order='C')
-		# 	ax.imshow(ion_image, cmap='inferno')
-		# 	ax.text(0, 0, str(self.mz[ mz_inds[i] ]), color='black', fontsize=10, ha='left', va='top', 
-		# 			bbox=dict(facecolor='yellow', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
-		# 	ax.axis('off')  # Turn off axes
+		fig_size = np.array( (n_col*dim_x/fig_dpi, n_row*dim_y/fig_dpi) )
+		fig_size = fig_size/np.max(fig_size)*max_width
 
 		peaks_pca = self.peaks_pca
-		fig, axes = plt.subplots(3, top_n+1, figsize=((top_n+1)/dim_y*dim_x*3, 3*3), gridspec_kw={'wspace': 0, 'hspace': 0})
+		fig, axes = plt.subplots(n_row, n_col, figsize=fig_size, dpi=fig_dpi, gridspec_kw={'wspace': 0, 'hspace': 0})
 
 		for i, ax in enumerate(axes.flat):
 			q, r = divmod(i, top_n+1)
 			if r==0: # start each line with the PC image
 				pc_image = peaks_pca[:,q].reshape((dim_y,dim_x),order='C')
-				pc_image = pc_image[::2,::2]
+				# pc_image = pc_image[::2,::2]
 				ax.imshow(pc_image, cmap='inferno')
 				ax.text(0, 0, f'PC{q+1}', color='white', fontsize=10, ha='left', va='top', 
 						bbox=dict(facecolor='black', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
 			else: # ion images
 				ion_index = i-1-q
 				ion_image = self.peaks_norm[:, mz_inds[ion_index]].reshape((dim_y,dim_x),order='C')
-				ion_image = ion_image[::2,::2]
+				# ion_image = ion_image[::2,::2]
 				ax.imshow(ion_image, cmap='inferno')
 
 				if r>(top_n/2): #label change for positive and negative loadings
@@ -1067,26 +1127,35 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
 
-		# save plot
-		filename = os.path.join(self.saveFolder, self.slideName + f'_thumbCont.jpeg')
-		plt.savefig(filename, bbox_inches='tight', dpi=100)
-		plt.close()
+		# # save plot
+		# filename = f"{self.savenameBase}_thumbCont.jpeg"
+		# plt.savefig(filename, bbox_inches='tight')
+		# plt.close()
 
-		# display plot
-		RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
-		markupNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsNode")
-		for markupNode in markupNodes:
-			displayNode = markupNode.GetDisplayNode()
-			displayNode.SetViewNodeIDs([RedNode.GetID()])
+		# # display plot
+		# RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
+		# markupNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsNode")
+		# for markupNode in markupNodes:
+		# 	displayNode = markupNode.GetDisplayNode()
+		# 	displayNode.SetViewNodeIDs([RedNode.GetID()])
 
-		YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
-		YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
+		# YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
+		# YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
 
-		volumeNode = slicer.util.loadVolume(filename, {"singleFile": True})
+		# volumeNode = slicer.util.loadVolume(filename, {"singleFile": True})
+		# slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
+
+		# YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
+		# YellowNode.SetOrientation("Axial")
+		# slicer.util.resetSliceViews()
+
+		##### buffer
+		volumeNode = self.fig2vectorVolume(fig)
+		volumeNode.SetName(f"{self.slideName}_thumbCont")
+		slicer.util.setSliceViewerLayers(background=volumeNode)
 		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
-
-		YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
-		YellowNode.SetOrientation("Axial")
+		slicer.util.getNode("vtkMRMLSliceNodeYellow").SetOrientation("Axial")
+		self.showMarkupsInRedOnly()
 		slicer.util.resetSliceViews()
 
 	def VisCluster(self, n_clusters):
@@ -1160,17 +1229,24 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		# Get top ions and their scores for thumbnail
 		top_n = 10 
-		top_ions = sorted_indices[:top_n]
 
-		# print("Top 5 ions based on max Dice score:")
-		# for rank, ion_idx in enumerate(top_ions):
-		# 	print(f"Rank {rank + 1}: Ion {ion_idx}, mz {self.mz[ion_idx]}, Max Dice Score = {max_dice_scores[ion_idx]:.4f}, Threshold = {max_thresholds[ion_idx]:.1f}")
-
-		mz_inds = top_ions
 		dim_y = self.dim_y
 		dim_x = self.dim_x
 
-		fig, axes = plt.subplots(1, 1+top_n, figsize=(top_n/dim_y*dim_x*3, 1*3), gridspec_kw={'wspace': 0, 'hspace': 0})
+		# mz_inds = sorted_indices[:top_n]
+		# fig, axes = plt.subplots(1, 1+top_n, figsize=(top_n/dim_y*dim_x*3, 1*3), dpi=100, gridspec_kw={'wspace': 0, 'hspace': 0})
+
+		n_ionImages = 1+top_n
+		max_width = 8 #inches
+		fig_dpi = 75
+
+		n_row, n_col = best_thumbnail_grid(n_ionImages, dim_y, dim_x)
+		mz_inds = sorted_indices[:n_row*n_col]
+
+		fig_size = np.array( (n_col*dim_x/fig_dpi, n_row*dim_y/fig_dpi) )
+		fig_size = fig_size/np.max(fig_size)*max_width
+
+		fig, axes = plt.subplots(n_row, n_col, figsize=fig_size, dpi=fig_dpi, gridspec_kw={'wspace': 0, 'hspace': 0})
 
 		first_label = 'cluster'
 		if mode=="similarity":
@@ -1191,26 +1267,35 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
 
-		# save plot
-		filename = os.path.join(self.saveFolder, self.slideName + f'_thumbCluster.jpeg')
-		plt.savefig(filename, bbox_inches='tight', dpi=100)
-		plt.close()
+		# # save plot
+		# filename = f"{self.savenameBase}_thumbCluster.jpeg"
+		# plt.savefig(filename, bbox_inches='tight')
+		# plt.close()
 
-		# display plot
-		RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
-		markupNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsNode")
-		for markupNode in markupNodes:
-			displayNode = markupNode.GetDisplayNode()
-			displayNode.SetViewNodeIDs([RedNode.GetID()])
+		# # display plot
+		# RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
+		# markupNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsNode")
+		# for markupNode in markupNodes:
+		# 	displayNode = markupNode.GetDisplayNode()
+		# 	displayNode.SetViewNodeIDs([RedNode.GetID()])
 
-		YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
-		YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
+		# YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
+		# YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
 
-		volumeNode = slicer.util.loadVolume(filename, {"singleFile": True})
+		# volumeNode = slicer.util.loadVolume(filename, {"singleFile": True})
+		# slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
+
+		# YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
+		# YellowNode.SetOrientation("Axial")
+		# slicer.util.resetSliceViews()
+
+		##### buffer
+		volumeNode = self.fig2vectorVolume(fig)
+		volumeNode.SetName(f"{self.slideName}_thumbCluster")
+		slicer.util.setSliceViewerLayers(background=volumeNode)
 		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
-
-		YellowCompNode.SetBackgroundVolumeID(volumeNode.GetID())
-		YellowNode.SetOrientation("Axial")
+		slicer.util.getNode("vtkMRMLSliceNodeYellow").SetOrientation("Axial")
+		self.showMarkupsInRedOnly()
 		slicer.util.resetSliceViews()
 		
 		top_n_table = 20 
@@ -1618,77 +1703,45 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 	# gets the segmentations, saves as an excel file
 	def csvGeneration(self, filename):
-		import csv
-		# open the file in the write mode
-		# filename = self.savenameBase + '_dataset.csv'
-		f = open(filename, 'w',newline='')
-		# create the csv writer
-		writer = csv.writer(f)
-		
-		# header row
-		row = ['Slide','Class','Y','X']
-		row += [self.mz[i] for i in range(len(self.mz))]
-		writer.writerow(row)
+		csv_columns = ['Slide','Class','Y','X'] + [str(x) for x in self.mz] #[int(self.dim_y), int(self.dim_x)]+list(self.mz)
 
-		# actual data rows
-		# lm = slicer.mrmlScene.GetFirstNodeByName("Segmentation")
-		lm = slicer.mrmlScene.GetFirstNodeByClass('vtkMRMLSegmentationNode')
-		segments = lm.GetSegmentation()
-		
-		## template pathology classes
-		# segmentation = segmentationNode.GetSegmentation()
-		# segment = segmentation.GetNthSegment(0)
-		# segment.SetName("NewName")
-		# slicer.mrmlScene.GetFirstNodeByClass('vtkMRMLSegmentationNode').SetName('Segmentation')
-		# segmentationNode = getNode('Segmentation')
-		# segmentation = segmentationNode.GetSegmentation()
-		# segmentId = segmentation.GetSegmentIdBySegmentName('Segment_1')
-		# segment = segmentation.GetSegment(segmentId)
-		# segment.RemoveAllRepresentations()
+		segmentationNode = slicer.util.getNodesByClass('vtkMRMLSegmentationNode')[0]
+		segmentation = segmentationNode.GetSegmentation()
+		segIDs = segmentation.GetSegmentIDs()
+		segNames = [segmentation.GetSegment(segID).GetName() for segID in segIDs]
+		n_classes = len(segIDs)
 
-		names, i = [], 0
-		segment_id = segments.GetNthSegmentID(i)
+		csv_data = []
+		for i in range(n_classes):
+			img = slicer.util.arrayFromSegmentBinaryLabelmap(segmentationNode, segIDs[i])[0]
+			y, x = np.where(img)
+			n_pixels = len(x)
+			if n_pixels>0:
+				inds = np.where(img.reshape(-1, order="C"))[0]
+				y_col = y.reshape(-1,1)
+				x_col = x.reshape(-1,1)
+				name_col = np.array([self.slideName]*n_pixels).reshape(-1,1)
+				class_col = np.array([segNames[i].lower()]*n_pixels).reshape(-1,1)
+				seg_data = np.concatenate((name_col, class_col, y_col, x_col, self.peaks[inds]), axis=1)
+				csv_data.append(seg_data)
 
-		while segment_id:
-			names += [segment_id]
-			segment_id = segments.GetNthSegmentID(i + 1)
-			i += 1
+		csv_data = np.concatenate(csv_data, axis=0)
+		df = pd.DataFrame(csv_data, columns=csv_columns)
+		df.to_csv(filename, index=False)
 
-		for (i, name) in enumerate(names):
-			segment_name = segments.GetNthSegment(i).GetName()
-		 
-			a = slicer.util.arrayFromSegmentBinaryLabelmap(lm, name)
-			shapey = a.shape
-			
-			for x in range(shapey[1]):
-				for y in range(shapey[2]):
-					if a[0][x][y] == 1:
-						row2 = []
-						#################################
-						row2.append(self.slideName)
-						#################################
-						row2.append(segment_name.lower())
-						row2.append(x)
-						row2.append(y)
-						
-						
-						for i in range(len(self.mz)): 
-							# row2.append(self.peaks_3D[x][y][i])
-							xy = ind_ToFrom_sub([x,y], self.dim_x)
-							row2.append(self.peaks[xy][i])
+		sample_label = ["spectra", "pixels"]
+		branches = ["├── ", "└── "]
 
-						writer.writerow(row2)
-		f.close()
-	
-		df = pd.read_csv(filename)
-		retstr = 'Dataset successfully created \n'
-		retstr += f'File:\t \t {self.slideName}_dataset.csv \n'
-		retstr += f'Number of classes:\t {len(set(df["Class"]))}\n'
-		retstr += f'Total number of spectra:\t {len(df["Class"])}\n'
-		# retstr += f'Spectra per class:\n'
+		retstr = 'Dataset successfully created! \n'
+		retstr += os.path.basename(filename) + '\n\n'
+		retstr += f"classes:\t {n_classes} \n"
+		retstr += f"{sample_label[self.AppMode]}:\t {csv_data.shape[0]} \n"
+
 		class_names,class_lens = np.unique(df["Class"], return_counts=1)
-		for x,y in zip(class_names,class_lens):
-			retstr += f'{str(y).ljust( len( str(sum(class_lens)) ) )} spectra in class {x} \n'
+		for i, (x,y) in enumerate(zip(class_names,class_lens)):
+			branch = branches[int(i==(n_classes-1))]
+			retstr += f'{branch} {str(y).ljust( len( str(sum(class_lens)) )+2 )} {sample_label[self.AppMode]} in  {x} \n'
+
 		return retstr
 
 	# gets the segmentations, saves them as images to directory they are working in 
@@ -2542,72 +2595,89 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return list(self.df.columns[self.peak_start_col:])
 		# return list(self.mz)
 
-	def fileSelect(self):
-		# read and display image practise in juptyter
-		fileExplorer = qt.QFileDialog()
-		filePaths = fileExplorer.getOpenFileNames()
-		filePaths = str(filePaths)[1:-2][1:-1]
-		return filePaths
-	
-	def HistofileSelect(self):
-		fileExplorer = qt.QFileDialog()
-		filePath = fileExplorer.getOpenFileName(None, "Open pathology image", "", "Image Files (*.png *.tif* *.jpg *.jpeg);;All Files (*)")
-		return filePath
 		
-	# gets the histopath they want to upload, uploads it and puts it in the slicer view
-	def loadHistopathology(self, tryer):
-		import matplotlib.image as mpimg
+	# def loadHistopathology(self, tryer):
+	# 	import matplotlib.image as mpimg
 
-		img=mpimg.imread(tryer)
-		# plt.imsave(self.saveFolder + 'histo.jpg',img)
-		# slicer.util.loadVolume(self.saveFolder + 'histo.jpg')
-		plt.imsave(self.savenameBase + '_histo.jpg',img)
+	# 	img=mpimg.imread(tryer)
+	# 	# plt.imsave(self.saveFolder + 'histo.jpg',img)
+	# 	# slicer.util.loadVolume(self.saveFolder + 'histo.jpg')
+	# 	plt.imsave(self.savenameBase + '_histo.jpg',img)
 
-		slicer.util.loadVolume(self.savenameBase + '_histo.jpg', {"singleFile": True})
-		os.remove(self.savenameBase + '_histo.jpg')
-		# lm = slicer.app.layoutManager()
-		# lm.setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutSideBySideView)
+	# 	slicer.util.loadVolume(self.savenameBase + '_histo.jpg', {"singleFile": True})
+	# 	os.remove(self.savenameBase + '_histo.jpg')
+	# 	# lm = slicer.app.layoutManager()
+	# 	# lm.setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutSideBySideView)
 		
-		# redCompositeNode = lm.sliceWidget('Red').mrmlSliceCompositeNode()
-		# tic_image_id = slicer.util.getNode(f'{self.slideName}_tic2d').GetID()
-		# redCompositeNode.SetBackgroundVolumeID(tic_image_id)
-		# yellowCompositeNode = lm.sliceWidget('Yellow').mrmlSliceCompositeNode()
-		# histo_image_id = slicer.util.getNode(self.slideName + '_histo').GetID()
-		# yellowCompositeNode.SetBackgroundVolumeID(histo_image_id) # histo
-		# sliceWidget = lm.sliceWidget('Yellow').sliceLogic().GetSliceNode().SetOrientation("Axial")
+	# 	# redCompositeNode = lm.sliceWidget('Red').mrmlSliceCompositeNode()
+	# 	# tic_image_id = slicer.util.getNode(f'{self.slideName}_tic2d').GetID()
+	# 	# redCompositeNode.SetBackgroundVolumeID(tic_image_id)
+	# 	# yellowCompositeNode = lm.sliceWidget('Yellow').mrmlSliceCompositeNode()
+	# 	# histo_image_id = slicer.util.getNode(self.slideName + '_histo').GetID()
+	# 	# yellowCompositeNode.SetBackgroundVolumeID(histo_image_id) # histo
+	# 	# sliceWidget = lm.sliceWidget('Yellow').sliceLogic().GetSliceNode().SetOrientation("Axial")
+	# 	slicer.util.resetSliceViews()
+
+	def loadHistopathology(self, path):
+		volumeNode = slicer.util.loadVolume(path, {"singleFile": True})
+		if self.AppMode==0 and self.slideName is not None:
+			volumeNode.SetName(self.slideName + '_histo')
+
+		if self.AppMode==0:
+			volumeNode.SetSpacing(0.254, 0.254, 1) # compatibility with older versions
+		elif self.AppMode==1:
+			im_dx, im_dy, _ = volumeNode.GetImageData().GetDimensions()
+			volumeNode.SetSpacing(self.dim_x/im_dx, self.dim_y/im_dy, 1)
+			volumeNode.SetOrigin(0.5*(1-self.dim_x/im_dx), 0.5*(1-self.dim_y/im_dy), 0)
+
 		slicer.util.resetSliceViews()
+		return volumeNode
 
+	# def heatmap_display(self):
+	# 	tic = np.reshape(self.peaks.sum(axis=1), [self.dim_y, self.dim_x], order='C')
+	# 	TIC = sitk.GetImageFromArray(np.transpose(tic, [0, 1]))
+		
+	# 	### REIMS
+	# 	if self.dim_y==1:
+	# 		TIC.SetSpacing((1,self.REIMS_H))
+	# 		# print("REIMS detected. Spacing chnaged to",TIC.GetSpacing())
+	# 	### REIMS
+		
+	# 	tic_filename = os.path.join(self.saveFolder, f'{self.slideName}_tic2d.nrrd')
+	# 	sitk.WriteImage(TIC, tic_filename)    
+	# 	slicer.util.loadVolume(tic_filename, {"singleFile": True, "name": f'{self.slideName}_tic2d'})
+
+	# 	os.remove(tic_filename)
+	# 	lm = slicer.app.layoutManager()
+	# 	lm.setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
+
+	# 	return True
+	
 	def heatmap_display(self):
+		if self.AppMode==0:
+			image_data = self.peaks.sum(axis=1).reshape([self.dim_y, self.dim_x], order='C')
+			image_name = f"{self.slideName}_tic"
+		elif self.AppMode==1:
+			image_data = self.peaks.std(axis=1).reshape([self.dim_y, self.dim_x], order='C')
+			image_name = f"{self.slideName}_std"
+		image_data = image_data[np.newaxis, :, :] # Slicer expects [slices, rows, cols] = [z, y, x]
 
+		# Create a scalar volume node from the array
+		volumeNode = slicer.util.addVolumeFromArray(image_data.astype(float))
+		volumeNode.SetIJKToRASDirections(-1,0,0, 0,-1,0, 0,0,1)
+		volumeNode.SetName(image_name)
+		slicer.util.setSliceViewerLayers(background=volumeNode)
 
-		tic = np.reshape(self.peaks.sum(axis=1), [self.dim_y, self.dim_x], order='C')
-		TIC = sitk.GetImageFromArray(np.transpose(tic, [0, 1]))
-		
-		### REIMS
-		if self.dim_y==1:
-			TIC.SetSpacing((1,self.REIMS_H))
-			# print("REIMS detected. Spacing chnaged to",TIC.GetSpacing())
-		### REIMS
-		
-		tic_filename = os.path.join(self.saveFolder, f'{self.slideName}_tic2d.nrrd')
-		sitk.WriteImage(TIC, tic_filename)    
-		slicer.util.loadVolume(tic_filename, {"singleFile": True})
-		os.remove(tic_filename)
+		# Optional: set spacing if you know pixel size
+		# volumeNode.SetSpacing(self.spacing_x, self.spacing_y, 1.0)
+
+		# Set layout
 		lm = slicer.app.layoutManager()
 		lm.setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
+		
+		slicer.util.resetSliceViews()
 
 		return True
-
-
-	def textFileSelect(self):
-		fileExplorer = qt.QFileDialog()
-		filePaths = fileExplorer.getOpenFileName(None, "Import MSI data", "", "Structured CSV (*.csv);;Hierarchical HDF5 (*.h5);;Waters DESI Text (*.txt);;Continuous imzML (*.imzml);;All Files (*)")
-		data_path_temp = filePaths
-		slide_name = data_path_temp.split('/')[-1]
-		lengthy = len(slide_name)
-		data_path = data_path_temp[:-lengthy]
-		return data_path, slide_name
-
 
 	def REIMSSelect(self):
 		fileExplorer = qt.QFileDialog()
@@ -2685,6 +2755,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	# Reads in the text file and converts it to a numpy array and saves
 	def textFileLoad(self, name):
 
+		# slide_name = os.path.splitext(os.path.basename(filePaths))[0]
+		# data_path = os.path.dirname(filePaths)
 		slide_name = os.path.basename(name)
 		data_path = os.path.dirname(name)
 		data_extension = os.path.splitext(slide_name)[1].lower()
@@ -2697,6 +2769,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			[peaks, mz, dim_y, dim_x] = self.MSI_h52numpy(name)
 		elif data_extension == '.imzml':
 			[peaks, mz, dim_y, dim_x] = self.MSI_contImzML2numpy(name)
+		elif data_extension == '.npy':
+			[peaks, mz, dim_y, dim_x] = self.EMB_numpy(name)
 		else:
 			pass
 		
@@ -2709,7 +2783,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# save path for pca image
 		self.saveFolder = data_path
 		self.slideName = os.path.splitext(slide_name)[0]
-		self.savenameBase = os.path.splitext(name)[0]
+		self.savenameBase = os.path.join(data_path, self.slideName)
 
 		# add each value
 		# self.selectedmz = []
@@ -3437,39 +3511,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		similarity_class = (np.expand_dims(similarity_class, axis=0)*0.9*255).astype('int')
 		self.visualizationRunHelper(similarity_class, similarity_class.shape, visualization_type='similarity_assignment')
 
-
-	
-	def numpyArrayToSlicerLabelMap(self, numpyArray, nodeName, ijkToRASMatrix):
-		# Ensure the array is in Fortran order (column-major order)
-		if not numpyArray.flags['F_CONTIGUOUS']:
-			numpyArray = np.asfortranarray(numpyArray)
-
-		# Convert numpy array to VTK array
-		vtkArray = numpy_support.numpy_to_vtk(num_array=numpyArray.ravel(order='F'), deep=True, array_type=vtk.VTK_INT)
-
-		# Create a vtkImageData object and set the VTK array as its scalars
-		imageData = vtk.vtkImageData()
-		imageData.SetDimensions(numpyArray.shape)
-		imageData.GetPointData().SetScalars(vtkArray)
-
-		# Create a new label map volume node
-		labelMapVolumeNode = slicer.vtkMRMLLabelMapVolumeNode()
-		labelMapVolumeNode.SetName(nodeName)
-		labelMapVolumeNode.SetAndObserveImageData(imageData)
-
-		# Apply the IJK to RAS matrix
-		vtkMatrix = vtk.vtkMatrix4x4()
-		for i in range(4):
-			for j in range(4):
-				vtkMatrix.SetElement(i, j, ijkToRASMatrix[i, j])
-		labelMapVolumeNode.SetIJKToRASMatrix(vtkMatrix)
-
-		# Add the label map volume node to the Slicer scene
-		slicer.mrmlScene.AddNode(labelMapVolumeNode)
-
-		return labelMapVolumeNode
-
-
 	def createCustomColorTable(self, segmentationNode):
 		# Create a new color table
 		colorTableNode = slicer.vtkMRMLColorTableNode()
@@ -3526,11 +3567,18 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.val_cases = cases
 
 	def getDataInformation(self):
-		infostr = f'{self.slideName} \n'
-		infostr += f'spatial:\t {self.dim_y} x {self.dim_x} pixels \n'
-		infostr += f'spectra:\t {self.dim_y*self.dim_x} \n'
-		infostr += f'm/z per pixel:\t {len(self.mz)} \n'
-		infostr += f'm/z range: \t {self.mz.min()} - {self.mz.max()} \n'
+		if self.AppMode==0:
+			infostr = f"""{self.slideName}
+spatial:\t {self.dim_y} x {self.dim_x} pixels
+spectra:\t {self.dim_y*self.dim_x}
+m/z per pixel:\t {len(self.mz)}
+m/z range: \t {self.mz.min()} - {self.mz.max()}"""
+
+		elif self.AppMode==1:
+			infostr = f"""{self.slideName}
+pixels:\t {self.dim_y}x{self.dim_x} 
+features:\t {len(self.mz)} """
+
 		return infostr
 	
 	def getREIMSInfo(self):
@@ -3726,7 +3774,6 @@ def plot_custom_boxplot(grouped_data, groups, mz_title, figsize=(5,5), save_path
 	ax.set_ylabel("intensity")
 	ax.set_title(f"m/z {mz_title}", fontstyle='italic')
 	ax.set_ylim(bottom=0)
-	# ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
 	ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
 	ax.spines['top'].set_visible(False)
 	ax.spines['right'].set_visible(False)
@@ -3829,6 +3876,23 @@ def plot_custom_volcano(log2_fc, neg_log10_p, mz, p_thresh=0.05, fc_thresh=1, to
 
 	plt.close()
 
+
+def best_thumbnail_grid(n_images, dim_y, dim_x):
+    ratio_diff = np.inf
+    best_row, best_col = None, None
+    
+    lower_list = list(range(1, 1+int(np.ceil(np.sqrt(n_images))) ))
+    upper_list = [int(np.ceil(n_images/y)) for y in lower_list]
+    candidate_list = set(lower_list + upper_list)
+    
+    for row in candidate_list:
+        col = int(np.ceil(n_images/row))
+        new_diff = np.abs(col*dim_x-row*dim_y)
+        if new_diff<ratio_diff:
+            ratio_diff = new_diff
+            best_row, best_col = row, col
+    
+    return best_row, best_col
 
 # def pandas_to_slicer_table(df: pd.DataFrame, table_name="StatsTable"):
 #     # Create new table node
