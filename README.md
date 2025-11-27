@@ -21,21 +21,45 @@ The functionalities include data exploration via various targeted and non-target
 * AI Model training: feature ranking, feature selection, data stratification, data balancing, model selection, cross validation
 * Whole-slide AI deployment: global deployment, masked deployment
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jamzad/SlicerMassVision/refs/heads/main/docs/source/Images/functions.png" alt="func" width="100%"/>
+</p>
+
 ## Demonstration
-* Visualization with global vs local contrast [demo](https://www.dropbox.com/scl/fi/tiwy6mm8pompeeprexf0l/visualization.gif?rlkey=tqtly8rqeymvxkhmdf9hf4039&st=anz46hn1&raw=1)
-* Spatial colocalization of mass spectrometry visualization with histopathology annotations [demo](https://www.dropbox.com/scl/fi/cumbv2xfwfgixyxdhuqxz/registration.gif?rlkey=cvi87xl1jz5l9y1vn2te4ktru&st=6fxm9mkb&raw=1)
-* ROI selection with pathology guide for dataset generation [demo](https://www.dropbox.com/scl/fi/03ff1aci9qgbgr735k9up/roiselection.gif?rlkey=7sb5fvcdh12g2ra7jnr3x2n2f&st=wqfd5fht&raw=1)
+Visualization and exploration
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jamzad/SlicerMassVision/refs/heads/main/docs/source/Images/visualization.gif" width="100%"/>
+</p>
+
+Spatial colocalization
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jamzad/SlicerMassVision/refs/heads/main/docs/source/Images/colocalization.gif" width="100%"/>
+</p>
+
+Pathology guided ROI dataset curation
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jamzad/SlicerMassVision/refs/heads/main/docs/source/Images/roi.gif" width="100%"/>
+</p>
+
+Statustucal analysis
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jamzad/SlicerMassVision/refs/heads/main/docs/source/Images/statistical.gif" width="100%"/>
+</p>
 
 ## Installation
-Visit [here](https://SlicerMassVision.readthedocs.io/en/latest/Getting%20Started.html) for a complete installation guide from Extentision Manager within 3D Slicer
+Visit [here](https://SlicerMassVision.readthedocs.io/en/latest/Getting%20Started.html) for a complete installation guide within 3D Slicer
 
 ## Documentations
 Visit [here](https://SlicerMassVision.readthedocs.io/en/latest/) to access user guide, tutorials, and other documentations.
 
 ## Test Data
-MassVis*ion* provides users with a test data for exploring and evaluating its functionalities. The test data includes a sample **MSI data** along with the corresponding **histopathology image** in TIFF format. The data is available in the [release section](https://github.com/jamzad/SlicerMassVision/releases/tag/test-data)
+MassVis*ion* provides users with a test data for exploring and evaluating its functionalities. The test data includes a sample **MSI data** in structured CSV and hierarchical HDF5 format, along with the corresponding **histopathology image** in TIFF format. The data is available in the [release section](https://github.com/jamzad/SlicerMassVision/releases/tag/test-data). The data is collected using DESI modality from a colorectal tissue slide. The raw dataset is released with MassVis*ion* and available in MetaboLights with the identifier [MTBLS12868](https://www.ebi.ac.uk/metabolights/editor/MTBLS12868/) .
 
 ## Citation
 Please use the following citations if you use MassVis*ion* in your studies and publication
 
-Jamzad, A.; Warren, J.; Syeda, A.; Kaufmann, M.; Iaboni, N.; Nicol, C.; Rudan, J.; Ren, K.; Hurlbut, D.; Varma, S.; Fichtinger, G.; Mousavi, P. MassVision: An Open-Source End-to-End Platform for AI-Driven Mass Spectrometry Image Analysis. bioRxiv 2025. [https://doi.org/10.1101/2025.01.29.635489](https://doi.org/10.1101/2025.01.29.635489). 
+Jamzad, A.; Warren, J.; Syeda, A.; Kaufmann, M.; Iaboni, N.; Nicol, C.; Rudan, J.; Ren, K.; Hurlbut, D.; Varma, S.; Fichtinger, G.; Mousavi, P. MassVision: An Open-Source End-to-End Platform for AI-Driven Mass Spectrometry Imaging Analysis. Analytical Chemistry 2025. [https://doi.org/10.1021/acs.analchem.5c04018](https://doi.org/10.1021/acs.analchem.5c04018). 
