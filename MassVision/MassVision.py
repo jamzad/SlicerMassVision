@@ -4,8 +4,7 @@ MassVision
 
 """
 
-from operator import truediv
-import vtk, qt, ctk, slicer
+import vtk, qt, slicer
 from slicer.ScriptedLoadableModule import *
 from slicer.util import VTKObservationMixin
 import logging
@@ -234,9 +233,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 				child.setVisible(False)
 
 		# Collapse Python console
-		# pythonConsoleDock = slicer.util.mainWindow().findChild(qt.QDockWidget, "PythonConsoleDockWidget")
-		# if pythonConsoleDock:
-		# 	pythonConsoleDock.setVisible(False)
+		pythonConsoleDock = slicer.util.mainWindow().findChild(qt.QDockWidget, "PythonConsoleDockWidget")
+		if pythonConsoleDock:
+			pythonConsoleDock.setVisible(False)
 
 		# Layout to red view
 		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
@@ -273,6 +272,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://github.com/jamzad/SlicerMassVision/releases/tag/test-data")))
 		self.ui.codeBase.clicked.connect(
 			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://github.com/jamzad/SlicerMassVision")))
+		self.ui.publication.clicked.connect(
+			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://pubs.acs.org/doi/10.1021/acs.analchem.5c04018")))
 
 		self.ui.database1.clicked.connect(
 			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://hmdb.ca/")))
@@ -504,6 +505,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			# change settings
 			self.ui.visNorm_spectra.setCurrentIndex(0)
 
+			self.ui.CollapsibleMode.collapsed = True
 			print("Mode changed to EmbedVision")
 
 

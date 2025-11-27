@@ -1,13 +1,6 @@
-# from cProfile import label
-# from lib2to3.refactor import get_fixers_from_package
-from math import pi
 import os
 import SimpleITK as sitk
-# from pyexpat import model
-# import unittest
-import logging
-import vtk, qt, ctk, slicer
-from vtk.util import numpy_support
+import vtk, qt, slicer
 
 try:
 	import matplotlib
@@ -17,16 +10,10 @@ except ModuleNotFoundError:
 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-from matplotlib.ticker import ScalarFormatter
 
 ## fix Mac crash
 matplotlib.use('Agg')
 
-# try:
-# 		import cv2
-# except ModuleNotFoundError:
-# 		slicer.util.pip_install("opencv-python")
-# 		import cv2
 try:
 	from PIL import Image as PILImage
 except:
@@ -44,10 +31,10 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, OneHotEncoder, LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import LinearSVC
-from sklearn.cross_decomposition import PLSRegression, PLSCanonical
+from sklearn.cross_decomposition import PLSRegression
 from sklearn.utils import resample
 from sklearn.cluster import KMeans
-from sklearn.metrics import confusion_matrix, balanced_accuracy_score, accuracy_score, roc_auc_score, recall_score
+from sklearn.metrics import balanced_accuracy_score, accuracy_score
 
 
 try:
@@ -3524,39 +3511,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		similarity_class = (np.expand_dims(similarity_class, axis=0)*0.9*255).astype('int')
 		self.visualizationRunHelper(similarity_class, similarity_class.shape, visualization_type='similarity_assignment')
 
-
-	
-	def numpyArrayToSlicerLabelMap(self, numpyArray, nodeName, ijkToRASMatrix):
-		# Ensure the array is in Fortran order (column-major order)
-		if not numpyArray.flags['F_CONTIGUOUS']:
-			numpyArray = np.asfortranarray(numpyArray)
-
-		# Convert numpy array to VTK array
-		vtkArray = numpy_support.numpy_to_vtk(num_array=numpyArray.ravel(order='F'), deep=True, array_type=vtk.VTK_INT)
-
-		# Create a vtkImageData object and set the VTK array as its scalars
-		imageData = vtk.vtkImageData()
-		imageData.SetDimensions(numpyArray.shape)
-		imageData.GetPointData().SetScalars(vtkArray)
-
-		# Create a new label map volume node
-		labelMapVolumeNode = slicer.vtkMRMLLabelMapVolumeNode()
-		labelMapVolumeNode.SetName(nodeName)
-		labelMapVolumeNode.SetAndObserveImageData(imageData)
-
-		# Apply the IJK to RAS matrix
-		vtkMatrix = vtk.vtkMatrix4x4()
-		for i in range(4):
-			for j in range(4):
-				vtkMatrix.SetElement(i, j, ijkToRASMatrix[i, j])
-		labelMapVolumeNode.SetIJKToRASMatrix(vtkMatrix)
-
-		# Add the label map volume node to the Slicer scene
-		slicer.mrmlScene.AddNode(labelMapVolumeNode)
-
-		return labelMapVolumeNode
-
-
 	def createCustomColorTable(self, segmentationNode):
 		# Create a new color table
 		colorTableNode = slicer.vtkMRMLColorTableNode()
@@ -3820,7 +3774,6 @@ def plot_custom_boxplot(grouped_data, groups, mz_title, figsize=(5,5), save_path
 	ax.set_ylabel("intensity")
 	ax.set_title(f"m/z {mz_title}", fontstyle='italic')
 	ax.set_ylim(bottom=0)
-	# ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
 	ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
 	ax.spines['top'].set_visible(False)
 	ax.spines['right'].set_visible(False)
