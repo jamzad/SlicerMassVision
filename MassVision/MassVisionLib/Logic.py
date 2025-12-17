@@ -1,6 +1,7 @@
 import os
 import SimpleITK as sitk
 import vtk, qt, slicer
+from vtk.util import numpy_support
 
 try:
 	import matplotlib
@@ -2630,7 +2631,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			volumeNode.SetSpacing(self.dim_x/im_dx, self.dim_y/im_dy, 1)
 			volumeNode.SetOrigin(0.5*(1-self.dim_x/im_dx), 0.5*(1-self.dim_y/im_dy), 0)
 
+		sliceNodes = slicer.util.getNodesByClass("vtkMRMLSliceNode")
+		for node in sliceNodes:
+			node.SetOrientation("Axial")
 		slicer.util.resetSliceViews()
+
 		return volumeNode
 
 	# def heatmap_display(self):
@@ -2675,6 +2680,9 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		lm = slicer.app.layoutManager()
 		lm.setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
 		
+		sliceNodes = slicer.util.getNodesByClass("vtkMRMLSliceNode")
+		for node in sliceNodes:
+			node.SetOrientation("Axial")
 		slicer.util.resetSliceViews()
 
 		return True
@@ -3596,6 +3604,422 @@ features:\t {len(self.mz)} """
 		for x,y in zip(class_names,class_lens):
 			retstr += f'   {str(y)}\t in class\t {x} \n'
 		return retstr
+
+
+#### Blending helpers ####
+	class SliceBlendController:
+		"""
+		Packaged blending controller for ONE slice view (e.g., Red).
+		- overlay: show BG/FG directly; slider controls FG opacity
+		- wipe: capture displayed BG/FG once when entering wipe; slider controls wipe fraction
+		UX: switching Overlay -> Wipe acts as "recapture".
+		"""
+
+		def __init__(self, sliceViewName="Red", outputName="WipeOutput_RGBA", wipeDirection="horizontal"):
+			self.sliceViewName = sliceViewName
+			self.outputName = outputName
+			self.wipeDirection = wipeDirection  # "horizontal" or "vertical" (horizontal for now)
+
+			lm = slicer.app.layoutManager()
+			self.sliceWidget = lm.sliceWidget(sliceViewName)
+			if self.sliceWidget is None:
+				raise RuntimeError(f"Slice view '{sliceViewName}' not found in current layout.")
+
+			self.sliceLogic = self.sliceWidget.sliceLogic()
+			self.sliceNode = self.sliceLogic.GetSliceNode()
+			self.sliceComp = self.sliceLogic.GetSliceCompositeNode()
+
+			self.bgVol = None
+			self.fgVol = None
+			self.mode = "overlay"  # or "wipe"
+
+			self._wipe_bg = None
+			self._wipe_fg = None
+			self.outVol = None
+
+			self.debug = False  # set False when you’re done debugging
+			self._validRect = None
+
+
+		def _dbg(self, *args):
+			if getattr(self, "debug", False):
+				print("[Blend/Wipe]", *args)
+
+		def setVolumes(self, backgroundVolume, foregroundVolume):
+			if self.outVol is not None:
+				if backgroundVolume is self.outVol or foregroundVolume is self.outVol:
+					self._dbg("Refusing to use output volume as input (would create feedback loop).")
+					return
+		
+			self.bgVol = backgroundVolume
+			self.fgVol = foregroundVolume
+
+			if self.mode == "overlay":
+				self._applyOverlayVolumes()
+			else:
+				self._wipe_bg = None
+				self._wipe_fg = None
+
+		def setMode(self, mode):
+			if mode not in ("overlay", "wipe"):
+				raise ValueError("mode must be 'overlay' or 'wipe'")
+			if mode == self.mode:
+				return
+
+			if mode == "overlay":
+				self.mode = "overlay"
+				self._applyOverlayVolumes()
+				return
+
+			self.mode = "wipe"
+			self._enterWipeAndCapture()
+
+		def updateFromSlider(self, slider, sliderValue):
+			f = _sliderFraction(slider, sliderValue)
+
+			if self.mode == "overlay":
+				self.sliceComp.SetForegroundOpacity(float(f))
+				self.sliceWidget.sliceView().forceRender()
+				return
+
+			if self._wipe_bg is None or self._wipe_fg is None:
+				self._dbg("Wipe requested but no capture available. Re-entering wipe capture.")
+				self._enterWipeAndCapture()
+				if self._wipe_bg is None:
+					self._dbg("Still no capture. Aborting wipe update.")
+					return
+
+			comp = self._wipeComposite(self._wipe_bg, self._wipe_fg, f)
+			_write2DToVectorVolumePixelsOnly(self.outVol, comp)
+			self.sliceWidget.sliceView().forceRender()
+
+		# ---------- internal ----------
+		def _applyOverlayVolumes(self):
+			self.sliceComp.SetBackgroundVolumeID(self.bgVol.GetID() if self.bgVol else None)
+			self.sliceComp.SetForegroundVolumeID(self.fgVol.GetID() if self.fgVol else None)
+			self.sliceNode.Modified()
+			self.sliceWidget.sliceView().forceRender()
+			slicer.app.processEvents()
+
+		def _enterWipeAndCapture(self):
+			if self.bgVol is None or self.fgVol is None:
+				self._dbg("Cannot enter wipe: bgVol or fgVol is None")
+				return
+
+			self._dbg("Entering wipe. BG=", self.bgVol.GetName(), "FG=", self.fgVol.GetName())
+
+			# Put the slice into overlay temporarily so display image exists for capture
+			self.sliceComp.SetBackgroundVolumeID(self.bgVol.GetID())
+			self.sliceComp.SetForegroundVolumeID(self.fgVol.GetID())
+			self.sliceComp.SetForegroundOpacity(1.0)
+
+			self.sliceNode.Modified()
+			self.sliceWidget.sliceView().forceRender()
+			slicer.app.processEvents()
+
+			bg, fg = self._captureDisplayedBGFG(maxTries=30)
+
+			# ---- Fail-safe validation ----
+			if bg is None or fg is None:
+				self._dbg("Capture failed: bg or fg is None. Staying in overlay.")
+				self.mode = "overlay"
+				self._applyOverlayVolumes()
+				return
+
+			if bg.shape != fg.shape:
+				self._dbg("Capture mismatch shapes:", bg.shape, "vs", fg.shape, "Staying in overlay.")
+				self.mode = "overlay"
+				self._applyOverlayVolumes()
+				return
+
+			if bg.ndim != 3 or fg.ndim != 3:
+				self._dbg("Capture unexpected ndim:", bg.ndim, fg.ndim, "Staying in overlay.")
+				self.mode = "overlay"
+				self._applyOverlayVolumes()
+				return
+
+			if bg.shape[2] not in (3, 4) or fg.shape[2] not in (3, 4):
+				self._dbg("Capture unexpected components:", bg.shape, fg.shape, "Staying in overlay.")
+				self.mode = "overlay"
+				self._applyOverlayVolumes()
+				return
+
+			# If one is RGB and the other is RGBA, promote RGB->RGBA to match
+			if bg.shape[2] != fg.shape[2]:
+				self._dbg("Component mismatch (RGB vs RGBA). Promoting to RGBA.")
+				bg = self._promoteToRGBA(bg)
+				fg = self._promoteToRGBA(fg)
+				if bg.shape != fg.shape:
+					self._dbg("Promotion failed to align shapes:", bg.shape, fg.shape, "Staying in overlay.")
+					self.mode = "overlay"
+					self._applyOverlayVolumes()
+					return
+
+			self._wipe_bg, self._wipe_fg = bg, fg
+			# Valid content rect based on BG volume projection
+			self._validRect = self._computeValidXYRectFromVolume(self.bgVol, (bg.shape[0], bg.shape[1]))
+			self._dbg("Valid rect (x0,x1,y0,y1) =", self._validRect)
+
+			self._dbg("Capture OK. shape=", self._wipe_bg.shape, "dtype=", self._wipe_bg.dtype)
+
+			# Create output and switch view to output
+			self.outVol = _ensureOutputVectorVolume(self.outputName)
+			self.sliceComp.SetBackgroundVolumeID(self.outVol.GetID())
+			self.sliceComp.SetForegroundVolumeID(None)
+			self.sliceComp.SetForegroundOpacity(0.0)
+
+			# Freeze geometry ONCE from current slice view (prevents zoom/pan jump on slider)
+			_setVolumeGeometryFromSliceOnce(self.outVol, self.sliceNode)
+
+			self.sliceNode.Modified()
+			self.sliceWidget.sliceView().forceRender()
+			slicer.app.processEvents()
+
+		def _promoteToRGBA(self, img):
+			if img is None:
+				return None
+			if img.ndim != 3:
+				return img
+			if img.shape[2] == 4:
+				return img
+			if img.shape[2] == 3:
+				h, w, _ = img.shape
+				out = np.empty((h, w, 4), dtype=np.uint8)
+				out[:, :, :3] = img
+				out[:, :, 3] = 255
+				return out
+			return img
+
+		def _captureDisplayedBGFG(self, maxTries=20):
+			"""
+			IMPORTANT: Use layer.GetImageData() (displayed slice image), not reslice output.
+			This makes scalar volumes come through as RGBA (or RGB), matching what user sees.
+			"""
+			bgLayer = self.sliceLogic.GetBackgroundLayer()
+			fgLayer = self.sliceLogic.GetForegroundLayer()
+
+			for _ in range(maxTries):
+				self.sliceNode.Modified()
+				self.sliceWidget.sliceView().forceRender()
+				slicer.app.processEvents()
+
+				bgOut = bgLayer.GetImageData() if bgLayer else None
+				fgOut = fgLayer.GetImageData() if fgLayer else None
+
+				bg = _vtkImageToNumpy2D(bgOut)
+				fg = _vtkImageToNumpy2D(fgOut)
+
+				if bg is not None and fg is not None:
+					if bg.shape == fg.shape and bg.ndim == 3 and bg.shape[2] in (3, 4):
+						if bg.dtype != np.uint8: bg = bg.astype(np.uint8)
+						if fg.dtype != np.uint8: fg = fg.astype(np.uint8)
+						return bg, fg
+
+				qt.QThread.msleep(10)
+
+				if bg is None or fg is None:
+					self._dbg("Display image not ready yet. bg is None?", bg is None, "fg is None?", fg is None)
+				if bg is not None and fg is not None and bg.shape != fg.shape:
+					self._dbg("Display shape mismatch:", bg.shape, fg.shape)
+
+			return None, None
+		
+		def _wipeComposite(self, bg, fg, frac):
+			out = bg.copy()
+			h, w, c = bg.shape
+
+			# valid rect (defaults to full image)
+			if getattr(self, "_validRect", None):
+				x0, x1, y0, y1 = self._validRect
+			else:
+				x0, x1, y0, y1 = 0, w, 0, h
+
+			# If rect is empty, nothing to do
+			if x1 <= x0 or y1 <= y0:
+				return out
+
+			# clamp fraction
+			if frac < 0.0:
+				frac = 0.0
+			elif frac > 1.0:
+				frac = 1.0
+
+			if self.wipeDirection == "vertical":
+				span = (y1 - y0)
+				cut = y0 + int(round(frac * span))   # cut is EXCLUSIVE, may equal y1
+				out[cut:y1, x0:x1, :] = fg[cut:y1, x0:x1, :]
+
+				# divider
+				if 0.0 < frac < 1.0:
+					divY = cut - 1
+					out[divY, x0:x1, :] = 255
+
+			else:
+				span = (x1 - x0)
+				cut = x0 + int(round(frac * span))   # cut is EXCLUSIVE, may equal x1
+				out[y0:y1, cut:x1, :] = fg[y0:y1, cut:x1, :]
+
+				# divider 
+				if 0.0 < frac < 1.0:
+					divX = cut - 1
+					out[y0:y1, divX, :] = 255
+
+			return out
+
+
+
+		def _computeValidXYRectFromVolume(self, volumeNode, imgShapeHW):
+			"""
+			Returns (x0, x1, y0, y1) in pixel coordinates (ints, inclusive/exclusive style),
+			representing where the volume projects onto the current slice view.
+			Falls back to full image if something looks off.
+			"""
+			h, w = int(imgShapeHW[0]), int(imgShapeHW[1])
+			if volumeNode is None or h <= 0 or w <= 0:
+				return (0, w, 0, h)
+
+			# Slice XY->RAS and inverse RAS->XY
+			xyToRAS_returned = self.sliceNode.GetXYToRAS()
+			xyToRAS = vtk.vtkMatrix4x4()
+			xyToRAS.DeepCopy(xyToRAS_returned)
+
+			rasToXY = vtk.vtkMatrix4x4()
+			rasToXY.DeepCopy(xyToRAS)
+			rasToXY.Invert()
+
+			# Volume bounds in RAS: [xmin,xmax, ymin,ymax, zmin,zmax]
+			b = [0.0]*6
+			volumeNode.GetRASBounds(b)
+			xmin, xmax, ymin, ymax, zmin, zmax = b
+
+			# 8 corners
+			corners = [
+				(xmin, ymin, zmin), (xmin, ymin, zmax),
+				(xmin, ymax, zmin), (xmin, ymax, zmax),
+				(xmax, ymin, zmin), (xmax, ymin, zmax),
+				(xmax, ymax, zmin), (xmax, ymax, zmax),
+			]
+
+			xs, ys = [], []
+			for (x, y, z) in corners:
+				p = [x, y, z, 1.0]
+				q = [0.0, 0.0, 0.0, 0.0]
+				rasToXY.MultiplyPoint(p, q)
+				if q[3] == 0:
+					continue
+				xs.append(q[0] / q[3])
+				ys.append(q[1] / q[3])
+
+			if not xs or not ys:
+				return (0, w, 0, h)
+
+			x0 = int(np.floor(min(xs)))
+			x1 = int(np.ceil (max(xs)))
+			y0 = int(np.floor(min(ys)))
+			y1 = int(np.ceil (max(ys)))
+
+			# Clamp to image
+			x0 = max(0, min(x0, w))
+			x1 = max(0, min(x1, w))
+			y0 = max(0, min(y0, h))
+			y1 = max(0, min(y1, h))
+
+			# If invalid (can happen for oblique cases), fall back
+			if x1 <= x0 or y1 <= y0:
+				return (0, w, 0, h)
+
+			return (x0, x1, y0, y1)
+
+
+
+
+def _getPropOrCall(obj, name, default=None):
+    a = getattr(obj, name, None)
+    if a is None:
+        return default
+    try:
+        return a() if callable(a) else a
+    except Exception:
+        return default
+
+def _isFinite(x):
+    try:
+        x = float(x)
+        return (x == x) and (x != float("inf")) and (x != float("-inf"))
+    except Exception:
+        return False
+
+def _sliderFraction(slider, v):
+    mn = _getPropOrCall(slider, "minimum", 0.0)
+    mx = _getPropOrCall(slider, "maximum", 100.0)
+    if (not _isFinite(mn)) or (not _isFinite(mx)):
+        return 0.5
+    mn = float(mn); mx = float(mx)
+    if mx <= mn:
+        return 0.5
+    f = (float(v) - mn) / (mx - mn)
+    if f < 0.0: return 0.0
+    if f > 1.0: return 1.0
+    return f
+
+def _vtkImageToNumpy2D(imageData):
+    if imageData is None:
+        return None
+    dims = imageData.GetDimensions()
+    if 0 in dims:
+        return None
+    pd = imageData.GetPointData()
+    scalars = pd.GetScalars() if pd else None
+    if scalars is None:
+        return None
+
+    nComp = scalars.GetNumberOfComponents()
+    arr = numpy_support.vtk_to_numpy(scalars)
+    x, y, z = dims[0], dims[1], dims[2]
+    arr = arr.reshape(z, y, x, nComp)
+    sl = arr[0] if z == 1 else arr[z // 2]
+    return sl.copy()  # (H,W,C)
+
+def _ensureOutputVectorVolume(name="WipeOutput_RGBA"):
+	node = slicer.mrmlScene.GetFirstNodeByName(name)
+	if node and node.IsA("vtkMRMLVectorVolumeNode"):
+		# node.SetHideFromEditors(True) # do not show in node selector
+		return node
+	node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLVectorVolumeNode", name)
+	# node.SetHideFromEditors(True) # do not show in node selector
+	disp = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLVectorVolumeDisplayNode", name + "_Display")
+	node.SetAndObserveDisplayNodeID(disp.GetID())
+	disp.SetInterpolate(0)
+	return node
+
+def _write2DToVectorVolumePixelsOnly(node, img_uint8_hwc):
+    img_uint8_hwc = np.ascontiguousarray(img_uint8_hwc, dtype=np.uint8)
+    h, w, c = img_uint8_hwc.shape
+    if c not in (3, 4):
+        raise ValueError(f"Expected 3 or 4 components, got {c}")
+
+    flat = img_uint8_hwc.reshape(-1, c)
+    vtkArr = numpy_support.numpy_to_vtk(flat, deep=1, array_type=vtk.VTK_UNSIGNED_CHAR)
+    vtkArr.SetNumberOfComponents(c)
+
+    img = vtk.vtkImageData()
+    img.SetDimensions(w, h, 1)
+    img.AllocateScalars(vtk.VTK_UNSIGNED_CHAR, c)
+    img.GetPointData().SetScalars(vtkArr)
+
+    node.SetAndObserveImageData(img)
+    node.Modified()
+
+def _setVolumeGeometryFromSliceOnce(volumeNode, sliceNode):
+    xyToRAS_returned = sliceNode.GetXYToRAS()
+    m = vtk.vtkMatrix4x4()
+    m.DeepCopy(xyToRAS_returned)
+    volumeNode.SetIJKToRASMatrix(m)
+    volumeNode.Modified()
+
+#### Blending helpers ####
+
+
 
 
 ## Helper functions

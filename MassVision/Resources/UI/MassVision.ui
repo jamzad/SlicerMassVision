@@ -32,7 +32,7 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>0</number>
+   <number>2</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
@@ -1939,7 +1939,23 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="41" column="0">
+    <item row="39" column="0" colspan="2">
+     <spacer name="verticalSpacer_32">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="40" column="0">
      <widget class="QLabel" name="label_11">
       <property name="font">
        <font>
@@ -1953,7 +1969,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="41" column="1">
+    <item row="40" column="1">
      <spacer name="horizontalSpacer_7">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -1966,14 +1982,14 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="42" column="0">
+    <item row="41" column="0">
      <widget class="QPushButton" name="placeFiducial">
       <property name="text">
        <string>select spectra</string>
       </property>
      </widget>
     </item>
-    <item row="42" column="1">
+    <item row="41" column="1">
      <widget class="QPushButton" name="spectrumPlot">
       <property name="styleSheet">
        <string notr="true">background-color: #006666;
@@ -1984,7 +2000,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="43" column="0" colspan="2">
+    <item row="42" column="0" colspan="2">
      <spacer name="verticalSpacer_49">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -1997,14 +2013,14 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="44" column="0">
+    <item row="43" column="0">
      <widget class="QPushButton" name="placeFiducial_sim">
       <property name="text">
        <string>select spectrum</string>
       </property>
      </widget>
     </item>
-    <item row="44" column="1">
+    <item row="43" column="1">
      <widget class="QPushButton" name="simHeatmap">
       <property name="styleSheet">
        <string notr="true">background-color: #006666;
@@ -2015,7 +2031,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="45" column="0">
+    <item row="44" column="0">
      <widget class="QLabel" name="NLVisLabel2_2">
       <property name="font">
        <font>
@@ -2029,7 +2045,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="45" column="1">
+    <item row="44" column="1">
      <widget class="qMRMLSliderWidget" name="simHeatmapSlider">
       <property name="decimals">
        <number>2</number>
@@ -2054,7 +2070,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="46" column="1">
+    <item row="45" column="1">
      <widget class="QPushButton" name="SimThumbnail">
       <property name="styleSheet">
        <string notr="true">background-color: #006666;
@@ -2065,10 +2081,210 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="47" column="0" colspan="2">
-     <spacer name="verticalSpacer">
+    <item row="46" column="0" colspan="2">
+     <spacer name="verticalSpacer_50">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="47" column="0" colspan="2">
+     <widget class="QGroupBox" name="blendGroupBox">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="title">
+       <string>Visualization Blender</string>
+      </property>
+      <property name="flat">
+       <bool>false</bool>
+      </property>
+      <property name="checkable">
+       <bool>true</bool>
+      </property>
+      <property name="checked">
+       <bool>false</bool>
+      </property>
+      <layout class="QGridLayout" name="gridLayout_6" columnstretch="0,0,0,0,0,0">
+       <item row="1" column="0" colspan="6">
+        <widget class="qMRMLNodeComboBox" name="fgVolumeSelector">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="nodeTypes">
+          <stringlist notr="true">
+           <string>vtkMRMLVectorVolumeNode</string>
+           <string>vtkMRMLScalarVolumeNode</string>
+          </stringlist>
+         </property>
+         <property name="hideChildNodeTypes">
+          <stringlist notr="true"/>
+         </property>
+         <property name="noneEnabled">
+          <bool>true</bool>
+         </property>
+         <property name="addEnabled">
+          <bool>false</bool>
+         </property>
+         <property name="removeEnabled">
+          <bool>false</bool>
+         </property>
+         <property name="interactionNodeSingletonTag">
+          <string notr="true"/>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0" colspan="6">
+        <widget class="qMRMLNodeComboBox" name="bgVolumeSelector">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="nodeTypes">
+          <stringlist notr="true">
+           <string>vtkMRMLVectorVolumeNode</string>
+           <string>vtkMRMLScalarVolumeNode</string>
+          </stringlist>
+         </property>
+         <property name="hideChildNodeTypes">
+          <stringlist notr="true"/>
+         </property>
+         <property name="noneEnabled">
+          <bool>true</bool>
+         </property>
+         <property name="addEnabled">
+          <bool>false</bool>
+         </property>
+         <property name="removeEnabled">
+          <bool>false</bool>
+         </property>
+         <property name="interactionNodeSingletonTag">
+          <string notr="true"/>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0" colspan="6">
+        <widget class="qMRMLSliderWidget" name="blendSlider">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="decimals">
+          <number>0</number>
+         </property>
+         <property name="maximum">
+          <double>100.000000000000000</double>
+         </property>
+         <property name="value">
+          <double>50.000000000000000</double>
+         </property>
+         <property name="quantity">
+          <string notr="true"/>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="5">
+        <widget class="QRadioButton" name="sweepBlendSliderRadioButton">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Auto sweep</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="4">
+        <widget class="QRadioButton" name="manualBlendSliderRadioButton">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Manual</string>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QRadioButton" name="overlayRadioButton">
+         <property name="text">
+          <string>Overlay</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QRadioButton" name="wipeRadioButton">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Wipe (H)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="2">
+        <widget class="QRadioButton" name="verticalWipeRadioButton">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Wipe (V)</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="48" column="0" colspan="2">
+     <spacer name="verticalSpacer_51">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
       </property>
       <property name="sizeHint" stdset="0">
        <size>
@@ -2169,38 +2385,6 @@ color: rgb(255, 255, 255);</string>
        </item>
       </layout>
      </widget>
-    </item>
-    <item row="39" column="0" colspan="2">
-     <spacer name="verticalSpacer_32">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Fixed</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>40</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="48" column="0" colspan="2">
-     <spacer name="verticalSpacer_51">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Fixed</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>40</height>
-       </size>
-      </property>
-     </spacer>
     </item>
    </layout>
   </widget>
@@ -5123,6 +5307,11 @@ color: rgb(255, 255, 255);</string>
    <class>qMRMLLinearTransformSlider</class>
    <extends>qMRMLSliderWidget</extends>
    <header>qMRMLLinearTransformSlider.h</header>
+  </customwidget>
+  <customwidget>
+   <class>qMRMLNodeComboBox</class>
+   <extends>QWidget</extends>
+   <header>qMRMLNodeComboBox.h</header>
   </customwidget>
   <customwidget>
    <class>qMRMLSliderWidget</class>

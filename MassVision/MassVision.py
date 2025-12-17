@@ -99,7 +99,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.parameterSetNode = None
 		self.REIMS = 0
 		self.AppMode = 0 #0:MSI, 1:Embeddings
-		self.EmbedColor = "#80350E"
+		self.EmbedColor = "#A35C36"
+		self.EmbedColor_btn = "#72300C" #80360E
+		self._blendCtrl = None
 
 	def setup(self):
 		"""
@@ -328,6 +330,38 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.Cluster_button.connect("clicked(bool)", self.onClusterButton)
 		self.ui.ClusterThumbnail.connect("clicked(bool)", self.onClusterThumbnail)
 
+		#### Blending
+		# 1) Node selectors must know the scene
+		self.ui.bgVolumeSelector.setMRMLScene(slicer.mrmlScene)
+		self.ui.fgVolumeSelector.setMRMLScene(slicer.mrmlScene)
+
+		# 2) Create controller handle (None until enabled)
+		self.ui.blendGroupBox.checked = False
+		self._setBlendWidgetsEnabled(False)
+		self._blendCtrl = None
+
+		# 3) Debounce timer for selector changes (prevents double-firing)
+		self._blendDebounce = qt.QTimer()
+		self._blendDebounce.setSingleShot(True)
+		self._blendDebounce.timeout.connect(self._applyBlendInputs)
+
+		# 4) Connect UI signals
+		self.ui.blendGroupBox.toggled.connect(self._onBlendEnabledChanged)
+
+		# qMRMLNodeComboBox commonly emits currentNodeChanged(vtkMRMLNode*)
+		self.ui.bgVolumeSelector.currentNodeChanged.connect(lambda _n: self._scheduleBlendApply())
+		self.ui.fgVolumeSelector.currentNodeChanged.connect(lambda _n: self._scheduleBlendApply())
+
+		self.ui.overlayRadioButton.toggled.connect(self._onBlendModeToggled)
+		self.ui.wipeRadioButton.toggled.connect(self._onBlendModeToggled)
+		self.ui.verticalWipeRadioButton.toggled.connect(self._onBlendModeToggled)
+
+		self.ui.blendSlider.valueChanged.connect(self._onBlendSliderChanged)
+
+		self._setupBlendSliderSweepUI()
+		self.ui.overlayRadioButton.checked = True
+		#### Blending
+
 		# Dataset generation
 		self.ui.gotoRegistration.connect("clicked(bool)", self.landmark)
 		self.ui.segmentEditor.connect("clicked(bool)", self.showSegmentEditor)
@@ -464,7 +498,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			target_fg  = "color: rgb(255, 255, 255);"
 			newStyle = f"""
 			QPushButton:enabled {{
-				background-color: {self.EmbedColor};
+				background-color: {self.EmbedColor_btn};
 				color: rgb(255, 255, 255);
 			}}
 			"""
@@ -1044,6 +1078,175 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		# Process pending UI events
 		slicer.app.processEvents()
+
+
+	### Blender
+	def _setBlendWidgetsEnabled(self, enabled):
+		for w in self.ui.blendGroupBox.findChildren(qt.QWidget):
+			w.setEnabled(enabled)
+
+	def _onBlendEnabledChanged(self, enabled):
+		self._setBlendWidgetsEnabled(enabled)
+
+		if not enabled:
+			self._disableBlend()
+			if hasattr(self, "_blendSweepTimer"):
+				self._blendSweepTimer.stop()
+			return
+
+		# enable
+		self.ui.overlayRadioButton.checked = True
+		self.ui.manualBlendSliderRadioButton.checked = True
+		
+		if self._blendCtrl is None:
+			# Create logic controller for Red view
+			self._blendCtrl = self.logic.SliceBlendController(sliceViewName="Red",
+															outputName="Blended",
+															wipeDirection="horizontal")
+		self._applyBlendInputs()
+		self._onBlendSliderChanged(self.ui.blendSlider.value)
+
+	def _disableBlend(self):
+		# Just drop controller reference; it does not hold Qt connections.
+		# Also restore overlay-like display (so user isn't stuck seeing the output volume)
+		if self._blendCtrl is not None:
+			bg = self.ui.bgVolumeSelector.currentNode()
+			fg = self.ui.fgVolumeSelector.currentNode()
+			self._blendCtrl.setVolumes(bg, fg)
+			self._blendCtrl.setMode("overlay")
+			self.ui.overlayRadioButton.checked = True
+			self._blendCtrl = None
+
+	def _scheduleBlendApply(self):
+		if not self.ui.blendGroupBox.isChecked():
+			return
+		# debounce 80ms so rapid UI changes don't thrash
+		self._blendDebounce.start(80)
+
+	def _applyBlendInputs(self):
+		if self._blendCtrl is None:
+			return
+
+		bg = self.ui.bgVolumeSelector.currentNode()
+		fg = self.ui.fgVolumeSelector.currentNode()
+		self._blendCtrl.setVolumes(bg, fg)
+
+		# Determine mode + wipe direction from radio buttons
+		if self.ui.overlayRadioButton.checked:
+			mode = "overlay"
+			direction = "horizontal"  # unused in overlay
+		elif self.ui.verticalWipeRadioButton.checked:
+			mode = "wipe"
+			direction = "vertical"
+		else:
+			# existing wipeRadioButton = horizontal wipe
+			mode = "wipe"
+			direction = "horizontal"
+
+		# Apply
+		self._blendCtrl.wipeDirection = direction
+		self._blendCtrl.setMode(mode)
+
+		# Apply current slider immediately (opacity in overlay, wipe fraction in wipe)
+		self._blendCtrl.updateFromSlider(self.ui.blendSlider, self.ui.blendSlider.value)
+
+
+	def _onBlendModeToggled(self, checked):
+		if not checked:
+			return
+		if not self.ui.blendGroupBox.isChecked():
+			return
+
+		# Pause sweep during mode switching/capture to avoid race
+		wasSweeping = hasattr(self, "_blendSweepTimer") and self._blendSweepTimer.isActive()
+		if wasSweeping:
+			self._blendSweepTimer.stop()
+
+		self._scheduleBlendApply()
+
+		# Resume sweep shortly after the mode switch has settled
+		if wasSweeping and self.ui.sweepBlendSliderRadioButton.checked:
+			qt.QTimer.singleShot(120, lambda: (
+				self.ui.blendGroupBox.isChecked()
+				and self.ui.sweepBlendSliderRadioButton.checked
+				and self._blendSweepTimer.start()
+			))
+
+
+	def _onBlendSliderChanged(self, v):
+		if not self.ui.blendGroupBox.isChecked() or self._blendCtrl is None:
+			return
+		self._blendCtrl.updateFromSlider(self.ui.blendSlider, v)
+
+	def _setupBlendSliderSweepUI(self):
+		# --- Separate radio button group for sweep/manual ---
+		self._blendSweepButtonGroup = qt.QButtonGroup(self.ui.blendGroupBox)
+		self._blendSweepButtonGroup.setExclusive(True)
+		self._blendSweepButtonGroup.addButton(self.ui.manualBlendSliderRadioButton)
+		self._blendSweepButtonGroup.addButton(self.ui.sweepBlendSliderRadioButton)
+
+		# Default
+		self.ui.manualBlendSliderRadioButton.checked = True
+
+		# --- Sweep engine ---
+		self._blendSweepTimer = qt.QTimer()
+		self._blendSweepTimer.setInterval(50)  # ms tick
+		self._blendSweepTimer.timeout.connect(self._onBlendSweepTick)
+
+		self._blendSweepDir = +1
+		self._blendSweepSecondsOneWay = 1.5  # min->max (or max->min) takes 2 seconds
+
+		# React when a radio becomes checked (avoid double-trigger)
+		self.ui.manualBlendSliderRadioButton.toggled.connect(self._onBlendSweepModeToggled)
+		self.ui.sweepBlendSliderRadioButton.toggled.connect(self._onBlendSweepModeToggled)
+
+	def _onBlendSweepModeToggled(self, checked):
+		# Only act on the button that became checked
+		if not checked:
+			return
+
+		# If blending is disabled, never run sweep
+		if not self.ui.blendGroupBox.isChecked():
+			self._blendSweepTimer.stop()
+			return
+
+		if self.ui.sweepBlendSliderRadioButton.checked:
+			self._blendSweepDir = +1
+			self._blendSweepTimer.start()
+		else:
+			self._blendSweepTimer.stop()
+
+	def _onBlendSweepTick(self):
+		# Stop conditions
+		if (not self.ui.blendGroupBox.isChecked()) or (not self.ui.sweepBlendSliderRadioButton.checked):
+			self._blendSweepTimer.stop()
+			return
+
+		s = self.ui.blendSlider
+
+		mn = float(s.minimum)
+		mx = float(s.maximum)
+		if mx <= mn:
+			return
+
+		# We want: one-way sweep takes self._blendSweepSecondsOneWay seconds
+		dt = float(self._blendSweepTimer.interval) / 1000.0
+		step = (mx - mn) * (dt / float(self._blendSweepSecondsOneWay))
+
+		v = float(s.value) + self._blendSweepDir * step
+
+		# Bounce at ends (clamp + reverse direction)
+		if v >= mx:
+			v = mx
+			self._blendSweepDir = -1
+		elif v <= mn:
+			v = mn
+			self._blendSweepDir = +1
+
+		# Setting slider drives your existing valueChanged -> blend update
+		s.value = v
+
+	### Blender
 
 
 	### Dataset generation
