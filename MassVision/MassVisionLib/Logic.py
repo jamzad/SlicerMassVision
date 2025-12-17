@@ -2619,8 +2619,28 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	# 	# sliceWidget = lm.sliceWidget('Yellow').sliceLogic().GetSliceNode().SetOrientation("Axial")
 	# 	slicer.util.resetSliceViews()
 
+
+
+
 	def loadHistopathology(self, path):
 		volumeNode = slicer.util.loadVolume(path, {"singleFile": True})
+
+		## Remove alpha channel (important for registration and blending)
+		img = volumeNode.GetImageData()
+		if img.GetNumberOfScalarComponents() > 3:
+			ext = vtk.vtkImageExtractComponents()
+			ext.SetInputData(img)
+			ext.SetComponents(0, 1, 2)
+			ext.Update()
+			volumeNode.SetAndObserveImageData(ext.GetOutput())
+			volumeNode.Modified()
+
+			volumeNode.CreateDefaultDisplayNodes()
+			dn = volumeNode.GetDisplayNode()
+			if dn:
+				dn.SetInterpolate(False)
+		## Remove alpha channel (important for registration and blending)
+		
 		if self.AppMode==0 and self.slideName is not None:
 			volumeNode.SetName(self.slideName + '_histo')
 
@@ -3637,7 +3657,7 @@ features:\t {len(self.mz)} """
 			self._wipe_fg = None
 			self.outVol = None
 
-			self.debug = False  # set False when you’re done debugging
+			self.debug = True  # set False when you’re done debugging
 			self._validRect = None
 
 
