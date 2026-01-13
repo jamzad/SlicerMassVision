@@ -2645,11 +2645,16 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			volumeNode.SetName(self.slideName + '_histo')
 
 		if self.AppMode==0:
-			volumeNode.SetSpacing(0.254, 0.254, 1) # compatibility with older versions
+			# compatibility with older versions of MassVision
+			# volumeNode.SetSpacing(0.254, 0.254, 1) 
+			pass
 		elif self.AppMode==1:
-			im_dx, im_dy, _ = volumeNode.GetImageData().GetDimensions()
-			volumeNode.SetSpacing(self.dim_x/im_dx, self.dim_y/im_dy, 1)
-			volumeNode.SetOrigin(0.5*(1-self.dim_x/im_dx), 0.5*(1-self.dim_y/im_dy), 0)
+			try:
+				im_dx, im_dy, _ = volumeNode.GetImageData().GetDimensions()
+				volumeNode.SetSpacing(self.dim_x/im_dx, self.dim_y/im_dy, 1)
+				volumeNode.SetOrigin(0.5*(1-self.dim_x/im_dx), 0.5*(1-self.dim_y/im_dy), 0)
+			except:
+				pass
 
 		sliceNodes = slicer.util.getNodesByClass("vtkMRMLSliceNode")
 		for node in sliceNodes:
@@ -3657,7 +3662,7 @@ features:\t {len(self.mz)} """
 			self._wipe_fg = None
 			self.outVol = None
 
-			self.debug = True  # set False when you’re done debugging
+			self.debug = None  # set False when you’re done debugging
 			self._validRect = None
 
 
@@ -3845,8 +3850,8 @@ features:\t {len(self.mz)} """
 			return None, None
 		
 		def _wipeComposite(self, bg, fg, frac):
-			out = bg.copy()
-			h, w, c = bg.shape
+			out = fg.copy()
+			h, w, c = fg.shape
 
 			# valid rect (defaults to full image)
 			if getattr(self, "_validRect", None):
@@ -3867,7 +3872,7 @@ features:\t {len(self.mz)} """
 			if self.wipeDirection == "vertical":
 				span = (y1 - y0)
 				cut = y0 + int(round(frac * span))   # cut is EXCLUSIVE, may equal y1
-				out[cut:y1, x0:x1, :] = fg[cut:y1, x0:x1, :]
+				out[cut:y1, x0:x1, :] = bg[cut:y1, x0:x1, :]
 
 				# divider
 				if 0.0 < frac < 1.0:
@@ -3877,7 +3882,7 @@ features:\t {len(self.mz)} """
 			else:
 				span = (x1 - x0)
 				cut = x0 + int(round(frac * span))   # cut is EXCLUSIVE, may equal x1
-				out[y0:y1, cut:x1, :] = fg[y0:y1, cut:x1, :]
+				out[y0:y1, cut:x1, :] = bg[y0:y1, cut:x1, :]
 
 				# divider 
 				if 0.0 < frac < 1.0:

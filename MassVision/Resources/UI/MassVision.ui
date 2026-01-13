@@ -32,7 +32,7 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>2</number>
+   <number>0</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
@@ -197,7 +197,7 @@ color: rgb(255, 255, 255);</string>
        <item row="0" column="0">
         <widget class="QLabel" name="label_28">
          <property name="text">
-          <string>Prijects</string>
+          <string>Projects</string>
          </property>
         </widget>
        </item>
