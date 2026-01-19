@@ -1,9 +1,20 @@
 MassVision
 ===================================
 
-.. image:: https://raw.githubusercontent.com/jamzad/SlicerMassVision/main/MassVision.png
-   :width: 300
-   :align: center
+.. raw:: html
+
+   <div style="text-align: center;">
+       <iframe
+           width="560"
+           height="360"
+           src="https://www.youtube.com/embed/lein4U1HHk0?si=rOAhYhG8xdmUgehh"
+           title="YouTube video player"
+           frameborder="0"
+           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+           referrerpolicy="strict-origin-when-cross-origin"
+           allowfullscreen
+       ></iframe>
+   </div>
 
 
 .. admonition:: News & Updates
