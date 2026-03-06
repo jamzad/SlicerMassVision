@@ -1029,7 +1029,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			<view class="vtkMRMLSliceNode" singletontag="Yellow"/>
 		</item>
 		<item>
-			<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+			<view class="vtkMRMLTableViewNode" singletontag="ThumbnailTable"/>
 		</item>
 		</layout>
 		"""
@@ -1038,8 +1038,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			layoutNode.AddLayoutDescription(customLayoutId, customLayout)
 		lm.setLayout(customLayoutId)
 
-		# TableView node (singleton tag "Table")
-		tableViewNode = slicer.mrmlScene.GetSingletonNode("Table", "vtkMRMLTableViewNode")
+		# TableView node (singleton tag "ThumbnailTable")
+		tableViewNode = slicer.mrmlScene.GetSingletonNode("ThumbnailTable", "vtkMRMLTableViewNode")
 		# Fallback if needed:
 		if not tableViewNode:
 			tvs = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
@@ -1704,7 +1704,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			<view class="vtkMRMLSliceNode" singletontag="Yellow"/>
 		</item>
 		<item>
-			<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+			<view class="vtkMRMLTableViewNode" singletontag="BoxPlotTable"/>
 		</item>
 		</layout>
 		"""
@@ -1736,7 +1736,15 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			tableViewNode = tableViewNodes[0]
 			tableViewNode.SetTableNodeID(tableNode.GetID())
 
+		# TableView node (singleton tag "BoxPlotTable")
+		tableViewNode = slicer.mrmlScene.GetSingletonNode("BoxPlotTable", "vtkMRMLTableViewNode")
+		# Fallback if needed:
+		if not tableViewNode:
+			tvs = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
+			tableViewNode = tvs[0] if tvs else None
 
+		if tableViewNode:
+			tableViewNode.SetTableNodeID(tableNode.GetID())
 
 	def onANOVA(self):
 		self.onRunStat(test_method='anova', tabName = "ANOVA")
@@ -1770,7 +1778,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			customLayout = """
 			<layout type="horizontal" split="true">
 			<item>
-				<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+				<view class="vtkMRMLTableViewNode" singletontag="StatTable"/>
 			</item>
 			<item>
 				<view class="vtkMRMLSliceNode" singletontag="Yellow"/>
@@ -1789,7 +1797,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			<item>
 				<layout type="horizontal" split="true">
 				<item>
-					<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+					<view class="vtkMRMLTableViewNode" singletontag="StatTable"/>
 				</item>
 				<item>
 					<view class="vtkMRMLSliceNode" singletontag="Yellow"/>
@@ -1825,10 +1833,20 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		tableNode.SetUseColumnTitleAsColumnHeader(True)
 		tableNode.SetLocked(True)
 
-		# set the table view node
-		tableViewNodes = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
-		if tableViewNodes:
-			tableViewNode = tableViewNodes[0]
+		# # set the table view node
+		# tableViewNodes = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
+		# if tableViewNodes:
+		# 	tableViewNode = tableViewNodes[0]
+		# 	tableViewNode.SetTableNodeID(tableNode.GetID())
+
+		# TableView node (singleton tag "StatTable")
+		tableViewNode = slicer.mrmlScene.GetSingletonNode("StatTable", "vtkMRMLTableViewNode")
+		# Fallback if needed:
+		if not tableViewNode:
+			tvs = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
+			tableViewNode = tvs[0] if tvs else None
+
+		if tableViewNode:
 			tableViewNode.SetTableNodeID(tableNode.GetID())
 
 		# interactive boxplot on cell click
@@ -1892,7 +1910,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		customLayout = """
 		<layout type="vertical">
 		<item>
-			<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+			<view class="vtkMRMLTableViewNode" singletontag="FeatureTable"/>
 		</item>
 		</layout>
 		"""
@@ -2451,7 +2469,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 class SimHeatmapThresholdOverlay:
 	def __init__(self, slider, refVolume):
 		self.refVolume = refVolume
-		self.sim = slicer.util.arrayFromVolume(self.refVolume) 
+		self.sim = slicer.util.arrayFromVolume(self.refVolume)
 		self.slider = slider
 
 		labelNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLLabelMapVolumeNode', 'SimMask')
@@ -2466,25 +2484,36 @@ class SimHeatmapThresholdOverlay:
 		slicer.util.updateVolumeFromArray(self.labelNode, np.zeros_like(self.sim, dtype=np.uint8))
 		self.labelNode.CreateDefaultDisplayNodes()
 
+		### change mask color
+		colorTableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLColorTableNode", "SimHeatmapMaskColors")
+		colorTableNode.SetTypeToUser()
+		colorTableNode.SetNumberOfColors(2)
+		colorTableNode.SetColor(0, "Background", 0.0, 0.0, 0.0, 0.0)
+		colorTableNode.SetColor(1, "Mask", 0.5, 0.68, 0.5, 1.0)
+		displayNode = self.labelNode.GetDisplayNode()
+		displayNode.SetAndObserveColorNodeID(colorTableNode.GetID())
+
 		lm = slicer.app.layoutManager()
 		layoutNode = lm.layoutLogic().GetLayoutNode()
 		twoUpId = 902
 		twoUpXML = """
 		<layout type="horizontal">
 			<item><view class="vtkMRMLSliceNode" singletontag="Red"/></item>
-			<item><view class="vtkMRMLSliceNode" singletontag="Yellow"/></item>
+			<item><view class="vtkMRMLSliceNode" singletontag="Green"/></item>
 		</layout>
 		"""
 		layoutNode.AddLayoutDescription(twoUpId, twoUpXML)
 		lm.setLayout(twoUpId)
 
-		yellowComp = lm.sliceWidget('Yellow').mrmlSliceCompositeNode()
-		yellowComp.SetBackgroundVolumeID(None)      # geometry/background for Yellow
-		yellowComp.SetLabelVolumeID(self.labelNode.GetID())           # show our mask as label
-		yellowComp.SetLabelOpacity(0.9)
-		YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
-		YellowNode.SetOrientation("Axial")
+		greenComp = lm.sliceWidget('Green').mrmlSliceCompositeNode()
+		greenComp.SetBackgroundVolumeID(None)
+		greenComp.SetLabelVolumeID(self.labelNode.GetID())
+		greenComp.SetLabelOpacity(0.9)
+
+		GreenNode = slicer.util.getNode("vtkMRMLSliceNodeGreen")
+		GreenNode.SetOrientation("Axial")
 		RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
+
 		markupNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsNode")
 		for markupNode in markupNodes:
 			displayNode = markupNode.GetDisplayNode()
@@ -2494,26 +2523,21 @@ class SimHeatmapThresholdOverlay:
 		if redComp.GetLabelVolumeID() == self.labelNode.GetID():
 			redComp.SetLabelVolumeID(None)
 
-		lm.sliceWidget('Yellow').sliceLogic().FitSliceToAll()
+		lm.sliceWidget('Green').sliceLogic().FitSliceToAll()
 
-		# Connect slider for live updates (avoid duplicate connections) ---
-		# Drop any prior handlers on this slider to prevent stacking
 		try:
 			self.slider.valueChanged.disconnect()
 		except Exception:
 			pass
 		self.slider.valueChanged.connect(self.onThresholdChanged)
 
-		# Initialize
 		self.onThresholdChanged(self.slider.value)
 
 	def onThresholdChanged(self, threshold):
-		"""Update label map"""
-		mask = (self.sim >= threshold).astype(np.uint8)                # 0/1 mask
+		mask = (self.sim >= threshold).astype(np.uint8)
 		slicer.util.updateVolumeFromArray(self.labelNode, mask)
 
-		# Keep Yellow nicely framed without touching Red
-		slicer.app.layoutManager().sliceWidget('Yellow').sliceLogic().FitSliceToAll()
+		slicer.app.layoutManager().sliceWidget('Green').sliceLogic().FitSliceToAll()
 
 
 
