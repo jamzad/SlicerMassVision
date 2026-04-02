@@ -292,6 +292,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.RAWplaceFiducial.connect("clicked(bool)", lambda checked: self.onPutFiducial("raw-spectrum"))
 		self.ui.RAWplotSpectra.connect("clicked(bool)", self.onRawPlotSpectra)
 		self.ui.RawPlotImg.connect("clicked(bool)", self.onRawPlotImg)
+
+		self.logic.raw_image_tol = float(self.ui.RawImgTol.text)
+		self.ui.RawImgTol.textChanged.connect(self.onRawImgTolChange)
+		
 		self.ui.rawsmoothCheck.connect("clicked(bool)", self.onRawsmoothCheck)
 		self.ui.lockmassCheck.connect("clicked(bool)", self.onLockmassCheck)
 		self.ui.rawrangeCheck.connect("clicked(bool)", self.onRawrangCheck)
@@ -308,7 +312,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.visNorm_ions.currentTextChanged.connect(self.visRenormalize)
 
 		self.ui.spectrumPlot.connect("clicked(bool)", self.onSpectrumPlot)
-		self.ui.placeFiducial.connect("clicked(bool)", lambda checked: self.onPutFiducial("spectrum"))
+		self.ui.placeFiducial.connect("clicked(bool)", lambda checked: self.onPutFiducial( ["spectrum", "pixel"][self.AppMode] ))
 
 		self.ui.simHeatmap.connect("clicked(bool)", self.onSimHeatmap)
 		self.ui.SimThumbnail.connect("clicked(bool)", self.onSimThumbnail)
@@ -589,23 +593,56 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 				self.logic.slideName = os.path.basename(filePath)
 
 	def onPutFiducial(self, listName, single_point=False):
-		fiducialNode = slicer.util.getFirstNodeByName(listName, className="vtkMRMLMarkupsFiducialNode")
+		scene = slicer.mrmlScene
+		appLogic = slicer.app.applicationLogic()
+		selectionNode = appLogic.GetSelectionNode()
+		interactionNode = appLogic.GetInteractionNode()
+		markupsLogic = slicer.modules.markups.logic()
+
+		# Exact-name lookup only
+		fiducialNode = slicer.util.getFirstNodeByClassByName(
+			"vtkMRMLMarkupsFiducialNode", listName
+		)
+
+		# Recreate one-shot lists such as "similarity"
 		if single_point and fiducialNode:
-			slicer.mrmlScene.RemoveNode(fiducialNode)
+			scene.RemoveNode(fiducialNode)
 			fiducialNode = None
-		
+
+		# Create node using Slicer's node factory
 		if not fiducialNode:
-			fiducialNode = slicer.vtkMRMLMarkupsFiducialNode()
-			fiducialNode.SetName(listName)
-			slicer.mrmlScene.AddNode(fiducialNode)
+			fiducialNode = scene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", listName)
+			fiducialNode.CreateDefaultDisplayNodes()
 
-		# Set as active list for placement
-		slicer.modules.markups.logic().SetActiveListID(fiducialNode)
+		# For single-point nodes, remove automatic numbering like "similarity_1"
+		if single_point:
+			observerTag = None
 
-		# Enable place mode without switching module
-		interactionNode = slicer.mrmlScene.GetNodeByID("vtkMRMLInteractionNodeSingleton")
+			def onPointAdded(caller, event):
+				nonlocal observerTag
+				if caller.GetNumberOfControlPoints() > 0:
+					caller.SetNthControlPointLabel(0, listName)
+					if observerTag is not None:
+						caller.RemoveObserver(observerTag)
+						observerTag = None
+
+			observerTag = fiducialNode.AddObserver(
+				slicer.vtkMRMLMarkupsNode.PointPositionDefinedEvent,
+				onPointAdded
+			)
+
+		# Make this exact node the active placement target
+		selectionNode.SetReferenceActivePlaceNodeClassName("vtkMRMLMarkupsFiducialNode")
+		selectionNode.SetActivePlaceNodeID(fiducialNode.GetID())
+
+		# Keep markups logic in sync too
+		markupsLogic.SetActiveListID(fiducialNode)
+
+		# Enter single-place mode
+		interactionNode.SetPlaceModePersistence(0)
 		interactionNode.SetCurrentInteractionMode(interactionNode.Place)
-		interactionNode.SwitchToSinglePlaceMode()  # Or use SwitchToPersistentPlaceMode() for multi
+
+		return fiducialNode
 
 	def onRawPlotSpectra(self):
 		self.logic.RawPlotSpectra()
@@ -616,6 +653,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		img_heatmap = self.ui.RawImgHeatmap.currentText
 		self.logic.RawPlotImg(ion_mz, tol_mz, img_heatmap)
 	
+	def onRawImgTolChange(self, text):
+		self.logic.raw_image_tol = float(text)
+
 	def onRawsmoothCheck(self):
 		currentState = self.ui.rawsmoothCheck.isChecked()
 		self.ui.rawsmoothLab.setVisible(currentState)
@@ -961,7 +1001,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		
 	def selectedSingleIon(self):
 		# runs the valudation for all of the color channels
-		self.logic.singleIonVisualization(float(self.ui.singleIonMzList.currentText), 
+		self.logic.singleIonVisualization((self.ui.singleIonMzList.currentText), 
 									self.ui.singleIonHeatmapList.currentText)
 
 	def onAbundanceThumbnail(self):

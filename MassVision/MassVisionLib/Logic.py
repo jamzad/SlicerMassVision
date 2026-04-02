@@ -274,7 +274,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	def MSI_h52numpy(self, h5_file):
 		with h5py.File(h5_file, 'r') as h5file:
 			peaks = h5file['peaks'][:]
-			mz = h5file['mz'][:]
+			# mz = h5file['mz'][:]
+			mz = np.array([p.decode("utf-8") if isinstance(p, (bytes, bytearray)) else p for p in h5file["mz"][:]])
 
 		dim_y, dim_x, _ = peaks.shape
 		peaks = peaks.reshape((dim_y*dim_x,-1),order='C')
@@ -962,8 +963,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	# generates the single ion image for the m/z value specified
 	def single_ion_display_colours(self, mz_r):
 		# generates and displays the single ion image
-		# ch_r = self.selectedmz.index(mz_r)
-		# ch_r = list(self.mz).index(mz_r)
 		ch_r = np.where(self.mz == mz_r)[0][0]
 		image_r = (self.peaks_norm[:,ch_r]).reshape((self.dim_y,self.dim_x,-1),order='C')
 
@@ -972,7 +971,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		imageData = vtk.vtkImageData()
 
 		# gets the dimensions the correct way
-		# try instead of doing this mackenzie just get the shape and flip the dimension of image
 		reversed = tuple(list(image_r.shape)[::-1])
 		imageData.SetDimensions(reversed)
 		self.iondims = reversed
@@ -983,9 +981,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return image_r
 	
 	def singleIonVisualization(self, mz, heatmap):
-		#mz_ind = self.selectedmz.index(mz)
-		#slicer.modules.markups.logic().JumpSlicesToLocation(self.volume[mz_ind], True)
-		array = self.single_ion_display_colours(mz)
+		array = self.single_ion_display_colours( self.mz_dtype(mz) )
 		array = np.transpose(array, (2, 0, 1))
 		self.visualizationRunHelper(array, array.shape, 'single', heatmap=heatmap)
 		return True
@@ -997,7 +993,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		dim_y = self.dim_y
 		dim_x = self.dim_x
 
-		n_ionImages = 50
+		n_ionImages = min(50, len(self.mz))
 		max_width = 15 #inches
 		fig_dpi = 75
 
@@ -1293,6 +1289,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		##### buffer
 		volumeNode = self.fig2vectorVolume(fig)
 		volumeNode.SetName(f"{self.slideName}_thumbCluster")
+		if mode=="similarity":
+			volumeNode.SetName(f"{self.slideName}_thumbSim")
 		slicer.util.setSliceViewerLayers(background=volumeNode)
 		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
 		slicer.util.getNode("vtkMRMLSliceNodeYellow").SetOrientation("Axial")
@@ -1332,158 +1330,172 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		ion_img = np.expand_dims(ion_img, axis=0)
 		self.visualizationRunHelper(ion_img, ion_img.shape, 'single', heatmap=img_heatmap)
 		return True
-	
+
 	def RawPlotSpectra(self):
+		self.pixel_plot_type = "raw"
+
 		self.clear_all_plots()
+
 		fiducialNode = slicer.util.getNode("raw-spectrum")
 		numPoints = fiducialNode.GetNumberOfControlPoints()
+
 		fnode_names = []
 		fnode_locs = []
+
 		for i in range(numPoints):
 			position = [0.0, 0.0, 0.0]
 			fiducialNode.GetNthControlPointPosition(i, position)
 			point_name = fiducialNode.GetNthControlPointLabel(i)
+
 			fnode_names.append(point_name)
 			fnode_locs.append(self.fiducial_to_index(position))
+
 		N = len(fnode_locs)
 		if N == 0:
 			print("No fiducials found.")
 			return False
+
 		print(f"Number of fiducials: {N}")
 
-
 		coord_to_index = {(x, y): i for i, (x, y, *_) in enumerate(self.coord_ind)}
-		# Create or update a plot for each fiducial
+
 		for i, (fnode_name, fnode_loc) in enumerate(zip(fnode_names, fnode_locs)):
 			fnode_ind = coord_to_index[(fnode_loc[1], fnode_loc[0])]
-
 			mz, spec = self.parser.getspectrum(fnode_ind)
 
 			plotViewNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotViewNode", f"Plot{i+1}")
 			plotViewNode.SetSingletonTag(f"Plot{i+1}")
 			plotViewNode.SetLayoutLabel(f"Plot{i+1}")
-		
+
 			plotChartNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotChartNode", f"PlotChart{i+1}")
-			plotChartNode.SetTitle(f"{fnode_name}")
+			plotChartNode.SetTitle(fnode_name)
 			plotChartNode.SetXAxisTitle("m/z")
-			plotChartNode.SetYAxisTitle("intensity")
+			plotChartNode.SetYAxisTitle("Intensity")
 			plotChartNode.SetLegendVisibility(False)
+			plotChartNode.SetYAxisLogScale(False)
 
-			# Create plot series and table
-			plotSeriesNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotSeriesNode", f"Fiducial {fnode_name}")
-			tableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode")
-			table = tableNode.GetTable()
+			tableNode = self.create_plot_table(
+				mz,
+				spec,
+				feature_name="m/z",
+				y_display_name="Intensity",
+			)
 
-			# Populate table with data
-			col_mz = vtk.vtkFloatArray()
-			col_mz.SetName("m/z")
-			col_intensity = vtk.vtkFloatArray()
-			col_intensity.SetName("Intensity")
-			for mz_value, intensity in zip(mz, spec):
-				col_mz.InsertNextValue(mz_value)
-				col_intensity.InsertNextValue(intensity)
-			table.AddColumn(col_mz)
-			table.AddColumn(col_intensity)
-			
-			col_label = vtk.vtkStringArray()
-			col_label.SetName("Label")
-			for mz_value, intensity in zip(mz, spec):
-				label = f"\nm/z: {mz_value}\nintensity: {intensity:.2e}"
-				col_label.InsertNextValue(label)
-			table.AddColumn(col_label)
-			# Link data to series and chart
+			plotSeriesNode = slicer.mrmlScene.AddNewNodeByClass(
+				"vtkMRMLPlotSeriesNode", f"Fiducial {fnode_name}"
+			)
 			plotSeriesNode.SetAndObserveTableNodeID(tableNode.GetID())
-			plotSeriesNode.SetXColumnName("m/z")
-			plotSeriesNode.SetYColumnName("Intensity")
-			plotSeriesNode.SetLabelColumnName("Label")
+			plotSeriesNode.SetXColumnName("x-axis")
+			plotSeriesNode.SetYColumnName("y-axis")
+			plotSeriesNode.SetLabelColumnName("label")
 			plotSeriesNode.SetPlotType(slicer.vtkMRMLPlotSeriesNode.PlotTypeScatter)
-			plotSeriesNode.SetMarkerStyle(slicer.vtkMRMLPlotSeriesNode.MarkerStyleNone) 
+			plotSeriesNode.SetMarkerStyle(slicer.vtkMRMLPlotSeriesNode.MarkerStyleNone)
 			plotSeriesNode.SetLineStyle(slicer.vtkMRMLPlotSeriesNode.LineStyleSolid)
-			colour = cm.get_cmap("tab10")(i % 10)[:3]  # Get RGB values from 'tab10' colormap
+
+			colour = cm.get_cmap("tab10")(i % 10)[:3]
 			plotSeriesNode.SetColor(*colour)
 
-			plotChartNode.SetYAxisLogScale(False)
 			plotChartNode.AddAndObservePlotSeriesNodeID(plotSeriesNode.GetID())
-			
-			# Link chart to view
 			plotViewNode.SetPlotChartNodeID(plotChartNode.GetID())
 
-		# # Update layout dynamically
-		layoutXML = """
-		<layout type="horizontal">
-			<item>
-				<view class="vtkMRMLSliceNode" singletontag="Red">
-					<property name="orientation" action="default">Axial</property>
-					<property name="viewlabel" action="default">R</property>
-					<property name="viewcolor" action="default">#F34A4A</property>
-				</view>
-			</item>
-			<item>
-				<layout type="vertical">
-		"""
-		for i in range(N):
-			layoutXML += f"""
-				<item>
-					<view class="vtkMRMLPlotViewNode" singletontag="Plot{i+1}">
-						<property name="viewlabel" action="default">Plot{i+1}</property>
-					</view>
-				</item>
-			"""
-		layoutXML += """
-				</layout>
-			</item>
-		</layout>
-		"""
+		self.update_layout(N)
 
-		layoutNode = slicer.app.layoutManager().layoutLogic().GetLayoutNode()
-		customLayoutId = N * 500
-		layoutNode.AddLayoutDescription(customLayoutId, layoutXML)
-		layoutNode.SetViewArrangement(customLayoutId)
-		slicer.app.processEvents()
-		
-		# Clear old selections
-		for i in range(slicer.app.layoutManager().plotViewCount):
-			slicer.app.layoutManager().plotWidget(i).plotView().RemovePlotSelections()  
-		# Remove existing connections
-		for i in range(slicer.app.layoutManager().plotViewCount):
-			plotView = slicer.app.layoutManager().plotWidget(i).plotView()
-			try:
-				plotView.disconnect("dataSelected(vtkStringArray*, vtkCollection*)", self.get_data)  # Remove previous connections
-			except TypeError:
-				pass
-		# # Connect to data selection event
-		# for i in range(slicer.app.layoutManager().plotViewCount):
-		# 	plotView = slicer.app.layoutManager().plotWidget(i).plotView()
-		# 	plotView.connect("dataSelected(vtkStringArray*, vtkCollection*)", self.get_data)
-		# 	# slicer.app.layoutManager().plotWidget(i).plotView().fitToContent()
-		# # print("Interactive plot updated with fiducials.")
-		
 		return True
 
+	def create_plot_table(self, mz_data, y_data, feature_name="m/z", y_display_name="Intensity"):
+		"""
+		Create a table with a fixed schema:
+		- feature : original mz values as strings
+		- x-axis  : numeric x values for plotting
+		- y-axis  : numeric y values for plotting
+		- label   : tooltip text
+
+		If self.mz_dtype is str, x-axis becomes np.arange(len(mz_data)).
+		Otherwise x-axis is the numeric mz_data itself.
+		"""
+		mz = np.asarray(mz_data)
+		y = np.asarray(y_data, dtype=np.float64)
+
+		if len(mz) != len(y):
+			raise ValueError(f"mz and y_data must have same length, got {len(mz)} and {len(y)}")
+
+		feature_values = mz.astype(str)
+
+		if self.mz_dtype is str:
+			x_values = np.arange(len(mz), dtype=np.float64)
+		else:
+			x_values = np.asarray(mz, dtype=np.float64)
+
+		tableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode")
+		table = tableNode.GetTable()
+
+		# feature column: original mz/feature values as text
+		col_feature = vtk.vtkStringArray()
+		col_feature.SetName("feature")
+		for value in feature_values:
+			col_feature.InsertNextValue(value)
+		table.AddColumn(col_feature)
+
+		# x-axis column: always numeric, used for plotting
+		col_x = numpy_support.numpy_to_vtk(x_values, deep=True)
+		col_x.SetName("x-axis")
+		table.AddColumn(col_x)
+
+		# y-axis column: always numeric, used for plotting
+		col_y = numpy_support.numpy_to_vtk(y, deep=True)
+		col_y.SetName("y-axis")
+		table.AddColumn(col_y)
+
+		# label column: hover/tooltip text
+		ranks = self.calculate_ranks(y)
+
+		col_label = vtk.vtkStringArray()
+		col_label.SetName("label")
+		for feature, y_val, rank in zip(feature_values, y, ranks):
+			col_label.InsertNextValue(
+				f"\n{feature_name}: {feature}\n{y_display_name}: {y_val:.6g}\nrank: {rank}"
+			)
+		table.AddColumn(col_label)
+
+		return tableNode
+
+
 	def spectrum_plot(self):
+		self. pixel_plot_type = "array"
+
 		self.clear_all_plots()
-		# Collect fiducial information
-		fiducial_nodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsFiducialNode")
+
+		target_name = ["spectrum", "pixel"][self.AppMode]
+		feature_name = "m/z" if self.AppMode == 0 else "feature"
+		y_display_name = "Intensity" if self.AppMode == 0 else "value"
+
 		fnode_names = []
 		fnode_locs = []
 
+		fiducial_nodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsFiducialNode")
+
 		for fiducial_node in fiducial_nodes:
-			if fiducial_node.GetName() == "spectrum":  # only process the list "spectrum"
-				num_fiducials = fiducial_node.GetNumberOfControlPoints()
-				for i in range(num_fiducials):
-					position = [0.0, 0.0, 0.0]
-					fiducial_node.GetNthControlPointPosition(i, position)
-					point_name = fiducial_node.GetNthControlPointLabel(i)
-					fnode_names.append(point_name)
-					fnode_locs.append(self.fiducial_to_index(position))
+			if fiducial_node.GetName() != target_name:
+				continue
+
+			num_fiducials = fiducial_node.GetNumberOfControlPoints()
+			for i in range(num_fiducials):
+				position = [0.0, 0.0, 0.0]
+				fiducial_node.GetNthControlPointPosition(i, position)
+
+				point_name = fiducial_node.GetNthControlPointLabel(i)
+				point_loc = self.fiducial_to_index(position)
+
+				fnode_names.append(point_name)
+				fnode_locs.append(point_loc)
 
 		N = len(fnode_locs)
 		if N == 0:
 			print("No fiducials found.")
 			return False
+
 		print(f"Number of fiducials: {N}")
 
-		# Create or update a plot for each fiducial
 		for i, (fnode_name, fnode_loc) in enumerate(zip(fnode_names, fnode_locs)):
 			fnode_ind = ind_ToFrom_sub(fnode_loc, self.dim_x)
 			spec = self.peaks[fnode_ind, :]
@@ -1491,68 +1503,48 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			plotViewNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotViewNode", f"Plot{i+1}")
 			plotViewNode.SetSingletonTag(f"Plot{i+1}")
 			plotViewNode.SetLayoutLabel(f"Plot{i+1}")
-		
+
 			plotChartNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotChartNode", f"PlotChart{i+1}")
-			plotChartNode.SetTitle(f"{fnode_name}")
-			plotChartNode.SetXAxisTitle("m/z")
-			plotChartNode.SetYAxisTitle("intensity")
+			plotChartNode.SetTitle(fnode_name)
+			plotChartNode.SetXAxisTitle(feature_name)
+			plotChartNode.SetYAxisTitle(y_display_name)
 			plotChartNode.SetLegendVisibility(False)
+			plotChartNode.SetYAxisLogScale(False)
 
-			# Create plot series and table
-			plotSeriesNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotSeriesNode", f"Fiducial {fnode_name}")
-			tableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode")
-			table = tableNode.GetTable()
+			tableNode = self.create_plot_table(
+				self.mz,
+				spec,
+				feature_name=feature_name,
+				y_display_name=y_display_name,
+			)
 
-			# Populate table with data
-			col_mz = vtk.vtkFloatArray()
-			col_mz.SetName("m/z")
-			col_intensity = vtk.vtkFloatArray()
-			col_intensity.SetName("Intensity")
-			for mz_value, intensity in zip(self.mz, spec):
-				col_mz.InsertNextValue(mz_value)
-				col_intensity.InsertNextValue(intensity)
-			table.AddColumn(col_mz)
-			table.AddColumn(col_intensity)
-			
-			ranks = self.calculate_ranks(col_intensity)
-			col_label = vtk.vtkStringArray()
-			col_label.SetName("Label")
-			for mz_value, intensity, rank in zip(self.mz, spec, ranks):
-				label = f"\nm/z: {mz_value}\nIntensity: {intensity:.2e}\nRank: {rank}"
-				col_label.InsertNextValue(label)
-			table.AddColumn(col_label)
-			# Link data to series and chart
+			plotSeriesNode = slicer.mrmlScene.AddNewNodeByClass(
+				"vtkMRMLPlotSeriesNode", f"Fiducial {fnode_name}"
+			)
 			plotSeriesNode.SetAndObserveTableNodeID(tableNode.GetID())
-			plotSeriesNode.SetXColumnName("m/z")
-			plotSeriesNode.SetYColumnName("Intensity")
-			plotSeriesNode.SetLabelColumnName("Label")
+			plotSeriesNode.SetXColumnName("x-axis")
+			plotSeriesNode.SetYColumnName("y-axis")
+			plotSeriesNode.SetLabelColumnName("label")
 			plotSeriesNode.SetPlotType(slicer.vtkMRMLPlotSeriesNode.PlotTypeScatter)
-			plotSeriesNode.SetMarkerStyle(slicer.vtkMRMLPlotSeriesNode.MarkerStyleNone) 
+			plotSeriesNode.SetMarkerStyle(slicer.vtkMRMLPlotSeriesNode.MarkerStyleNone)
 			plotSeriesNode.SetLineStyle(slicer.vtkMRMLPlotSeriesNode.LineStyleSolid)
-			colour = cm.get_cmap("tab10")(i % 10)[:3]  # Get RGB values from 'tab10' colormap
+
+			colour = cm.get_cmap("tab10")(i % 10)[:3]
 			plotSeriesNode.SetColor(*colour)
 
-			plotChartNode.SetYAxisLogScale(False)
 			plotChartNode.AddAndObservePlotSeriesNodeID(plotSeriesNode.GetID())
-			
-			# Link chart to view
 			plotViewNode.SetPlotChartNodeID(plotChartNode.GetID())
 
-		# Update layout dynamically
 		self.update_layout(N)
-		
+
 		print("Interactive plot updated with fiducials.")
-		
 		return True
 
-	def calculate_ranks(self, intensity_array):
-		""" Calculate ranks for intensities (1 = highest intensity) """
-		# Get intensity values
-		intensities = [intensity_array.GetValue(i) for i in range(intensity_array.GetNumberOfValues())]
-		sorted_intensities = sorted(intensities, reverse=True)
-		rank_dict = {intensity: rank + 1 for rank, intensity in enumerate(sorted_intensities)}
-		ranks = [rank_dict[intensity] for intensity in intensities]
-		return ranks
+	def calculate_ranks(self, intensities):
+		"""Calculate dense ranks (1 = highest intensity, ties share rank)."""
+		values = np.asarray(intensities, dtype=np.float64)
+		unique_sorted = np.unique(values)[::-1]
+		return np.searchsorted(-unique_sorted, -values) + 1
 
 	def update_layout(self, N):
 		layoutXML = """
@@ -1621,8 +1613,14 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			plotSeriesNode = slicer.mrmlScene.GetNodeByID(plotSeriesNodeID)
 			tableNode = slicer.mrmlScene.GetNodeByID(plotSeriesNode.GetTableNodeID())
 			table = tableNode.GetTable()
-			mz_value = round(float(table.GetValue(row_index, 0).ToDouble()),4)  # Column 0 = m/z values
-			self.singleIonVisualization(mz_value, heatmap="Inferno")
+			# mz_value = round(float(table.GetValue(row_index, 0).ToDouble()),4)  # Column 0 = m/z values
+			mz_value = vtk.vtkVariantExtract( table.GetValue(row_index, 0) )
+
+			if self.pixel_plot_type != "raw":
+				self.singleIonVisualization(mz_value, heatmap="Inferno")
+			else:
+				self.RawPlotImg( float(mz_value), self.raw_image_tol, "Inferno")
+
 			self.update_layout(slicer.app.layoutManager().plotViewCount)
 			# plotWidget.plotView().fitToContent()
 			return
@@ -1664,7 +1662,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# array to be stacked at the end
 		for i in range(len(selectedcolourchannels)):
 			colour, mz = selectedcolourchannels[i]
-			array = self.single_ion_display_colours(float(mz))
+			array = self.single_ion_display_colours( self.mz_dtype(mz) )
 			array = np.transpose(array, (2, 0, 1))
 			scaled = np.interp(array, (array.min(), array.max()), (0, 255))
 			arraySize = scaled.shape if arraySize == None else arraySize
@@ -1672,9 +1670,9 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			stacked = np.stack((scaled,) * 3, axis=-1)
 				
 			if colour == 'red':
-				if array.shape[0] != 1:
-					array = array[49]
-					array = np.expand_dims(array,axis=0)   
+				# if array.shape[0] != 1:
+				# 	array = array[49]
+				# 	array = np.expand_dims(array,axis=0)   
 				stacked[:, :, :, 1] = 0
 				stacked[:, :, :, 2] = 0
 			elif colour == "green":
@@ -2807,6 +2805,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		else:
 			pass
 		
+		mz, mz_dtype = feature_cast(mz)
+		self.mz_dtype = mz_dtype
+		self.mz_index = np.arange(len(mz))
+
 		self.peaks = peaks
 		self.mz = mz
 		self.dim_y = dim_y
@@ -2886,6 +2888,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.parser = parser
 		self.raw_range = mz_range
 		self.coord_ind = coord_ind
+
+		self.mz_dtype = float
 	
 		return info, mz_range
 
@@ -3604,8 +3608,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			infostr = f"""{self.slideName}
 spatial:\t {self.dim_y} x {self.dim_x} pixels
 spectra:\t {self.dim_y*self.dim_x}
-m/z per pixel:\t {len(self.mz)}
-m/z range: \t {self.mz.min()} - {self.mz.max()}"""
+m/z per pixel:\t {len(self.mz)}"""
+			try:
+				infostr += f"\nm/z range: \t {self.mz.astype(float).min()} - {self.mz.astype(float).max()}"
+			except:
+				pass
 
 		elif self.AppMode==1:
 			infostr = f"""{self.slideName}
@@ -4658,3 +4665,16 @@ class SlicerProgress:
                 pass
 
         self._last_eta_update = t
+
+
+#### feature type detect and cast
+def feature_cast(arr):
+    try:
+        floats = np.array([float(x) for x in arr], dtype=float)
+    except (TypeError, ValueError):
+        return arr.astype(str), str
+
+    if np.all(np.isfinite(floats)) and np.all(floats == floats.astype(int)):
+        return floats.astype(int), int
+
+    return floats, float
