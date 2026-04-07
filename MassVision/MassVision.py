@@ -368,6 +368,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		# Dataset generation
 		self.ui.gotoRegistration.connect("clicked(bool)", self.landmark)
+
+		self.ui.segVolCombo1.setMRMLScene(slicer.mrmlScene)
+		self.ui.segVolCombo2.setMRMLScene(slicer.mrmlScene)
+
 		self.ui.segmentEditor.connect("clicked(bool)", self.showSegmentEditor)
 		self.ui.roiContrast.connect("clicked(bool)", self.onROIContrast)
 		self.ui.roiContrastLDA.connect("clicked(bool)", self.onROIContrastLDA)
@@ -1314,15 +1318,14 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		pluginHandlerSingleton.pluginByName('Default').switchToModule("LandmarkRegistration")
 
 	def showSegmentEditor(self):
-		segVol1 = self.ui.segVollist1.currentText
-		segVol2 = self.ui.segVollist2.currentText
+		segSelect1Node = self.ui.segVolCombo1.currentNode()
+		segSelect2Node = self.ui.segVolCombo2.currentNode()
 
-		if segVol1!='None':
+		if segSelect1Node:
 		
 			slicer.util.selectModule("SegmentEditor")
 
 			# set master volume and geometry
-			segSelect1Node = slicer.util.getNode( segVol1 )
 			sourceVolumeNode = segSelect1Node
 			segmentEditorNode = slicer.util.getNodesByClass('vtkMRMLSegmentEditorNode')[0]
 			segmentationNode = slicer.util.getNodesByClass('vtkMRMLSegmentationNode')[0]
@@ -1339,12 +1342,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
 			RedNode.SetOrientation("Axial")
 
-			if segVol2=='None':
+			if not segSelect2Node:
 				slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
-				slicer.util.resetSliceViews()
 
 			else:
-				segSelect2Node = slicer.util.getNode( segVol2 )
 				YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
 				YellowCompNode.SetBackgroundVolumeID(segSelect2Node.GetID())
 				YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
@@ -1352,7 +1353,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 				RedCompNode.SetLinkedControl(True)
 				YellowCompNode.SetLinkedControl(True)
 				slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutSideBySideView)
-				slicer.util.resetSliceViews()
+				
+			slicer.util.resetSliceViews()
 
   
 	def onCSVconnect(self, meta_only=False):
@@ -1391,23 +1393,23 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		if index==9:
 			self.updateDepVisList()
 			self.updateDepSegList()
-		elif index==3:
-			self.updateVolumeList()
+		# elif index==3:
+		# 	self.updateVolumeList()
 	
 	def onModuleChange(self):
 		self.updateDepVisList()
 		self.updateDepSegList()
-		self.updateVolumeList()
+		# self.updateVolumeList()
 
-	def updateVolumeList(self):
-		self.ui.segVollist1.clear()
-		self.ui.segVollist1.addItem('None')
-		self.ui.segVollist2.clear()
-		self.ui.segVollist2.addItem('None')
-		volumeNodes = slicer.util.getNodesByClass('vtkMRMLScalarVolumeNode')
-		for volumeNode in volumeNodes:
-			self.ui.segVollist1.addItem(volumeNode.GetName())
-			self.ui.segVollist2.addItem(volumeNode.GetName())
+	# def updateVolumeList(self):
+	# 	self.ui.segVollist1.clear()
+	# 	self.ui.segVollist1.addItem('None')
+	# 	self.ui.segVollist2.clear()
+	# 	self.ui.segVollist2.addItem('None')
+	# 	volumeNodes = slicer.util.getNodesByClass('vtkMRMLScalarVolumeNode')
+	# 	for volumeNode in volumeNodes:
+	# 		self.ui.segVollist1.addItem(volumeNode.GetName())
+	# 		self.ui.segVollist2.addItem(volumeNode.GetName())
 
 	def updateDepVisList(self):
 		self.ui.depVisListCombo.clear()
@@ -2317,16 +2319,16 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
 		slicer.util.resetSliceViews()
 
-	def onDepSegListUpdate(self):
-		segmentationNode = slicer.util.getNodesByClass('vtkMRMLSegmentationNode')[0]
-		segmentation = segmentationNode.GetSegmentation()
-		segIDs = segmentation.GetSegmentIDs()
-		segNames = [segmentation.GetSegment(segID).GetName() for segID in segIDs]
+	# def onDepSegListUpdate(self):
+	# 	segmentationNode = slicer.util.getNodesByClass('vtkMRMLSegmentationNode')[0]
+	# 	segmentation = segmentationNode.GetSegmentation()
+	# 	segIDs = segmentation.GetSegmentIDs()
+	# 	segNames = [segmentation.GetSegment(segID).GetName() for segID in segIDs]
 
-		self.ui.depSegListCombo.clear()
-		self.ui.depSegListCombo.addItem('None')
-		for segName in segNames:
-			self.ui.segVollist1.addItem(segName)
+	# 	self.ui.depSegListCombo.clear()
+	# 	self.ui.depSegListCombo.addItem('None')
+	# 	for segName in segNames:
+	# 		self.ui.segVollist1.addItem(segName)
 
 	def onApplyDeployment(self):
 		# spectrum normalization
