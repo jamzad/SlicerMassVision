@@ -373,9 +373,13 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.roiContrastLDA.connect("clicked(bool)", self.onROIContrastLDA)
 
 		self.ui.roiSimilarity.connect("clicked(bool)", self.onROISimilarity)
+		self.ui.roiExpand.connect("clicked(bool)", self.onROIExpand)
 
 		self.ui.segmentVisibility.connect("clicked(bool)", self.onSegmentVisibility)
+
 		self.ui.createCSVbutton.connect("clicked(bool)",self.onCSVconnect)
+		self.ui.createMetadata.connect("clicked(bool)", lambda checked: self.onCSVconnect(meta_only=True))
+
 		self.ui.saveScenePush.connect("clicked(bool)",self.onSaveScene)
 
 		# Multi-slide alignment
@@ -894,7 +898,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		# logic processes pca in the ROI
 		self.logic.roi_lda_display(label_mask, extend=self.ui.roiCintrastExtend.isChecked())
 
-	def getSegmentData(delf):
+	def getSegmentData(self):
 		"""get the mask, color, and name of the segmentations"""
 
 		segmentationNode = slicer.mrmlScene.GetFirstNodeByClass('vtkMRMLSegmentationNode')
@@ -911,12 +915,25 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			segName.append(segment_name)
 			segColor.append(segment_color)
 
-		return segMask, segName, segColor
+		return segMask, segName, segColor, segmentationNode, segment_IDs
+
 
 	def onROISimilarity(self):
-		segMask, segName, segColor = self.getSegmentData()
+		segMask, segName, segColor, _, _ = self.getSegmentData()
 		similarity_threshold = self.ui.similarityThreshold.value
-		self.logic.roi_similarity_map(segMask, segName, segColor, similarity_threshold)
+		_ = self.logic.roi_similarity_map(segMask, segName, segColor, similarity_threshold)
+
+	def onROIExpand(self):
+		segMask, segName, segColor, segmentationNode, segID = self.getSegmentData()
+		similarity_threshold = self.ui.similarityThreshold.value
+		roi_expansion_ind = self.logic.roi_similarity_map(segMask, segName, segColor, similarity_threshold)
+		for ind in range(len(segMask)):
+			mask = segMask[ind]
+			mask[roi_expansion_ind==ind] = 1
+			slicer.util.updateSegmentBinaryLabelmapFromArray(
+				mask,
+				segmentationNode,
+				segID[ind])
 
 	def onSegmentVisibility(self):
 		lm = slicer.mrmlScene.GetFirstNodeByClass('vtkMRMLSegmentationNode')
@@ -1338,16 +1355,22 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 				slicer.util.resetSliceViews()
 
   
-	def onCSVconnect(self):
+	def onCSVconnect(self, meta_only=False):
 		fileExplorer = qt.QFileDialog()
 		# defaultSave = self.ui.filenameTextBrowser.toPlainText()[:-4]+'_dataset'
-		defaultSave = self.ui.ImportlineEdit.text[:-4]+'_dataset'
+		defaultSave = os.path.splitext(self.ui.ImportlineEdit.text)[0]
+		if meta_only:
+			defaultSave += '_metadata'
+		else:
+			defaultSave += '_dataset'
 		
 		savepath = fileExplorer.getSaveFileName(None, "Save aligned dataset", defaultSave, "CSV Files (*.csv);;All Files (*)")
 		
-		retstr = self.logic.csvGeneration(savepath)
+		retstr = self.logic.csvGeneration(savepath, meta_only)
 		self.ui.csvcreateTextBrowser.setText(retstr)
-		self.logic.segmentationSave(savepath)
+
+		if meta_only:
+			self.logic.segmentationSave(savepath)
 	
 	def onSaveScene(self):
 		print('saving the project...')

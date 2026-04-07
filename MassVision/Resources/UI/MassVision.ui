@@ -32,7 +32,7 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>0</number>
+   <number>3</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
@@ -2417,6 +2417,13 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
+    <item row="0" column="1">
+     <widget class="QLabel" name="hspacer_11">
+      <property name="text">
+       <string/>
+      </property>
+     </widget>
+    </item>
     <item row="1" column="1">
      <widget class="QPushButton" name="gotoRegistration">
       <property name="styleSheet">
@@ -2607,25 +2614,22 @@ color: rgb(255, 255, 255);</string>
        <bool>false</bool>
       </property>
       <layout class="QGridLayout" name="gridLayout_3">
-       <item row="1" column="0" colspan="5">
-        <widget class="QPushButton" name="roiContrastLDA">
-         <property name="styleSheet">
-          <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
+       <item row="3" column="1">
+        <widget class="qMRMLLinearTransformSlider" name="similarityThreshold">
+         <property name="decimals">
+          <number>3</number>
          </property>
-         <property name="text">
-          <string>LDA-based assignment</string>
+         <property name="singleStep">
+          <double>0.001000000000000</double>
          </property>
-        </widget>
-       </item>
-       <item row="3" column="2" colspan="3">
-        <widget class="QPushButton" name="roiSimilarity">
-         <property name="styleSheet">
-          <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
+         <property name="pageStep">
+          <double>0.100000000000000</double>
          </property>
-         <property name="text">
-          <string>Similarity-based assignment</string>
+         <property name="maximum">
+          <double>1.000000000000000</double>
+         </property>
+         <property name="value">
+          <double>0.950000000000000</double>
          </property>
         </widget>
        </item>
@@ -2640,21 +2644,64 @@ color: rgb(255, 255, 255);</string>
          </property>
         </widget>
        </item>
-       <item row="3" column="1">
-        <widget class="qMRMLLinearTransformSlider" name="similarityThreshold">
-         <property name="singleStep">
-          <double>0.010000000000000</double>
+       <item row="1" column="0" colspan="5">
+        <widget class="QPushButton" name="roiContrastLDA">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
          </property>
-         <property name="pageStep">
-          <double>0.100000000000000</double>
-         </property>
-         <property name="maximum">
-          <double>1.000000000000000</double>
-         </property>
-         <property name="value">
-          <double>0.900000000000000</double>
+         <property name="text">
+          <string>LDA-based assignment</string>
          </property>
         </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="label_92">
+         <property name="styleSheet">
+          <string notr="true"/>
+         </property>
+         <property name="text">
+          <string>threshold</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0" colspan="2">
+        <widget class="QPushButton" name="roiSimilarity">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Similarity-based assignment</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0" colspan="2">
+        <widget class="QPushButton" name="roiExpand">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Expan  ROIs</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0" colspan="2">
+        <spacer name="verticalSpacer_52">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>10</height>
+          </size>
+         </property>
+        </spacer>
        </item>
       </layout>
      </widget>
@@ -2729,11 +2776,11 @@ color: rgb(255, 255, 255);</string>
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
-       <string>Create CSV</string>
+       <string>Create CSV dataset</string>
       </property>
      </widget>
     </item>
-    <item row="15" column="0" colspan="2">
+    <item row="16" column="0" colspan="2">
      <widget class="QTextBrowser" name="csvcreateTextBrowser">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -2756,7 +2803,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="16" column="1">
+    <item row="17" column="1">
      <spacer name="verticalSpacer_6">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -2772,7 +2819,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="17" column="0">
+    <item row="18" column="0">
      <widget class="QLabel" name="label_70">
       <property name="font">
        <font>
@@ -2789,7 +2836,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="17" column="1">
+    <item row="18" column="1">
      <spacer name="horizontalSpacer_26">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -2802,14 +2849,14 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="18" column="1">
+    <item row="19" column="1">
      <widget class="QPushButton" name="saveScenePush">
       <property name="text">
        <string>Save ROIs and visualizations...</string>
       </property>
      </widget>
     </item>
-    <item row="19" column="0" colspan="2">
+    <item row="20" column="0" colspan="2">
      <spacer name="verticalSpacer_7">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -2822,10 +2869,10 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="0" column="1">
-     <widget class="QLabel" name="hspacer_11">
+    <item row="15" column="1">
+     <widget class="QPushButton" name="createMetadata">
       <property name="text">
-       <string/>
+       <string>Export metadata</string>
       </property>
      </widget>
     </item>
