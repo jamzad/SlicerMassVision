@@ -3934,7 +3934,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 					return []
 			
 			# Create tasks for all m/z and adduct combinations
-			tasks = [(float(f"{mz:.4f}"), adduct) for mz in mz_list for adduct in NEGATIVE_ADDUCTS]
+			tasks = [(float(f"{mz}"), adduct) for mz in mz_list for adduct in NEGATIVE_ADDUCTS]
 			with ThreadPoolExecutor(max_workers=args.max_workers) as exe:
 				futures = {exe.submit(_search_task, mzv, ad): (mzv, ad) for (mzv, ad) in tasks}
 				for fut in as_completed(futures):
