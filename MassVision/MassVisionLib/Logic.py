@@ -1,6 +1,7 @@
 import os
 import SimpleITK as sitk
 import vtk, qt, slicer
+from vtk.util import numpy_support
 
 try:
 	import matplotlib
@@ -273,7 +274,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	def MSI_h52numpy(self, h5_file):
 		with h5py.File(h5_file, 'r') as h5file:
 			peaks = h5file['peaks'][:]
-			mz = h5file['mz'][:]
+			# mz = h5file['mz'][:]
+			mz = np.array([p.decode("utf-8") if isinstance(p, (bytes, bytearray)) else p for p in h5file["mz"][:]])
 
 		dim_y, dim_x, _ = peaks.shape
 		peaks = peaks.reshape((dim_y*dim_x,-1),order='C')
@@ -961,8 +963,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	# generates the single ion image for the m/z value specified
 	def single_ion_display_colours(self, mz_r):
 		# generates and displays the single ion image
-		# ch_r = self.selectedmz.index(mz_r)
-		# ch_r = list(self.mz).index(mz_r)
 		ch_r = np.where(self.mz == mz_r)[0][0]
 		image_r = (self.peaks_norm[:,ch_r]).reshape((self.dim_y,self.dim_x,-1),order='C')
 
@@ -971,7 +971,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		imageData = vtk.vtkImageData()
 
 		# gets the dimensions the correct way
-		# try instead of doing this mackenzie just get the shape and flip the dimension of image
 		reversed = tuple(list(image_r.shape)[::-1])
 		imageData.SetDimensions(reversed)
 		self.iondims = reversed
@@ -982,9 +981,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return image_r
 	
 	def singleIonVisualization(self, mz, heatmap):
-		#mz_ind = self.selectedmz.index(mz)
-		#slicer.modules.markups.logic().JumpSlicesToLocation(self.volume[mz_ind], True)
-		array = self.single_ion_display_colours(mz)
+		array = self.single_ion_display_colours( self.mz_dtype(mz) )
 		array = np.transpose(array, (2, 0, 1))
 		self.visualizationRunHelper(array, array.shape, 'single', heatmap=heatmap)
 		return True
@@ -996,7 +993,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		dim_y = self.dim_y
 		dim_x = self.dim_x
 
-		n_ionImages = 50
+		n_ionImages = min(50, len(self.mz))
 		max_width = 15 #inches
 		fig_dpi = 75
 
@@ -1292,6 +1289,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		##### buffer
 		volumeNode = self.fig2vectorVolume(fig)
 		volumeNode.SetName(f"{self.slideName}_thumbCluster")
+		if mode=="similarity":
+			volumeNode.SetName(f"{self.slideName}_thumbSim")
 		slicer.util.setSliceViewerLayers(background=volumeNode)
 		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
 		slicer.util.getNode("vtkMRMLSliceNodeYellow").SetOrientation("Axial")
@@ -1331,158 +1330,172 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		ion_img = np.expand_dims(ion_img, axis=0)
 		self.visualizationRunHelper(ion_img, ion_img.shape, 'single', heatmap=img_heatmap)
 		return True
-	
+
 	def RawPlotSpectra(self):
+		self.pixel_plot_type = "raw"
+
 		self.clear_all_plots()
+
 		fiducialNode = slicer.util.getNode("raw-spectrum")
 		numPoints = fiducialNode.GetNumberOfControlPoints()
+
 		fnode_names = []
 		fnode_locs = []
+
 		for i in range(numPoints):
 			position = [0.0, 0.0, 0.0]
 			fiducialNode.GetNthControlPointPosition(i, position)
 			point_name = fiducialNode.GetNthControlPointLabel(i)
+
 			fnode_names.append(point_name)
 			fnode_locs.append(self.fiducial_to_index(position))
+
 		N = len(fnode_locs)
 		if N == 0:
 			print("No fiducials found.")
 			return False
+
 		print(f"Number of fiducials: {N}")
 
-
 		coord_to_index = {(x, y): i for i, (x, y, *_) in enumerate(self.coord_ind)}
-		# Create or update a plot for each fiducial
+
 		for i, (fnode_name, fnode_loc) in enumerate(zip(fnode_names, fnode_locs)):
 			fnode_ind = coord_to_index[(fnode_loc[1], fnode_loc[0])]
-
 			mz, spec = self.parser.getspectrum(fnode_ind)
 
 			plotViewNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotViewNode", f"Plot{i+1}")
 			plotViewNode.SetSingletonTag(f"Plot{i+1}")
 			plotViewNode.SetLayoutLabel(f"Plot{i+1}")
-		
+
 			plotChartNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotChartNode", f"PlotChart{i+1}")
-			plotChartNode.SetTitle(f"{fnode_name}")
+			plotChartNode.SetTitle(fnode_name)
 			plotChartNode.SetXAxisTitle("m/z")
-			plotChartNode.SetYAxisTitle("intensity")
+			plotChartNode.SetYAxisTitle("Intensity")
 			plotChartNode.SetLegendVisibility(False)
+			plotChartNode.SetYAxisLogScale(False)
 
-			# Create plot series and table
-			plotSeriesNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotSeriesNode", f"Fiducial {fnode_name}")
-			tableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode")
-			table = tableNode.GetTable()
+			tableNode = self.create_plot_table(
+				mz,
+				spec,
+				feature_name="m/z",
+				y_display_name="Intensity",
+			)
 
-			# Populate table with data
-			col_mz = vtk.vtkFloatArray()
-			col_mz.SetName("m/z")
-			col_intensity = vtk.vtkFloatArray()
-			col_intensity.SetName("Intensity")
-			for mz_value, intensity in zip(mz, spec):
-				col_mz.InsertNextValue(mz_value)
-				col_intensity.InsertNextValue(intensity)
-			table.AddColumn(col_mz)
-			table.AddColumn(col_intensity)
-			
-			col_label = vtk.vtkStringArray()
-			col_label.SetName("Label")
-			for mz_value, intensity in zip(mz, spec):
-				label = f"\nm/z: {mz_value}\nintensity: {intensity:.2e}"
-				col_label.InsertNextValue(label)
-			table.AddColumn(col_label)
-			# Link data to series and chart
+			plotSeriesNode = slicer.mrmlScene.AddNewNodeByClass(
+				"vtkMRMLPlotSeriesNode", f"Fiducial {fnode_name}"
+			)
 			plotSeriesNode.SetAndObserveTableNodeID(tableNode.GetID())
-			plotSeriesNode.SetXColumnName("m/z")
-			plotSeriesNode.SetYColumnName("Intensity")
-			plotSeriesNode.SetLabelColumnName("Label")
+			plotSeriesNode.SetXColumnName("x-axis")
+			plotSeriesNode.SetYColumnName("y-axis")
+			plotSeriesNode.SetLabelColumnName("label")
 			plotSeriesNode.SetPlotType(slicer.vtkMRMLPlotSeriesNode.PlotTypeScatter)
-			plotSeriesNode.SetMarkerStyle(slicer.vtkMRMLPlotSeriesNode.MarkerStyleNone) 
+			plotSeriesNode.SetMarkerStyle(slicer.vtkMRMLPlotSeriesNode.MarkerStyleNone)
 			plotSeriesNode.SetLineStyle(slicer.vtkMRMLPlotSeriesNode.LineStyleSolid)
-			colour = cm.get_cmap("tab10")(i % 10)[:3]  # Get RGB values from 'tab10' colormap
+
+			colour = cm.get_cmap("tab10")(i % 10)[:3]
 			plotSeriesNode.SetColor(*colour)
 
-			plotChartNode.SetYAxisLogScale(False)
 			plotChartNode.AddAndObservePlotSeriesNodeID(plotSeriesNode.GetID())
-			
-			# Link chart to view
 			plotViewNode.SetPlotChartNodeID(plotChartNode.GetID())
 
-		# # Update layout dynamically
-		layoutXML = """
-		<layout type="horizontal">
-			<item>
-				<view class="vtkMRMLSliceNode" singletontag="Red">
-					<property name="orientation" action="default">Axial</property>
-					<property name="viewlabel" action="default">R</property>
-					<property name="viewcolor" action="default">#F34A4A</property>
-				</view>
-			</item>
-			<item>
-				<layout type="vertical">
-		"""
-		for i in range(N):
-			layoutXML += f"""
-				<item>
-					<view class="vtkMRMLPlotViewNode" singletontag="Plot{i+1}">
-						<property name="viewlabel" action="default">Plot{i+1}</property>
-					</view>
-				</item>
-			"""
-		layoutXML += """
-				</layout>
-			</item>
-		</layout>
-		"""
+		self.update_layout(N)
 
-		layoutNode = slicer.app.layoutManager().layoutLogic().GetLayoutNode()
-		customLayoutId = N * 500
-		layoutNode.AddLayoutDescription(customLayoutId, layoutXML)
-		layoutNode.SetViewArrangement(customLayoutId)
-		slicer.app.processEvents()
-		
-		# Clear old selections
-		for i in range(slicer.app.layoutManager().plotViewCount):
-			slicer.app.layoutManager().plotWidget(i).plotView().RemovePlotSelections()  
-		# Remove existing connections
-		for i in range(slicer.app.layoutManager().plotViewCount):
-			plotView = slicer.app.layoutManager().plotWidget(i).plotView()
-			try:
-				plotView.disconnect("dataSelected(vtkStringArray*, vtkCollection*)", self.get_data)  # Remove previous connections
-			except TypeError:
-				pass
-		# # Connect to data selection event
-		# for i in range(slicer.app.layoutManager().plotViewCount):
-		# 	plotView = slicer.app.layoutManager().plotWidget(i).plotView()
-		# 	plotView.connect("dataSelected(vtkStringArray*, vtkCollection*)", self.get_data)
-		# 	# slicer.app.layoutManager().plotWidget(i).plotView().fitToContent()
-		# # print("Interactive plot updated with fiducials.")
-		
 		return True
 
+	def create_plot_table(self, mz_data, y_data, feature_name="m/z", y_display_name="Intensity"):
+		"""
+		Create a table with a fixed schema:
+		- feature : original mz values as strings
+		- x-axis  : numeric x values for plotting
+		- y-axis  : numeric y values for plotting
+		- label   : tooltip text
+
+		If self.mz_dtype is str, x-axis becomes np.arange(len(mz_data)).
+		Otherwise x-axis is the numeric mz_data itself.
+		"""
+		mz = np.asarray(mz_data)
+		y = np.asarray(y_data, dtype=np.float64)
+
+		if len(mz) != len(y):
+			raise ValueError(f"mz and y_data must have same length, got {len(mz)} and {len(y)}")
+
+		feature_values = mz.astype(str)
+
+		if self.mz_dtype is str:
+			x_values = np.arange(len(mz), dtype=np.float64)
+		else:
+			x_values = np.asarray(mz, dtype=np.float64)
+
+		tableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode")
+		table = tableNode.GetTable()
+
+		# feature column: original mz/feature values as text
+		col_feature = vtk.vtkStringArray()
+		col_feature.SetName("feature")
+		for value in feature_values:
+			col_feature.InsertNextValue(value)
+		table.AddColumn(col_feature)
+
+		# x-axis column: always numeric, used for plotting
+		col_x = numpy_support.numpy_to_vtk(x_values, deep=True)
+		col_x.SetName("x-axis")
+		table.AddColumn(col_x)
+
+		# y-axis column: always numeric, used for plotting
+		col_y = numpy_support.numpy_to_vtk(y, deep=True)
+		col_y.SetName("y-axis")
+		table.AddColumn(col_y)
+
+		# label column: hover/tooltip text
+		ranks = self.calculate_ranks(y)
+
+		col_label = vtk.vtkStringArray()
+		col_label.SetName("label")
+		for feature, y_val, rank in zip(feature_values, y, ranks):
+			col_label.InsertNextValue(
+				f"\n{feature_name}: {feature}\n{y_display_name}: {y_val:.6g}\nrank: {rank}"
+			)
+		table.AddColumn(col_label)
+
+		return tableNode
+
+
 	def spectrum_plot(self):
+		self. pixel_plot_type = "array"
+
 		self.clear_all_plots()
-		# Collect fiducial information
-		fiducial_nodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsFiducialNode")
+
+		target_name = ["spectrum", "pixel"][self.AppMode]
+		feature_name = "m/z" if self.AppMode == 0 else "feature"
+		y_display_name = "Intensity" if self.AppMode == 0 else "value"
+
 		fnode_names = []
 		fnode_locs = []
 
+		fiducial_nodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsFiducialNode")
+
 		for fiducial_node in fiducial_nodes:
-			if fiducial_node.GetName() == "spectrum":  # only process the list "spectrum"
-				num_fiducials = fiducial_node.GetNumberOfControlPoints()
-				for i in range(num_fiducials):
-					position = [0.0, 0.0, 0.0]
-					fiducial_node.GetNthControlPointPosition(i, position)
-					point_name = fiducial_node.GetNthControlPointLabel(i)
-					fnode_names.append(point_name)
-					fnode_locs.append(self.fiducial_to_index(position))
+			if fiducial_node.GetName() != target_name:
+				continue
+
+			num_fiducials = fiducial_node.GetNumberOfControlPoints()
+			for i in range(num_fiducials):
+				position = [0.0, 0.0, 0.0]
+				fiducial_node.GetNthControlPointPosition(i, position)
+
+				point_name = fiducial_node.GetNthControlPointLabel(i)
+				point_loc = self.fiducial_to_index(position)
+
+				fnode_names.append(point_name)
+				fnode_locs.append(point_loc)
 
 		N = len(fnode_locs)
 		if N == 0:
 			print("No fiducials found.")
 			return False
+
 		print(f"Number of fiducials: {N}")
 
-		# Create or update a plot for each fiducial
 		for i, (fnode_name, fnode_loc) in enumerate(zip(fnode_names, fnode_locs)):
 			fnode_ind = ind_ToFrom_sub(fnode_loc, self.dim_x)
 			spec = self.peaks[fnode_ind, :]
@@ -1490,68 +1503,48 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			plotViewNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotViewNode", f"Plot{i+1}")
 			plotViewNode.SetSingletonTag(f"Plot{i+1}")
 			plotViewNode.SetLayoutLabel(f"Plot{i+1}")
-		
+
 			plotChartNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotChartNode", f"PlotChart{i+1}")
-			plotChartNode.SetTitle(f"{fnode_name}")
-			plotChartNode.SetXAxisTitle("m/z")
-			plotChartNode.SetYAxisTitle("intensity")
+			plotChartNode.SetTitle(fnode_name)
+			plotChartNode.SetXAxisTitle(feature_name)
+			plotChartNode.SetYAxisTitle(y_display_name)
 			plotChartNode.SetLegendVisibility(False)
+			plotChartNode.SetYAxisLogScale(False)
 
-			# Create plot series and table
-			plotSeriesNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLPlotSeriesNode", f"Fiducial {fnode_name}")
-			tableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode")
-			table = tableNode.GetTable()
+			tableNode = self.create_plot_table(
+				self.mz,
+				spec,
+				feature_name=feature_name,
+				y_display_name=y_display_name,
+			)
 
-			# Populate table with data
-			col_mz = vtk.vtkFloatArray()
-			col_mz.SetName("m/z")
-			col_intensity = vtk.vtkFloatArray()
-			col_intensity.SetName("Intensity")
-			for mz_value, intensity in zip(self.mz, spec):
-				col_mz.InsertNextValue(mz_value)
-				col_intensity.InsertNextValue(intensity)
-			table.AddColumn(col_mz)
-			table.AddColumn(col_intensity)
-			
-			ranks = self.calculate_ranks(col_intensity)
-			col_label = vtk.vtkStringArray()
-			col_label.SetName("Label")
-			for mz_value, intensity, rank in zip(self.mz, spec, ranks):
-				label = f"\nm/z: {mz_value}\nIntensity: {intensity:.2e}\nRank: {rank}"
-				col_label.InsertNextValue(label)
-			table.AddColumn(col_label)
-			# Link data to series and chart
+			plotSeriesNode = slicer.mrmlScene.AddNewNodeByClass(
+				"vtkMRMLPlotSeriesNode", f"Fiducial {fnode_name}"
+			)
 			plotSeriesNode.SetAndObserveTableNodeID(tableNode.GetID())
-			plotSeriesNode.SetXColumnName("m/z")
-			plotSeriesNode.SetYColumnName("Intensity")
-			plotSeriesNode.SetLabelColumnName("Label")
+			plotSeriesNode.SetXColumnName("x-axis")
+			plotSeriesNode.SetYColumnName("y-axis")
+			plotSeriesNode.SetLabelColumnName("label")
 			plotSeriesNode.SetPlotType(slicer.vtkMRMLPlotSeriesNode.PlotTypeScatter)
-			plotSeriesNode.SetMarkerStyle(slicer.vtkMRMLPlotSeriesNode.MarkerStyleNone) 
+			plotSeriesNode.SetMarkerStyle(slicer.vtkMRMLPlotSeriesNode.MarkerStyleNone)
 			plotSeriesNode.SetLineStyle(slicer.vtkMRMLPlotSeriesNode.LineStyleSolid)
-			colour = cm.get_cmap("tab10")(i % 10)[:3]  # Get RGB values from 'tab10' colormap
+
+			colour = cm.get_cmap("tab10")(i % 10)[:3]
 			plotSeriesNode.SetColor(*colour)
 
-			plotChartNode.SetYAxisLogScale(False)
 			plotChartNode.AddAndObservePlotSeriesNodeID(plotSeriesNode.GetID())
-			
-			# Link chart to view
 			plotViewNode.SetPlotChartNodeID(plotChartNode.GetID())
 
-		# Update layout dynamically
 		self.update_layout(N)
-		
+
 		print("Interactive plot updated with fiducials.")
-		
 		return True
 
-	def calculate_ranks(self, intensity_array):
-		""" Calculate ranks for intensities (1 = highest intensity) """
-		# Get intensity values
-		intensities = [intensity_array.GetValue(i) for i in range(intensity_array.GetNumberOfValues())]
-		sorted_intensities = sorted(intensities, reverse=True)
-		rank_dict = {intensity: rank + 1 for rank, intensity in enumerate(sorted_intensities)}
-		ranks = [rank_dict[intensity] for intensity in intensities]
-		return ranks
+	def calculate_ranks(self, intensities):
+		"""Calculate dense ranks (1 = highest intensity, ties share rank)."""
+		values = np.asarray(intensities, dtype=np.float64)
+		unique_sorted = np.unique(values)[::-1]
+		return np.searchsorted(-unique_sorted, -values) + 1
 
 	def update_layout(self, N):
 		layoutXML = """
@@ -1620,8 +1613,14 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			plotSeriesNode = slicer.mrmlScene.GetNodeByID(plotSeriesNodeID)
 			tableNode = slicer.mrmlScene.GetNodeByID(plotSeriesNode.GetTableNodeID())
 			table = tableNode.GetTable()
-			mz_value = round(float(table.GetValue(row_index, 0).ToDouble()),4)  # Column 0 = m/z values
-			self.singleIonVisualization(mz_value, heatmap="Inferno")
+			# mz_value = round(float(table.GetValue(row_index, 0).ToDouble()),4)  # Column 0 = m/z values
+			mz_value = vtk.vtkVariantExtract( table.GetValue(row_index, 0) )
+
+			if self.pixel_plot_type != "raw":
+				self.singleIonVisualization(mz_value, heatmap="Inferno")
+			else:
+				self.RawPlotImg( float(mz_value), self.raw_image_tol, "Inferno")
+
 			self.update_layout(slicer.app.layoutManager().plotViewCount)
 			# plotWidget.plotView().fitToContent()
 			return
@@ -1663,7 +1662,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# array to be stacked at the end
 		for i in range(len(selectedcolourchannels)):
 			colour, mz = selectedcolourchannels[i]
-			array = self.single_ion_display_colours(float(mz))
+			array = self.single_ion_display_colours( self.mz_dtype(mz) )
 			array = np.transpose(array, (2, 0, 1))
 			scaled = np.interp(array, (array.min(), array.max()), (0, 255))
 			arraySize = scaled.shape if arraySize == None else arraySize
@@ -1671,9 +1670,9 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			stacked = np.stack((scaled,) * 3, axis=-1)
 				
 			if colour == 'red':
-				if array.shape[0] != 1:
-					array = array[49]
-					array = np.expand_dims(array,axis=0)   
+				# if array.shape[0] != 1:
+				# 	array = array[49]
+				# 	array = np.expand_dims(array,axis=0)   
 				stacked[:, :, :, 1] = 0
 				stacked[:, :, :, 2] = 0
 			elif colour == "green":
@@ -2618,19 +2617,48 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	# 	# sliceWidget = lm.sliceWidget('Yellow').sliceLogic().GetSliceNode().SetOrientation("Axial")
 	# 	slicer.util.resetSliceViews()
 
+
+
+
 	def loadHistopathology(self, path):
 		volumeNode = slicer.util.loadVolume(path, {"singleFile": True})
+
+		## Remove alpha channel (important for registration and blending)
+		img = volumeNode.GetImageData()
+		if img.GetNumberOfScalarComponents() > 3:
+			ext = vtk.vtkImageExtractComponents()
+			ext.SetInputData(img)
+			ext.SetComponents(0, 1, 2)
+			ext.Update()
+			volumeNode.SetAndObserveImageData(ext.GetOutput())
+			volumeNode.Modified()
+
+			volumeNode.CreateDefaultDisplayNodes()
+			dn = volumeNode.GetDisplayNode()
+			if dn:
+				dn.SetInterpolate(False)
+		## Remove alpha channel (important for registration and blending)
+		
 		if self.AppMode==0 and self.slideName is not None:
 			volumeNode.SetName(self.slideName + '_histo')
 
 		if self.AppMode==0:
-			volumeNode.SetSpacing(0.254, 0.254, 1) # compatibility with older versions
+			# compatibility with older versions of MassVision
+			# volumeNode.SetSpacing(0.254, 0.254, 1) 
+			pass
 		elif self.AppMode==1:
-			im_dx, im_dy, _ = volumeNode.GetImageData().GetDimensions()
-			volumeNode.SetSpacing(self.dim_x/im_dx, self.dim_y/im_dy, 1)
-			volumeNode.SetOrigin(0.5*(1-self.dim_x/im_dx), 0.5*(1-self.dim_y/im_dy), 0)
+			try:
+				im_dx, im_dy, _ = volumeNode.GetImageData().GetDimensions()
+				volumeNode.SetSpacing(self.dim_x/im_dx, self.dim_y/im_dy, 1)
+				volumeNode.SetOrigin(0.5*(1-self.dim_x/im_dx), 0.5*(1-self.dim_y/im_dy), 0)
+			except:
+				pass
 
+		sliceNodes = slicer.util.getNodesByClass("vtkMRMLSliceNode")
+		for node in sliceNodes:
+			node.SetOrientation("Axial")
 		slicer.util.resetSliceViews()
+
 		return volumeNode
 
 	# def heatmap_display(self):
@@ -2675,6 +2703,9 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		lm = slicer.app.layoutManager()
 		lm.setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
 		
+		sliceNodes = slicer.util.getNodesByClass("vtkMRMLSliceNode")
+		for node in sliceNodes:
+			node.SetOrientation("Axial")
 		slicer.util.resetSliceViews()
 
 		return True
@@ -2774,6 +2805,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		else:
 			pass
 		
+		mz, mz_dtype = feature_cast(mz)
+		self.mz_dtype = mz_dtype
+		self.mz_index = np.arange(len(mz))
+
 		self.peaks = peaks
 		self.mz = mz
 		self.dim_y = dim_y
@@ -2853,6 +2888,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.parser = parser
 		self.raw_range = mz_range
 		self.coord_ind = coord_ind
+
+		self.mz_dtype = float
 	
 		return info, mz_range
 
@@ -3543,6 +3580,884 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# Update the view
 		slicer.app.processEvents()
 
+	# -------- Robert HMDB Database download code --------
+	def check_and_build_hmdb(self, db_path):
+		"""Checks if the HMDB SQLite database exists. If not, prompts the user with a Yes/No option."""
+		import os
+		import zipfile
+		import sqlite3
+		import xml.etree.ElementTree as ET
+		import slicer
+		import qt
+
+		# Ensure required packages are installed
+		try:
+			import zipfile
+		except ImportError:
+			slicer.util.pip_install("zipfile")
+
+		try:
+			import sqlite3
+		except ImportError:
+			slicer.util.pip_install("sqlite3")
+
+		if os.path.exists(db_path):
+			return True # Database already exists, skip building and return success!
+
+		# Ask the user if they want to set it up (Yes/No)
+		msgBox = qt.QMessageBox()
+		msgBox.setWindowTitle("HMDB Setup Required")
+		msgBox.setText("The local HMDB database has not been set up yet.")
+		msgBox.setInformativeText(
+			"To search HMDB, you need to set up the local database (requires ~5.5 GB of temporary space during setup, which is then deleted).\n\n"
+			"Would you like to set it up now?"
+		)
+		msgBox.setStandardButtons(qt.QMessageBox.Yes | qt.QMessageBox.No)
+		msgBox.setDefaultButton(qt.QMessageBox.Yes)
+		
+		choice = msgBox.exec_()
+
+		# Handle the "No" choice
+		if choice == qt.QMessageBox.No:
+			slicer.util.infoDisplay(
+				"HMDB setup skipped.\n\n"
+				"You can currently only search using the LIPID MAPS database. "
+				"Please ensure you switch the 'Database To Search' dropdown to 'LIPID MAPS' before searching.",
+				"LIPID MAPS Only Mode"
+			)
+			return False 
+
+		# Handle the "Yes" choice (Manual download instructions)
+		setupBox = qt.QMessageBox()
+		setupBox.setWindowTitle("HMDB Setup Instructions")
+		setupBox.setText("Please provide the HMDB database file.")
+		setupBox.setInformativeText(
+			"Due to server security, you must download the file manually:\n\n"
+			"1. Go to: https://hmdb.ca/downloads\n"
+			"1. Ensure you are under the tab with the most Current Version"
+			"2. Download the 'All Metabolites' XML file (Under Metabolite and Protein Data (in XML format))).\n"
+			"3. Click 'OK' below and select the .zip file you downloaded."
+		)
+		setupBox.exec_()
+
+		# Open a file browser to let them select the ZIP
+		zip_path = qt.QFileDialog.getOpenFileName(None, "Select downloaded hmdb_metabolites.zip", "", "ZIP Files (*.zip)")
+		
+		if not zip_path:
+			slicer.util.warningDisplay("Setup cancelled. Please switch your database to LIPID MAPS to continue searching.")
+			return False
+
+		# Setup directories
+		db_dir = os.path.dirname(db_path)
+		os.makedirs(db_dir, exist_ok=True)
+		xml_path = os.path.join(db_dir, "hmdb_metabolites.xml")
+
+		# Progress bar for unzipping and database building
+		progress = slicer.util.createProgressDialog(labelText="Unzipping HMDB (Extracting ~5.5 GB)...", maximum=100)
+		slicer.app.processEvents()
+
+		try:
+			# Unzip the file
+			with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+				zip_ref.extractall(db_dir)
+
+			# Build the SQLite Database
+			progress.labelText = "Building SQLite Database... (May take 3-5 minutes)"
+			slicer.app.processEvents()
+
+			conn = sqlite3.connect(db_path)
+			cursor = conn.cursor()
+
+			cursor.execute('''
+				CREATE TABLE IF NOT EXISTS metabolites (
+					hmdb_id TEXT PRIMARY KEY,
+					name TEXT,
+					formula TEXT,
+					neutral_mass REAL,
+					mz_neutral REAL,
+					super_class TEXT,
+					class_name TEXT,
+					pubchem_id TEXT,
+					kegg_id TEXT,
+					pathways TEXT
+				)
+			''')
+
+			insert_sql = '''
+				INSERT OR IGNORE INTO metabolites 
+				(hmdb_id, name, formula, neutral_mass, mz_neutral, super_class, class_name, pubchem_id, kegg_id, pathways)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			'''
+
+			def get_tag_text(element, tag_name):
+				for child in element:
+					if child.tag.endswith(tag_name):
+						return child.text
+				return None
+
+			batch_data = []
+			batch_size = 5000
+			count = 0
+			MAX_MZ = 10000.0
+			PROTON_MASS = 0
+
+			context = ET.iterparse(xml_path, events=("end",))
+
+			# Go through each metabolite entry in the XML and extract relevant information
+			for event, elem in context:
+				if elem.tag.endswith('metabolite'):
+					# Extract basic metabolite information from XML tags
+					name = get_tag_text(elem, 'name')
+					hmdb_id = get_tag_text(elem, 'accession')
+					formula = get_tag_text(elem, 'chemical_formula')
+					kegg_id = get_tag_text(elem, 'kegg_id')
+					pubchem_id = get_tag_text(elem, 'pubchem_compound_id')
+
+					# Initialize taxonomy and pathway information
+					super_class = "N/A"
+					class_name = "N/A"
+					pathway_list = []
+					pathways = None
+					
+					# Parse child elements for taxonomy and pathway data
+					for child in elem:
+						if child.tag.endswith('taxonomy'):
+							super_class = get_tag_text(child, 'super_class')
+							class_name = get_tag_text(child, 'class')
+						
+						# Extract pathway information from main pathways section
+						if child.tag.endswith('pathways'):
+							for pathway in child:
+								sn = get_tag_text(pathway, 'smpdb_id')
+								name_p = get_tag_text(pathway, 'name')
+								if sn and name_p:
+									pathway_list.append(f"{sn}: {name_p}")
+
+						# Extract pathway information from biological properties section
+						if child.tag.endswith('biological_properties'):
+							for bio_child in child:
+								if bio_child.tag.endswith('pathways'):
+									for pathway in bio_child:
+										sn = get_tag_text(pathway, 'smpdb_id')
+										name_p = get_tag_text(pathway, 'name')
+										if sn and name_p:
+											pathway_list.append(f"{sn}: {name_p}")
+									
+					# Combine all pathways into a semicolon-separated string
+					if pathway_list:
+						pathways = '; '.join(pathway_list)
+						
+					# Extract molecular mass; fallback to predicted properties if not available
+					mass_str = get_tag_text(elem, 'monoisotopic_molecular_weight')
+					if not mass_str:
+						# Search predicted_properties for ChemAxon monoisotopic mass
+						for child in elem:
+							if child.tag.endswith('predicted_properties'):
+								for prop in child:
+									kind = get_tag_text(prop, 'kind')
+									source = get_tag_text(prop, 'source')
+									if kind == 'mono_mass' and source == 'ChemAxon':
+										mass_str = get_tag_text(prop, 'value')
+										break
+							if mass_str: break
+
+					# Calculate m/z and add to database batch if valid
+					if mass_str and name:
+						try:
+							neutral_mass = float(mass_str)
+							# Calculate m/z by subtracting proton mass (Zero here since we are saving a neutral database)
+							mz_neutral = neutral_mass - PROTON_MASS
+							
+							# Only add if m/z is within reasonable mass spec range
+							if mz_neutral <= MAX_MZ:
+								batch_data.append((
+									hmdb_id, name, formula, neutral_mass, mz_neutral, 
+									super_class, class_name, pubchem_id, kegg_id, pathways
+								))
+						except ValueError:
+							# Skip if mass cannot be converted to float
+							pass
+
+					# Clear element from memory to save RAM during large XML parsing
+					elem.clear()
+					
+					# Batch insert to database for efficiency (reduces I/O operations)
+					if len(batch_data) >= batch_size:
+						cursor.executemany(insert_sql, batch_data)
+						conn.commit()
+						count += len(batch_data)
+						batch_data = []
+						# Update progress dialog with insertion count
+						progress.labelText = f"Building DB: Inserted {count} molecules..."
+						slicer.app.processEvents()
+
+			if batch_data:
+				cursor.executemany(insert_sql, batch_data)
+				conn.commit()
+
+			progress.labelText = "Creating Database Index for fast searching..."
+			slicer.app.processEvents()
+			cursor.execute('CREATE INDEX IF NOT EXISTS idx_mz ON metabolites (mz_neutral)')
+			conn.commit()
+			
+			conn.close()
+			return True # Success!
+
+		finally:
+			progress.close()
+			if os.path.exists(xml_path): 
+				os.remove(xml_path)
+
+	# -------- Robert Pathway Labeling Code -------
+	def run_molecule_matching(self, peaks_str, tolerance_val, adducts_str, tol_unit="Da", database_unit="All",search_all=False, progress_callback=None):
+		import argparse
+		import io
+		import time
+		import threading
+		import re
+		import os
+		from collections import deque
+		from concurrent.futures import ThreadPoolExecutor, as_completed
+
+		try:
+			import requests
+		except ModuleNotFoundError:
+			slicer.util.pip_install("requests")
+			import requests
+
+		try:
+			import sqlite3
+		except ModuleNotFoundError:
+			slicer.util.pip_install("sqlite3")
+			import sqlite3
+
+		try:
+			import pandas as pd
+		except ModuleNotFoundError:
+			slicer.util.pip_install("pandas")
+			import pandas as pd
+
+		# Setup arguments (adapted to accept dynamic variables)
+		def setup_arguments():
+			parser = argparse.ArgumentParser(description="Combined pipeline: LIPID MAPS + HMDB -> KEGG IDs -> KEGG Pathways")
+			group = parser.add_mutually_exclusive_group()
+			group.add_argument("--mz-values", type=str, help="Comma-separated list of m/z values")
+			group.add_argument("--mz-file", type=str, help="Path to a text file")
+			parser.add_argument("--output-file", type=str, default="Final_KEGG_Pathways.csv")
+			parser.add_argument("--tolerance-da", type=float, default=0.01) # Default overwritten below
+			parser.add_argument("--lipid-maps-url", type=str, default="https://www.lipidmaps.org/rest/moverz/LIPIDS")
+			parser.add_argument("--adducts", type=str, default="M-H")
+			parser.add_argument("--proton-mass", type=float, default=1.007276)
+			
+			#Setup the HMDB database path relative to the script location
+			base_dir = os.path.dirname(os.path.abspath(__file__))
+			default_db_path = os.path.join(base_dir, "HMDBData", "HMDB_Neutral.db")
+			parser.add_argument("--hmdb-db", type=str, default=default_db_path)
+			
+			parser.add_argument("--hmdb-table", type=str, default="metabolites")
+			parser.add_argument("--hmdb-mz-column", type=str, default="mz_neutral")
+			parser.add_argument("--hmdb-kegg-column", type=str, default="KEGG_ID")
+			parser.add_argument("--kegg-api-url", type=str, default="https://rest.kegg.jp/find/compound/{query}/formula")
+			parser.add_argument("--rate-limit", type=float, default=3.0)
+			parser.add_argument("--rate-window", type=float, default=1.5)
+			parser.add_argument("--kegg-api-base", type=str, default="https://rest.kegg.jp")
+			parser.add_argument("--api-call-delay", type=float, default=0.5)
+			parser.add_argument("--batch-size", type=int, default=10)
+			parser.add_argument("--max-workers", type=int, default=10)
+			parser.add_argument("--request-timeout", type=int, default=30)
+			return parser
+
+		# Parse Lipid Maps (using the provided m/z values and adducts)
+		def stage1_lipid_maps_search(mz_list, args):
+			print("\n>>> Stage 1A: LIPID MAPS m/z Search")
+			REST_URL_BASE = args.lipid_maps_url
+			TABULAR_COLUMNS = ['Input m/z', 'Matched m/z', 'Delta', 'Name', 'Formula', 'Ion']
+			NEGATIVE_ADDUCTS = [adduct.strip() for adduct in args.adducts.split(',')]
+			all_results = []
+			
+			# search function for a single m/z and adduct combination
+			def _search_task(mz_val, adduct_val):
+				mz_norm_local = float(mz_val)
+				
+				# Assuming tol_unit is defined in your outer scope/globals
+				if tol_unit == "ppm":
+					# Formula: (m/z * ppm) / 1,000,000
+					local_tol_da = (mz_norm_local * float(args.tolerance_da)) / 1000000.0
+				else:
+					local_tol_da = float(args.tolerance_da)
+					
+				full_url = f"{REST_URL_BASE}/{mz_norm_local}/{adduct_val}//{local_tol_da}"
+				
+				try:
+					resp = requests.get(full_url, timeout=args.request_timeout)
+					resp.raise_for_status()
+					response_text = resp.text.strip()
+					
+					if 'Input m/z' not in response_text or 'This function does not exist' in response_text:
+						return []
+						
+					data_io = io.StringIO(response_text)
+					temp_df = pd.read_csv(data_io, sep='\t', skiprows=[0])
+					
+					if temp_df.empty or len(temp_df.columns) < 6:
+						return []
+						
+					temp_df.columns = TABULAR_COLUMNS
+					temp_df.rename(columns={
+						'Delta': 'COMMON_NAME', 
+						'Name': 'FORMULA', 
+						'Matched m/z': 'DELTA', 
+						'Formula': 'ADDUCT'
+					}, inplace=True)
+					
+					records = temp_df.to_dict('records')
+					filtered = []
+					
+					for hit in records:
+						name_str = str(hit.get('COMMON_NAME', ''))
+				
+						# Extract Lipid Class (e.g., 'PA' from 'PA O-49:3')
+						class_match = re.match(r'^([A-Za-z\-]+)', name_str)
+						lipid_class = class_match.group(1) if class_match else None
+						
+						hit['Searched_m/z'] = mz_val
+						hit['Tolerance_Da'] = args.tolerance_da
+						hit['Adduct'] = adduct_val
+						hit['Source ID'] = 'LIPIDMAPS'  # Removed the underscore here!
+						hit['COMMON_NAME'] = name_str
+						
+						if pd.notna(hit.get('COMMON_NAME')):
+							filtered.append(hit)
+							
+					return filtered
+				except Exception:
+					return []
+			
+			# Create tasks for all m/z and adduct combinations
+			tasks = [(float(f"{mz:.4f}"), adduct) for mz in mz_list for adduct in NEGATIVE_ADDUCTS]
+			with ThreadPoolExecutor(max_workers=args.max_workers) as exe:
+				futures = {exe.submit(_search_task, mzv, ad): (mzv, ad) for (mzv, ad) in tasks}
+				for fut in as_completed(futures):
+					res = fut.result()
+					if res:
+						all_results.extend(res)
+			
+			# Check if empty, and return DataFrames with proper columns so 'Source ID' doesn't cause KeyErrors upstream
+			if not all_results:
+				empty_cols = ['Searched_m/z', 'FORMULA', 'Adduct', 'COMMON_NAME', 'DELTA', 'Source ID']
+				return pd.DataFrame(columns=empty_cols), pd.DataFrame(columns=empty_cols)
+
+			df_results = pd.DataFrame(all_results)
+			
+			if 'FORMULA' in df_results.columns and 'Searched_m/z' in df_results.columns:
+				df_results = df_results.sort_values('DELTA')
+				if not search_all:
+					df_results = df_results.loc[df_results.groupby(['Searched_m/z', 'FORMULA', 'Adduct'])['DELTA'].transform('min') == df_results['DELTA']]
+					df_results = df_results.loc[df_results.groupby(['Searched_m/z', 'Adduct'])['DELTA'].transform('min') == df_results['DELTA']]
+					
+			if tol_unit == "ppm":
+				df_results['DELTA'] = df_results.apply(lambda row: round((row['DELTA'] / float(row['Searched_m/z'])) * 1000000.0, 4), axis=1)
+				
+			df_matched_results = df_results[['Searched_m/z', 'FORMULA', 'Adduct', 'COMMON_NAME', 'DELTA', 'Source ID']]
+			print(len(df_matched_results), "matches found in LIPID MAPS.")
+			
+			return df_results, df_matched_results
+
+
+
+		# Search HMDB SQLite database using the m/z values and adducts (with corrections 
+		# since the database was created for neutral adducts, we need to adjust the m/z values accordingly for other adducts)
+		def stage1_hmdb_search(mz_list, args, conn):
+			print("\n>>> Stage 1B: HMDB SQLite m/z Search")
+			table, mz_col, kegg_col = args.hmdb_table, args.hmdb_mz_column, args.hmdb_kegg_column
+			
+			# Check database to see what the ID column is called
+			cur = conn.cursor()
+			cur.execute(f"PRAGMA table_info({table})")
+			cols = [row[1] for row in cur.fetchall()]
+			id_col = "accession" if "accession" in cols else ("hmdb_id" if "hmdb_id" in cols else None)
+
+			query = f"SELECT {kegg_col} FROM {table} WHERE {mz_col} BETWEEN ? AND ?"
+			mz_match_data = [] 
+
+			ALL_ADDUCTS = [adduct.strip() for adduct in args.adducts.split(',')]
+			
+			ADDUCT_CORRECTIONS = {
+				"Neutral": 0.0,
+				
+				# Negative Adducts (Add mass of the ion to get back to Neutral M)
+				"M-H": 1.007276,        # H+ (Proton mass: Neutral H - electron)
+				"M+Cl": -34.969401,     # Cl- (Neutral Cl + electron)
+				"M+F": -18.998952,      # F- (Neutral F + electron)
+				"M+CH3COO": -59.013851, # CH3COO- (You already had this one right!)
+				
+				# Positive Adducts (Subtract mass of the ion to get back to Neutral M)
+				"M+H": -1.007276,       # H+ (Proton mass)
+				"M+Na": -22.989221,     # Na+ (Neutral Na - electron)
+				"M+K": -38.963159,      # K+ (Neutral K - electron)
+				"M+NH4": -18.033826     # NH4+ (Neutral NH4 - electron)
+			}
+			# Loop through each m/z value get the tolerance
+			for mz in mz_list:
+				try:
+					mzf, tol = float(mz), float(args.tolerance_da)
+				except ValueError:
+					continue
+				
+				for adduct_val in ALL_ADDUCTS:
+					mass_correction = ADDUCT_CORRECTIONS.get(adduct_val, 0.0)
+					target_db_mz = mzf + mass_correction
+					if tol_unit == "ppm":
+						# Formula: (m/z * ppm) / 1,000,000
+						local_tol_da = (target_db_mz * tol) / 1000000.0
+					else:
+						local_tol_da = tol
+					cur.execute(f"PRAGMA table_info({table})")
+			cols = [row[1] for row in cur.fetchall()]
+			id_col = "accession" if "accession" in cols else ("hmdb_id" if "hmdb_id" in cols else None)
+
+			# Loop through each m/z value and adduct, apply corrections, and query the database
+			for mz in mz_list:
+				try:
+					mzf, tol = float(mz), float(args.tolerance_da)
+				except ValueError:
+					continue
+				
+				for adduct_val in ALL_ADDUCTS:
+					mass_correction = ADDUCT_CORRECTIONS.get(adduct_val, 0.0)
+					target_db_mz = mzf + mass_correction
+					
+					if tol_unit == "ppm":
+						local_tol_da = (target_db_mz * tol) / 1000000.0
+					else:
+						local_tol_da = tol
+						
+					cur.execute(query, (target_db_mz - local_tol_da, target_db_mz + local_tol_da))
+					for (kid,) in cur.fetchall():
+						if kid and isinstance(kid, str) and kid.strip().upper() not in {"NOT FOUND", "ERROR"}:
+							kid_str = kid.strip()
+							
+							# --- Pull the HMDB ID safely ---
+							if id_col:
+								cur.execute(f"SELECT {id_col}, {mz_col}, super_class, class_name, name FROM {table} WHERE {mz_col} BETWEEN ? AND ? AND {kegg_col} = ?",
+											(target_db_mz - local_tol_da, target_db_mz + local_tol_da, kid_str))
+								mz_match = cur.fetchone()
+								if mz_match:
+									db_id, found_db_mz, super_class, class_name, name = mz_match
+							else:
+								cur.execute(f"SELECT {mz_col}, super_class, class_name, name FROM {table} WHERE {mz_col} BETWEEN ? AND ? AND {kegg_col} = ?",
+											(target_db_mz - local_tol_da, target_db_mz + local_tol_da, kid_str))
+								mz_match = cur.fetchone()
+								db_id = "HMDB"
+								if mz_match:
+									found_db_mz, super_class, class_name, name = mz_match
+
+							if mz_match:
+								found_mz_recalculated = float(found_db_mz) - mass_correction
+								
+								error_da = abs(found_mz_recalculated - mzf)
+								if tol_unit == "ppm":
+									final_delta = round((error_da / mzf) * 1000000.0, 4)
+								else:
+									final_delta = round(error_da, 4)
+								
+								mz_match_data.append({
+									"Searched_m/z": mz,
+									"Found_mz_negative": found_db_mz,
+									"DELTA": final_delta,
+									"KEGG_ID": kid_str,
+									"Adduct": adduct_val,
+									"Source ID": db_id, # <--- Renamed so MassVision.py can see it!
+									"COMMON_NAME": name
+								})
+			
+			if not mz_match_data:
+				return pd.DataFrame(), pd.DataFrame(columns=['Searched_m/z', 'KEGG_ID', 'Adduct', 'COMMON_NAME', 'DELTA', 'Source ID'])
+			
+			# Filter the outputs to keep only the best match per m/z and adduct combination (or all matches if search_all is True)
+			df = pd.DataFrame(mz_match_data)
+			if not search_all:
+				df = df.loc[df.groupby(['Searched_m/z', 'Adduct'])['DELTA'].transform('min') == df['DELTA']]
+			return df, df[['Searched_m/z', 'KEGG_ID', 'Adduct', 'COMMON_NAME', 'DELTA', 'Source ID']]
+
+		# Combine LIPID MAPS and HMDB results, extract unique formulas and KEGG IDs, and query KEGG API to find additional KEGG IDs based on formulas
+		def stage2_kegg_ids(combined_df, args):
+			print("\n>>> Stage 2: KEGG ID Lookup")
+			formula_list = combined_df['FORMULA'].dropna().unique().tolist() if 'FORMULA' in combined_df else []
+			hmdb_kegg_ids = set(combined_df['KEGG_ID'].dropna().unique()) if 'KEGG_ID' in combined_df else set()
+			all_results = []
+			recent_requests = deque()
+			rate_lock = threading.Lock()
+			session = requests.Session()
+			
+			# Helper function to enforce rate limiting (or else the KEGG API will start returning errors)
+			def _wait_for_slot():
+				while True:
+					with rate_lock:
+						now = time.time()
+						while recent_requests and (now - recent_requests[0]) >= args.rate_window:
+							recent_requests.popleft()
+						if len(recent_requests) < args.rate_limit:
+							recent_requests.append(now)
+							return
+						wait = args.rate_window - (now - recent_requests[0])
+					time.sleep(wait)
+
+			# Function to query KEGG API for a single formula and extract matching KEGG IDs
+			def _query_formula(formula):
+				try:
+					_wait_for_slot()
+					url = args.kegg_api_url.format(query=formula)
+					resp = session.get(url, timeout=args.request_timeout)
+					resp.raise_for_status()
+					out = []
+					for line in resp.text.strip().split('\n'):
+						parts = line.split('\t')
+						if len(parts) >= 2 and parts[1].split(';')[0].strip() == formula:
+							out.append({'KEGG_ID': parts[0][4:], 'FORMULA': formula})
+					return out
+				except Exception:
+					return []
+
+			# Use a thread pool to query KEGG API for all formulas in parallel while respecting rate limits
+			with ThreadPoolExecutor(max_workers=args.max_workers) as exe:
+				futures = {exe.submit(_query_formula, f): f for f in formula_list}
+				for fut in as_completed(futures):
+					res = fut.result()
+					if res: all_results.extend(res)
+			
+			kegg_ids_from_formulas = set(r['KEGG_ID'] for r in all_results)
+			
+			out_Combined = pd.DataFrame(all_results) if all_results else pd.DataFrame(columns=['KEGG_ID', 'FORMULA'])
+			all_kegg_ids = hmdb_kegg_ids.union(kegg_ids_from_formulas)
+			return list(all_kegg_ids), out_Combined
+		
+		# Main function to run the  pipeline
+		def process_spectra(mz_list, args, hmdb_conn):
+			combined_results = pd.DataFrame()
+			combined_matched_results = pd.DataFrame()
+			
+			# --- STAGE 1: LIPIDMAPS and HMDB ---
+			if progress_callback: progress_callback("Stage 1A: Searching LIPID MAPS...", 10)
+			if database_unit == "All" or database_unit == "LipidMaps":
+				lm_res, lm_match = stage1_lipid_maps_search(mz_list, args)
+				if not lm_res.empty:
+					combined_results = pd.concat([combined_results, lm_res], ignore_index=True)
+					combined_matched_results = pd.concat([combined_matched_results, lm_match], ignore_index=True)
+
+			if progress_callback: progress_callback("Stage 1B: Searching HMDB...", 30)
+			if database_unit == "All" or database_unit == "HMDB":
+				hmdb_res, hmdb_match = stage1_hmdb_search(mz_list, args, hmdb_conn)
+				if not hmdb_res.empty:
+					combined_results = pd.concat([combined_results, hmdb_res], ignore_index=True)
+					combined_matched_results = pd.concat([combined_matched_results, hmdb_match], ignore_index=True)
+
+			if combined_results.empty: return pd.DataFrame()
+
+			# --- STAGE 2: KEGG IDs ---
+			if progress_callback: progress_callback("Stage 2: Resolving KEGG IDs...", 50)
+			kegg_ids, kegg_match = stage2_kegg_ids(combined_results, args)
+			
+			if 'FORMULA' in combined_matched_results.columns and not kegg_match.empty:
+				combined_matched_results = combined_matched_results.merge(kegg_match, on='FORMULA', how='left')
+			
+			if 'KEGG_ID_x' in combined_matched_results.columns:
+				combined_matched_results['KEGG_ID'] = combined_matched_results['KEGG_ID_x'].fillna(combined_matched_results['KEGG_ID_y'])
+				combined_matched_results.drop(columns=['KEGG_ID_x', 'KEGG_ID_y'], inplace=True)
+			if 'KEGG_ID' not in combined_matched_results.columns:
+				combined_matched_results['KEGG_ID'] = None
+			
+			# BROAD PATHWAY FALLBACK LOGIC ------ Not currently used, but keeping here for future development if we want to add a "Pathway-level only" search option where we assign broad KEGG IDs based on lipid class when no specific ID is found for a peak.
+			# if use_broad_pathways:
+			# 	LIPID_CLASS_MAP = {
+			# 		'PA': 'C00416', 'PC': 'C00157', 'PE': 'C00350', 'PS': 'C02737', 
+			# 		'PG': 'C00344', 'PI': 'C01194', 'PIP': 'C11557', 'PIP2': 'C04637', 
+			# 		'PEth': 'C00350', 'LPA': 'C00681', 'LPC': 'C04230', 'DG': 'C00165', 
+			# 		'TG': 'C00422', 'MG': 'C01885', 'MGDG': 'C03692', 'DGDG': 'C06037', 
+			# 		'SQDG': 'C13508', 'Cer': 'C00195', 'SM': 'C00550', 'CerP': 'C02960',
+			# 		'GlcCer': 'C01190', 'GalCer': 'C02686', 'LacCer': 'C01290', 
+			# 		'Sulfatide': 'C06125', 'SHexCer': 'C06125', 'FA': 'C00162', 
+			# 		'CE': 'C02530', 'CL': 'C05980', 'CerPE': 'C06062'
+			# 	}
+				
+			# 	# 1. Extract Lipid Class abbreviation from the Common Name (e.g., "PC(34:1)" -> "PC")
+			# 	if 'COMMON_NAME' in combined_matched_results.columns:
+			# 		combined_matched_results['LIPID_CLASS'] = combined_matched_results['COMMON_NAME'].str.extract(r'^([A-Za-z0-9]+)[ \(\-]')[0]
+			# 	else:
+			# 		combined_matched_results['LIPID_CLASS'] = None
+				
+			# 	valid_kegg_mask = combined_matched_results['KEGG_ID'].notna() & combined_matched_results['KEGG_ID'].astype(str).str.startswith('C')
+			# 	peaks_with_kegg = set(combined_matched_results.loc[valid_kegg_mask, 'Searched_m/z'])
+
+			# 	# 2. Apply the resolution logic
+			# 	def resolve_kegg_id(row):
+			# 		# Priority A: This specific row already has a valid ID. Keep it.
+			# 		if pd.notna(row.get('KEGG_ID')) and str(row.get('KEGG_ID')).startswith('C'):
+			# 			return row['KEGG_ID']
+					
+			# 		# Priority B: This row has NO ID, but another row for this same peak DOES. 
+			# 		if row.get('Searched_m/z') in peaks_with_kegg:
+			# 			return None 
+					
+			# 		# Priority C: NO row for this peak has an ID. Use the broad pathway fallback.
+			# 		return LIPID_CLASS_MAP.get(str(row.get('LIPID_CLASS')), None)
+			# 	combined_matched_results['KEGG_ID'] = combined_matched_results.apply(resolve_kegg_id, axis=1)
+
+			combined_matched_results['KEGG_ID'] = combined_matched_results['KEGG_ID'].fillna('N/A')
+			combined_matched_results = combined_matched_results[combined_matched_results['COMMON_NAME'] != 'nan']
+			combined_matched_results.drop_duplicates(subset=['Searched_m/z', 'Adduct', 'COMMON_NAME', 'KEGG_ID'], inplace=True)
+			if not search_all: 
+				min_deltas = combined_matched_results.groupby('Searched_m/z')['DELTA'].transform('min')
+				combined_matched_results = combined_matched_results[combined_matched_results['DELTA'] == min_deltas]
+			print(len(combined_matched_results), "total matches after KEGG ID resolution.")
+			return combined_matched_results
+
+		# --- Execution starts here ---
+		parser = setup_arguments()
+		# We pass UI variables directly into argparse to simulate CLI args
+		args = parser.parse_args([
+			"--mz-values", peaks_str, 
+			"--tolerance-da", str(tolerance_val),
+			"--adducts", adducts_str
+		])
+
+		mz_list = [float(x.strip()) for x in args.mz_values.split(',') if x.strip()]
+		
+		hmdb_conn = None
+		if database_unit in ["All", "HMDB"]:
+			try:
+				setup_success = self.check_and_build_hmdb(args.hmdb_db) 
+				
+				# Abort the entire search if the user clicks "No" or cancels the file selection
+				if setup_success is False:
+					return pd.DataFrame() 
+				
+				hmdb_conn = sqlite3.connect(args.hmdb_db)
+			except Exception as e:
+				print(f"Warning: Failed to connect or build HMDB database: {e}")
+				# Abort the entire search if the setup crashes, fails to unzip, or throws an error
+				return pd.DataFrame()
+
+		try:
+			results = process_spectra(mz_list, args, hmdb_conn)
+		except Exception as e:
+			print(f"Error during execution: {e}")
+			results = pd.DataFrame()
+		finally:
+			if hmdb_conn:
+				hmdb_conn.close()
+				
+		return results
+	
+	def run_pathway_search(self, molecules_df, filter_human=False, progress_callback=None):
+		"""Stage 3: Takes a filtered dataframe of molecules and fetches KEGG pathways."""
+		try:
+			import requests
+		except ModuleNotFoundError:
+			slicer.util.pip_install("requests")
+			import requests
+
+		import time
+
+		try:
+			import pandas as pd
+		except ModuleNotFoundError:
+			slicer.util.pip_install("pandas")
+			import pandas as pd
+
+		from concurrent.futures import ThreadPoolExecutor
+		from collections import defaultdict
+
+		# API defaults to ensure the querry does not crash KEGG's servers 
+		kegg_api_base = "https://rest.kegg.jp"
+		api_call_delay = 0.5
+		request_timeout = 30
+		max_workers = 10
+		batch_size = 10
+
+		# Progreess bar display
+		if progress_callback: progress_callback("Extracting KEGG IDs...", 10)
+		kegg_ids = molecules_df['KEGG_ID'].dropna().unique().tolist()
+
+		if not kegg_ids:
+			return molecules_df
+
+		if progress_callback: progress_callback("Fetching Biological Pathways...", 30)
+
+		pathway_to_compound = defaultdict(set)
+		unique_pathways = set()
+		session = requests.Session()
+
+		# Find the url for the compound and extract the pathway codes from the response
+		def _link_compound(cid):
+			try:
+				time.sleep(api_call_delay)
+				api_url = f"{kegg_api_base}/link/pathway/cpd:{cid}"
+				resp = session.get(api_url, timeout=request_timeout)
+				resp.raise_for_status()
+				codes = [line.split('\t')[1].strip().split(' ', 1)[0] for line in resp.text.strip().split('\n') if len(line.split('\t')) >= 2]
+				return cid, codes
+			except Exception:
+				return cid, []
+
+		with ThreadPoolExecutor(max_workers=max_workers) as exe:
+			for cid, codes in exe.map(_link_compound, kegg_ids):
+				for code in codes:
+					pathway_to_compound[code].add(cid)
+					unique_pathways.add(code)
+
+		if progress_callback: progress_callback("Resolving Pathway Names...", 70)
+		pathway_names = {}
+		pathway_list = list(unique_pathways)
+		
+		#  Batch the requests to get pathway names 
+		for i in range(0, len(pathway_list), batch_size):
+			batch = "+".join(pathway_list[i:i + batch_size])
+			try:
+				resp = requests.get(f"{kegg_api_base}/get/{batch}")
+				if resp.status_code == 200:
+					for entry in resp.text.strip().split('///\n'):
+						p_code, p_name = None, None
+						for line in entry.split('\n'):
+							if line.startswith('ENTRY'): p_code = f"path:{line.split()[1]}"
+							if line.startswith('NAME'): p_name = line[12:].strip()
+						if p_code and p_name: pathway_names[p_code] = p_name
+			except Exception: pass
+			time.sleep(api_call_delay)
+
+		if progress_callback: progress_callback("Finalizing Table Layout...", 90)
+		matched_data = []
+		# Loop through our compounds and their associated pathways, and build a final table of KEGG_ID, Pathway Name, and Pathway ID for merging back onto our molecules dataframe
+		for code, c_set in pathway_to_compound.items():
+			name = pathway_names.get(code, f"[Name Missing for {code}]")
+			for cpd in c_set:
+				matched_data.append({
+					"KEGG_ID": cpd, 
+					"Pathway_Name": name,
+					"Pathway_ID": code.replace('path:', '') 
+				})
+
+		pathways_df = pd.DataFrame(matched_data)
+
+		if pathways_df.empty:
+			return molecules_df
+
+		# Merge pathways onto our filtered molecules
+		final_df = molecules_df.merge(pathways_df, on='KEGG_ID', how='inner')
+		final_df.drop_duplicates(subset=['Searched_m/z', 'KEGG_ID', 'Pathway_Name', 'Adduct', "COMMON_NAME", "DELTA"], inplace=True)
+
+		# List of KEGG's Human Pathways
+		if filter_human:
+			kegg_human_pathways = [
+                            "Metabolic pathways", "Carbon metabolism", "2-Oxocarboxylic acid metabolism", "Fatty acid metabolism", 
+                            "Biosynthesis of amino acids", "Nucleotide metabolism", "Biosynthesis of nucleotide sugars", "Biosynthesis of cofactors", 
+                            "Sulfur cycle", "Glycolysis / Gluconeogenesis", "Citrate cycle (TCA cycle)", "Pentose phosphate pathway", 
+                            "Pentose and glucuronate interconversions", "Fructose and mannose metabolism", "Galactose metabolism", 
+                            "Ascorbate and aldarate metabolism", "Starch and sucrose metabolism", "Pyruvate metabolism", 
+                            "Glyoxylate and dicarboxylate metabolism", "Propanoate metabolism", "Butanoate metabolism", "Inositol phosphate metabolism", 
+                            "Oxidative phosphorylation", "Nitrogen metabolism", "Sulfur metabolism", "Fatty acid biosynthesis", "Fatty acid elongation", 
+                            "Fatty acid degradation", "Steroid biosynthesis", "Primary bile acid biosynthesis", "Steroid hormone biosynthesis", 
+                            "Glycerolipid metabolism", "Glycerophospholipid metabolism", "Ether lipid metabolism", "Sphingolipid metabolism", 
+                            "Arachidonic acid metabolism", "Linoleic acid metabolism", "alpha-Linolenic acid metabolism", 
+                            "Biosynthesis of unsaturated fatty acids", "Purine metabolism", "Pyrimidine metabolism", 
+                            "Alanine, aspartate and glutamate metabolism", "Glycine, serine and threonine metabolism", 
+                            "Cysteine and methionine metabolism", "Valine, leucine and isoleucine degradation", 
+                            "Valine, leucine and isoleucine biosynthesis", "Lysine degradation", "Arginine biosynthesis", 
+                            "Arginine and proline metabolism", "Histidine metabolism", "Tyrosine metabolism", "Phenylalanine metabolism", 
+                            "Tryptophan metabolism", "Phenylalanine, tyrosine and tryptophan biosynthesis", "beta-Alanine metabolism", 
+                            "Taurine and hypotaurine metabolism", "Phosphonate and phosphinate metabolism", "Selenocompound metabolism", 
+                            "D-Amino acid metabolism", "Glutathione metabolism", "Amino sugar and nucleotide sugar metabolism", 
+                            "Biosynthesis of various nucleotide sugars", "N-Glycan biosynthesis", "Various types of N-glycan biosynthesis", 
+                            "Mucin type O-glycan biosynthesis", "Mannose type O-glycan biosynthesis", "Other types of O-glycan biosynthesis", 
+                            "Glycosaminoglycan biosynthesis - chondroitin sulfate / dermatan sulfate", 
+                            "Glycosaminoglycan biosynthesis - heparan sulfate / heparin", "Glycosaminoglycan biosynthesis - keratan sulfate", 
+                            "Glycosaminoglycan degradation", "Glycosylphosphatidylinositol (GPI)-anchor biosynthesis", 
+                            "Glycosphingolipid biosynthesis - lacto and neolacto series", "Glycosphingolipid biosynthesis - globo and isoglobo series", 
+                            "Glycosphingolipid biosynthesis - ganglio series", "Other glycan degradation", "Thiamine metabolism", 
+                            "Riboflavin metabolism", "Vitamin B6 metabolism", "Nicotinate and nicotinamide metabolism", 
+                            "Pantothenate and CoA biosynthesis", "Biotin metabolism", "Lipoic acid metabolism", "Folate biosynthesis", 
+                            "One carbon pool by folate", "Retinol metabolism", "Porphyrin metabolism", 
+                            "Ubiquinone and other terpenoid-quinone biosynthesis", "Terpenoid backbone biosynthesis", 
+                            "Caffeine metabolism", "Neomycin, kanamycin and gentamicin biosynthesis", "Metabolism of xenobiotics by cytochrome P450", 
+                            "Drug metabolism - cytochrome P450", "Drug metabolism - other enzymes", "RNA polymerase", "Basal transcription factors", 
+                            "Spliceosome", "Ribosome", "Aminoacyl-tRNA biosynthesis", "Nucleocytoplasmic transport", "mRNA surveillance pathway", 
+                            "Ribosome biogenesis in eukaryotes", "Protein export", "Protein processing in endoplasmic reticulum", 
+                            "SNARE interactions in vesicular transport", "Ubiquitin mediated proteolysis", "Sulfur relay system", "Proteasome", 
+                            "RNA degradation", "DNA replication", "Base excision repair", "Nucleotide excision repair", "Mismatch repair", 
+                            "Homologous recombination", "Non-homologous end-joining", "Fanconi anemia pathway", "ATP-dependent chromatin remodeling", 
+                            "Polycomb repressive complex", "Viral life cycle - HIV-1", "Virion - Human immunodeficiency virus", "Virion - Rotavirus", 
+                            "Virion - Flavivirus and Alphavirus", "Virion - Ebolavirus, Lyssavirus and Morbillivirus", 
+                            "Virion - Lassa virus and SFTS virus", "Virion - Hepatitis viruses", "Virion - Herpesvirus", "Virion - Adenovirus", 
+                            "ABC transporters", "MAPK signaling pathway", "ErbB signaling pathway", "Ras signaling pathway", "Rap1 signaling pathway", 
+                            "Wnt signaling pathway", "Notch signaling pathway", "Hedgehog signaling pathway", "TGF-beta signaling pathway", 
+                            "Hippo signaling pathway", "Hippo signaling pathway - multiple species", "VEGF signaling pathway", "Apelin signaling pathway", 
+                            "JAK-STAT signaling pathway", "NF-kappa B signaling pathway", "TNF signaling pathway", "HIF-1 signaling pathway", 
+                            "FoxO signaling pathway", "Calcium signaling pathway", "Phosphatidylinositol signaling system", 
+                            "Phospholipase D signaling pathway", "Sphingolipid signaling pathway", "cAMP signaling pathway", "cGMP-PKG signaling pathway", 
+                            "PI3K-Akt signaling pathway", "AMPK signaling pathway", "mTOR signaling pathway", "Neuroactive ligand-receptor interaction", 
+                            "Neuroactive ligand signaling", "Hormone signaling", "Cytokine-cytokine receptor interaction", 
+                            "Viral protein interaction with cytokine and cytokine receptor", "ECM-receptor interaction", 
+                            "Cell adhesion molecule (CAM) interaction", "IgSF CAM signaling", "Integrin signaling", "Endocytosis", "Phagosome", 
+                            "Lysosome", "Peroxisome", "Autophagy - animal", "Autophagy - other", "Mitophagy - animal", "Efferocytosis", "Cell cycle", 
+                            "Oocyte meiosis", "Apoptosis", "Apoptosis - multiple species", "Ferroptosis", "Necroptosis", "p53 signaling pathway", 
+                            "Cellular senescence", "Focal adhesion", "Adherens junction", "Tight junction", "Gap junction", 
+                            "Signaling pathways regulating pluripotency of stem cells", "Motor proteins", "Cytoskeleton in muscle cells", 
+                            "Regulation of actin cytoskeleton", "Hematopoietic cell lineage", "Complement and coagulation cascades", 
+                            "Platelet activation", "Neutrophil extracellular trap formation", "Toll-like receptor signaling pathway", 
+                            "NOD-like receptor signaling pathway", "RIG-I-like receptor signaling pathway", "Cytosolic DNA-sensing pathway", 
+                            "C-type lectin receptor signaling pathway", "Natural killer cell mediated cytotoxicity", 
+                            "Antigen processing and presentation", "T cell receptor signaling pathway", "Th1 and Th2 cell differentiation", 
+                            "Th17 cell differentiation", "IL-17 signaling pathway", "B cell receptor signaling pathway", 
+                            "Fc epsilon RI signaling pathway", "Fc gamma R-mediated phagocytosis", "Leukocyte transendothelial migration", 
+                            "Intestinal immune network for IgA production", "Chemokine signaling pathway", "Insulin secretion", 
+                            "Insulin signaling pathway", "Glucagon signaling pathway", "Regulation of lipolysis in adipocytes", 
+                            "Adipocytokine signaling pathway", "PPAR signaling pathway", "GnRH secretion", "GnRH signaling pathway", 
+                            "Ovarian steroidogenesis", "Estrogen signaling pathway", "Progesterone-mediated oocyte maturation", 
+                            "Prolactin signaling pathway", "Oxytocin signaling pathway", "Relaxin signaling pathway", 
+                            "Growth hormone synthesis, secretion and action", "Thyroid hormone synthesis", "Thyroid hormone signaling pathway", 
+                            "Parathyroid hormone synthesis, secretion and action", "Melanogenesis", "Renin secretion", "Renin-angiotensin system", 
+                            "Aldosterone synthesis and secretion", "Cortisol synthesis and secretion", "Cardiac muscle contraction", 
+                            "Adrenergic signaling in cardiomyocytes", "Vascular smooth muscle contraction", "Salivary secretion", 
+                            "Gastric acid secretion", "Pancreatic secretion", "Bile secretion", "Carbohydrate digestion and absorption", 
+                            "Protein digestion and absorption", "Fat digestion and absorption", "Cholesterol metabolism", 
+                            "Vitamin digestion and absorption", "Folate transport and metabolism", "Cobalamin transport and metabolism", 
+                            "Mineral absorption", "Vasopressin-regulated water reabsorption", "Aldosterone-regulated sodium reabsorption", 
+                            "Endocrine and other factor-regulated calcium reabsorption", "Proximal tubule bicarbonate reclamation", 
+                            "Collecting duct acid secretion", "Glutamatergic synapse", "GABAergic synapse", "Cholinergic synapse", 
+                            "Dopaminergic synapse", "Serotonergic synapse", "Long-term potentiation", "Long-term depression", 
+                            "Retrograde endocannabinoid signaling", "Synaptic vesicle cycle", "Neurotrophin signaling pathway", "Phototransduction", 
+                            "Olfactory transduction", "Taste transduction", "Inflammatory mediator regulation of TRP channels", "Axon guidance", 
+                            "Osteoclast differentiation", "Cornified envelope formation", "Longevity regulating pathway", 
+                            "Longevity regulating pathway - multiple species", "Circadian rhythm", "Circadian entrainment", "Thermogenesis", 
+                            "Pathways in cancer", "Transcriptional misregulation in cancer", "MicroRNAs in cancer", "Proteoglycans in cancer", 
+                            "Chemical carcinogenesis - DNA adducts", "Chemical carcinogenesis - receptor activation", 
+                            "Chemical carcinogenesis - reactive oxygen species", "Viral carcinogenesis", "Central carbon metabolism in cancer", 
+                            "Choline metabolism in cancer", "PD-L1 expression and PD-1 checkpoint pathway in cancer", "Colorectal cancer", 
+                            "Pancreatic cancer", "Hepatocellular carcinoma", "Gastric cancer", "Glioma", "Thyroid cancer", "Acute myeloid leukemia", 
+                            "Chronic myeloid leukemia", "Basal cell carcinoma", "Melanoma", "Renal cell carcinoma", "Bladder cancer", 
+                            "Prostate cancer", "Endometrial cancer", "Breast cancer", "Small cell lung cancer", "Non-small cell lung cancer", 
+                            "Human T-cell leukemia virus 1 infection", "Human immunodeficiency virus 1 infection", "Hepatitis B", "Hepatitis C", 
+                            "Coronavirus disease - COVID-19", "Influenza A", "Measles", "Herpes simplex virus 1 infection", 
+                            "Human cytomegalovirus infection", "Kaposi sarcoma-associated herpesvirus infection", "Epstein-Barr virus infection", 
+                            "Human papillomavirus infection", "Vibrio cholerae infection", "Epithelial cell signaling in Helicobacter pylori infection", 
+                            "Pathogenic Escherichia coli infection", "Salmonella infection", "Shigellosis", "Yersinia infection", "Pertussis", 
+                            "Legionellosis", "Staphylococcus aureus infection", "Tuberculosis", "Bacterial invasion of epithelial cells", "Amoebiasis", 
+                            "Malaria", "Toxoplasmosis", "Leishmaniasis", "Chagas disease", "African trypanosomiasis", "Asthma", 
+                            "Systemic lupus erythematosus", "Rheumatoid arthritis", "Autoimmune thyroid disease", "Inflammatory bowel disease", 
+                            "Allograft rejection", "Graft-versus-host disease", "Primary immunodeficiency", "Alzheimer disease", "Parkinson disease", 
+                            "Amyotrophic lateral sclerosis", "Huntington disease", "Spinocerebellar ataxia", "Prion disease", 
+                            "Pathways of neurodegeneration - multiple diseases", "Cocaine addiction", "Amphetamine addiction", "Morphine addiction", 
+                            "Nicotine addiction", "Alcoholism", "Lipid and atherosclerosis", "Fluid shear stress and atherosclerosis", 
+                            "Hypertrophic cardiomyopathy", "Arrhythmogenic right ventricular cardiomyopathy", "Dilated cardiomyopathy", 
+                            "Diabetic cardiomyopathy", "Viral myocarditis", "Type II diabetes mellitus", "Type I diabetes mellitus", 
+                            "Maturity onset diabetes of the young", "Alcoholic liver disease", "Non-alcoholic fatty liver disease", 
+                            "Insulin resistance", "AGE-RAGE signaling pathway in diabetic complications", "Cushing syndrome", 
+                            "EGFR tyrosine kinase inhibitor resistance", "Platinum drug resistance", "Antifolate resistance", "Endocrine resistance"
+                        ]
+			final_df = final_df[final_df['Pathway_Name'].isin(kegg_human_pathways)]
+		return final_df
+	
+	# -------- End of Robert Functions for Metabolite ID Search and Pathway Mapping -------
 
 	def set_split(self, split):
 		self.split = split
@@ -3571,8 +4486,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			infostr = f"""{self.slideName}
 spatial:\t {self.dim_y} x {self.dim_x} pixels
 spectra:\t {self.dim_y*self.dim_x}
-m/z per pixel:\t {len(self.mz)}
-m/z range: \t {self.mz.min()} - {self.mz.max()}"""
+m/z per pixel:\t {len(self.mz)}"""
+			try:
+				infostr += f"\nm/z range: \t {self.mz.astype(float).min()} - {self.mz.astype(float).max()}"
+			except:
+				pass
 
 		elif self.AppMode==1:
 			infostr = f"""{self.slideName}
@@ -3596,6 +4514,422 @@ features:\t {len(self.mz)} """
 		for x,y in zip(class_names,class_lens):
 			retstr += f'   {str(y)}\t in class\t {x} \n'
 		return retstr
+
+
+#### Blending helpers ####
+	class SliceBlendController:
+		"""
+		Packaged blending controller for ONE slice view (e.g., Red).
+		- overlay: show BG/FG directly; slider controls FG opacity
+		- wipe: capture displayed BG/FG once when entering wipe; slider controls wipe fraction
+		UX: switching Overlay -> Wipe acts as "recapture".
+		"""
+
+		def __init__(self, sliceViewName="Red", outputName="WipeOutput_RGBA", wipeDirection="horizontal"):
+			self.sliceViewName = sliceViewName
+			self.outputName = outputName
+			self.wipeDirection = wipeDirection  # "horizontal" or "vertical" (horizontal for now)
+
+			lm = slicer.app.layoutManager()
+			self.sliceWidget = lm.sliceWidget(sliceViewName)
+			if self.sliceWidget is None:
+				raise RuntimeError(f"Slice view '{sliceViewName}' not found in current layout.")
+
+			self.sliceLogic = self.sliceWidget.sliceLogic()
+			self.sliceNode = self.sliceLogic.GetSliceNode()
+			self.sliceComp = self.sliceLogic.GetSliceCompositeNode()
+
+			self.bgVol = None
+			self.fgVol = None
+			self.mode = "overlay"  # or "wipe"
+
+			self._wipe_bg = None
+			self._wipe_fg = None
+			self.outVol = None
+
+			self.debug = None  # set False when you’re done debugging
+			self._validRect = None
+
+
+		def _dbg(self, *args):
+			if getattr(self, "debug", False):
+				print("[Blend/Wipe]", *args)
+
+		def setVolumes(self, backgroundVolume, foregroundVolume):
+			if self.outVol is not None:
+				if backgroundVolume is self.outVol or foregroundVolume is self.outVol:
+					self._dbg("Refusing to use output volume as input (would create feedback loop).")
+					return
+		
+			self.bgVol = backgroundVolume
+			self.fgVol = foregroundVolume
+
+			if self.mode == "overlay":
+				self._applyOverlayVolumes()
+			else:
+				self._wipe_bg = None
+				self._wipe_fg = None
+
+		def setMode(self, mode):
+			if mode not in ("overlay", "wipe"):
+				raise ValueError("mode must be 'overlay' or 'wipe'")
+			if mode == self.mode:
+				return
+
+			if mode == "overlay":
+				self.mode = "overlay"
+				self._applyOverlayVolumes()
+				return
+
+			self.mode = "wipe"
+			self._enterWipeAndCapture()
+
+		def updateFromSlider(self, slider, sliderValue):
+			f = _sliderFraction(slider, sliderValue)
+
+			if self.mode == "overlay":
+				self.sliceComp.SetForegroundOpacity(float(f))
+				self.sliceWidget.sliceView().forceRender()
+				return
+
+			if self._wipe_bg is None or self._wipe_fg is None:
+				self._dbg("Wipe requested but no capture available. Re-entering wipe capture.")
+				self._enterWipeAndCapture()
+				if self._wipe_bg is None:
+					self._dbg("Still no capture. Aborting wipe update.")
+					return
+
+			comp = self._wipeComposite(self._wipe_bg, self._wipe_fg, f)
+			_write2DToVectorVolumePixelsOnly(self.outVol, comp)
+			self.sliceWidget.sliceView().forceRender()
+
+		# ---------- internal ----------
+		def _applyOverlayVolumes(self):
+			self.sliceComp.SetBackgroundVolumeID(self.bgVol.GetID() if self.bgVol else None)
+			self.sliceComp.SetForegroundVolumeID(self.fgVol.GetID() if self.fgVol else None)
+			self.sliceNode.Modified()
+			self.sliceWidget.sliceView().forceRender()
+			slicer.app.processEvents()
+
+		def _enterWipeAndCapture(self):
+			if self.bgVol is None or self.fgVol is None:
+				self._dbg("Cannot enter wipe: bgVol or fgVol is None")
+				return
+
+			self._dbg("Entering wipe. BG=", self.bgVol.GetName(), "FG=", self.fgVol.GetName())
+
+			# Put the slice into overlay temporarily so display image exists for capture
+			self.sliceComp.SetBackgroundVolumeID(self.bgVol.GetID())
+			self.sliceComp.SetForegroundVolumeID(self.fgVol.GetID())
+			self.sliceComp.SetForegroundOpacity(1.0)
+
+			self.sliceNode.Modified()
+			self.sliceWidget.sliceView().forceRender()
+			slicer.app.processEvents()
+
+			bg, fg = self._captureDisplayedBGFG(maxTries=30)
+
+			# ---- Fail-safe validation ----
+			if bg is None or fg is None:
+				self._dbg("Capture failed: bg or fg is None. Staying in overlay.")
+				self.mode = "overlay"
+				self._applyOverlayVolumes()
+				return
+
+			if bg.shape != fg.shape:
+				self._dbg("Capture mismatch shapes:", bg.shape, "vs", fg.shape, "Staying in overlay.")
+				self.mode = "overlay"
+				self._applyOverlayVolumes()
+				return
+
+			if bg.ndim != 3 or fg.ndim != 3:
+				self._dbg("Capture unexpected ndim:", bg.ndim, fg.ndim, "Staying in overlay.")
+				self.mode = "overlay"
+				self._applyOverlayVolumes()
+				return
+
+			if bg.shape[2] not in (3, 4) or fg.shape[2] not in (3, 4):
+				self._dbg("Capture unexpected components:", bg.shape, fg.shape, "Staying in overlay.")
+				self.mode = "overlay"
+				self._applyOverlayVolumes()
+				return
+
+			# If one is RGB and the other is RGBA, promote RGB->RGBA to match
+			if bg.shape[2] != fg.shape[2]:
+				self._dbg("Component mismatch (RGB vs RGBA). Promoting to RGBA.")
+				bg = self._promoteToRGBA(bg)
+				fg = self._promoteToRGBA(fg)
+				if bg.shape != fg.shape:
+					self._dbg("Promotion failed to align shapes:", bg.shape, fg.shape, "Staying in overlay.")
+					self.mode = "overlay"
+					self._applyOverlayVolumes()
+					return
+
+			self._wipe_bg, self._wipe_fg = bg, fg
+			# Valid content rect based on BG volume projection
+			self._validRect = self._computeValidXYRectFromVolume(self.bgVol, (bg.shape[0], bg.shape[1]))
+			self._dbg("Valid rect (x0,x1,y0,y1) =", self._validRect)
+
+			self._dbg("Capture OK. shape=", self._wipe_bg.shape, "dtype=", self._wipe_bg.dtype)
+
+			# Create output and switch view to output
+			self.outVol = _ensureOutputVectorVolume(self.outputName)
+			self.sliceComp.SetBackgroundVolumeID(self.outVol.GetID())
+			self.sliceComp.SetForegroundVolumeID(None)
+			self.sliceComp.SetForegroundOpacity(0.0)
+
+			# Freeze geometry ONCE from current slice view (prevents zoom/pan jump on slider)
+			_setVolumeGeometryFromSliceOnce(self.outVol, self.sliceNode)
+
+			self.sliceNode.Modified()
+			self.sliceWidget.sliceView().forceRender()
+			slicer.app.processEvents()
+
+		def _promoteToRGBA(self, img):
+			if img is None:
+				return None
+			if img.ndim != 3:
+				return img
+			if img.shape[2] == 4:
+				return img
+			if img.shape[2] == 3:
+				h, w, _ = img.shape
+				out = np.empty((h, w, 4), dtype=np.uint8)
+				out[:, :, :3] = img
+				out[:, :, 3] = 255
+				return out
+			return img
+
+		def _captureDisplayedBGFG(self, maxTries=20):
+			"""
+			IMPORTANT: Use layer.GetImageData() (displayed slice image), not reslice output.
+			This makes scalar volumes come through as RGBA (or RGB), matching what user sees.
+			"""
+			bgLayer = self.sliceLogic.GetBackgroundLayer()
+			fgLayer = self.sliceLogic.GetForegroundLayer()
+
+			for _ in range(maxTries):
+				self.sliceNode.Modified()
+				self.sliceWidget.sliceView().forceRender()
+				slicer.app.processEvents()
+
+				bgOut = bgLayer.GetImageData() if bgLayer else None
+				fgOut = fgLayer.GetImageData() if fgLayer else None
+
+				bg = _vtkImageToNumpy2D(bgOut)
+				fg = _vtkImageToNumpy2D(fgOut)
+
+				if bg is not None and fg is not None:
+					if bg.shape == fg.shape and bg.ndim == 3 and bg.shape[2] in (3, 4):
+						if bg.dtype != np.uint8: bg = bg.astype(np.uint8)
+						if fg.dtype != np.uint8: fg = fg.astype(np.uint8)
+						return bg, fg
+
+				qt.QThread.msleep(10)
+
+				if bg is None or fg is None:
+					self._dbg("Display image not ready yet. bg is None?", bg is None, "fg is None?", fg is None)
+				if bg is not None and fg is not None and bg.shape != fg.shape:
+					self._dbg("Display shape mismatch:", bg.shape, fg.shape)
+
+			return None, None
+		
+		def _wipeComposite(self, bg, fg, frac):
+			out = fg.copy()
+			h, w, c = fg.shape
+
+			# valid rect (defaults to full image)
+			if getattr(self, "_validRect", None):
+				x0, x1, y0, y1 = self._validRect
+			else:
+				x0, x1, y0, y1 = 0, w, 0, h
+
+			# If rect is empty, nothing to do
+			if x1 <= x0 or y1 <= y0:
+				return out
+
+			# clamp fraction
+			if frac < 0.0:
+				frac = 0.0
+			elif frac > 1.0:
+				frac = 1.0
+
+			if self.wipeDirection == "vertical":
+				span = (y1 - y0)
+				cut = y0 + int(round(frac * span))   # cut is EXCLUSIVE, may equal y1
+				out[cut:y1, x0:x1, :] = bg[cut:y1, x0:x1, :]
+
+				# divider
+				if 0.0 < frac < 1.0:
+					divY = cut - 1
+					out[divY, x0:x1, :] = 255
+
+			else:
+				span = (x1 - x0)
+				cut = x0 + int(round(frac * span))   # cut is EXCLUSIVE, may equal x1
+				out[y0:y1, cut:x1, :] = bg[y0:y1, cut:x1, :]
+
+				# divider 
+				if 0.0 < frac < 1.0:
+					divX = cut - 1
+					out[y0:y1, divX, :] = 255
+
+			return out
+
+
+
+		def _computeValidXYRectFromVolume(self, volumeNode, imgShapeHW):
+			"""
+			Returns (x0, x1, y0, y1) in pixel coordinates (ints, inclusive/exclusive style),
+			representing where the volume projects onto the current slice view.
+			Falls back to full image if something looks off.
+			"""
+			h, w = int(imgShapeHW[0]), int(imgShapeHW[1])
+			if volumeNode is None or h <= 0 or w <= 0:
+				return (0, w, 0, h)
+
+			# Slice XY->RAS and inverse RAS->XY
+			xyToRAS_returned = self.sliceNode.GetXYToRAS()
+			xyToRAS = vtk.vtkMatrix4x4()
+			xyToRAS.DeepCopy(xyToRAS_returned)
+
+			rasToXY = vtk.vtkMatrix4x4()
+			rasToXY.DeepCopy(xyToRAS)
+			rasToXY.Invert()
+
+			# Volume bounds in RAS: [xmin,xmax, ymin,ymax, zmin,zmax]
+			b = [0.0]*6
+			volumeNode.GetRASBounds(b)
+			xmin, xmax, ymin, ymax, zmin, zmax = b
+
+			# 8 corners
+			corners = [
+				(xmin, ymin, zmin), (xmin, ymin, zmax),
+				(xmin, ymax, zmin), (xmin, ymax, zmax),
+				(xmax, ymin, zmin), (xmax, ymin, zmax),
+				(xmax, ymax, zmin), (xmax, ymax, zmax),
+			]
+
+			xs, ys = [], []
+			for (x, y, z) in corners:
+				p = [x, y, z, 1.0]
+				q = [0.0, 0.0, 0.0, 0.0]
+				rasToXY.MultiplyPoint(p, q)
+				if q[3] == 0:
+					continue
+				xs.append(q[0] / q[3])
+				ys.append(q[1] / q[3])
+
+			if not xs or not ys:
+				return (0, w, 0, h)
+
+			x0 = int(np.floor(min(xs)))
+			x1 = int(np.ceil (max(xs)))
+			y0 = int(np.floor(min(ys)))
+			y1 = int(np.ceil (max(ys)))
+
+			# Clamp to image
+			x0 = max(0, min(x0, w))
+			x1 = max(0, min(x1, w))
+			y0 = max(0, min(y0, h))
+			y1 = max(0, min(y1, h))
+
+			# If invalid (can happen for oblique cases), fall back
+			if x1 <= x0 or y1 <= y0:
+				return (0, w, 0, h)
+
+			return (x0, x1, y0, y1)
+
+
+
+
+def _getPropOrCall(obj, name, default=None):
+    a = getattr(obj, name, None)
+    if a is None:
+        return default
+    try:
+        return a() if callable(a) else a
+    except Exception:
+        return default
+
+def _isFinite(x):
+    try:
+        x = float(x)
+        return (x == x) and (x != float("inf")) and (x != float("-inf"))
+    except Exception:
+        return False
+
+def _sliderFraction(slider, v):
+    mn = _getPropOrCall(slider, "minimum", 0.0)
+    mx = _getPropOrCall(slider, "maximum", 100.0)
+    if (not _isFinite(mn)) or (not _isFinite(mx)):
+        return 0.5
+    mn = float(mn); mx = float(mx)
+    if mx <= mn:
+        return 0.5
+    f = (float(v) - mn) / (mx - mn)
+    if f < 0.0: return 0.0
+    if f > 1.0: return 1.0
+    return f
+
+def _vtkImageToNumpy2D(imageData):
+    if imageData is None:
+        return None
+    dims = imageData.GetDimensions()
+    if 0 in dims:
+        return None
+    pd = imageData.GetPointData()
+    scalars = pd.GetScalars() if pd else None
+    if scalars is None:
+        return None
+
+    nComp = scalars.GetNumberOfComponents()
+    arr = numpy_support.vtk_to_numpy(scalars)
+    x, y, z = dims[0], dims[1], dims[2]
+    arr = arr.reshape(z, y, x, nComp)
+    sl = arr[0] if z == 1 else arr[z // 2]
+    return sl.copy()  # (H,W,C)
+
+def _ensureOutputVectorVolume(name="WipeOutput_RGBA"):
+	node = slicer.mrmlScene.GetFirstNodeByName(name)
+	if node and node.IsA("vtkMRMLVectorVolumeNode"):
+		# node.SetHideFromEditors(True) # do not show in node selector
+		return node
+	node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLVectorVolumeNode", name)
+	# node.SetHideFromEditors(True) # do not show in node selector
+	disp = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLVectorVolumeDisplayNode", name + "_Display")
+	node.SetAndObserveDisplayNodeID(disp.GetID())
+	disp.SetInterpolate(0)
+	return node
+
+def _write2DToVectorVolumePixelsOnly(node, img_uint8_hwc):
+    img_uint8_hwc = np.ascontiguousarray(img_uint8_hwc, dtype=np.uint8)
+    h, w, c = img_uint8_hwc.shape
+    if c not in (3, 4):
+        raise ValueError(f"Expected 3 or 4 components, got {c}")
+
+    flat = img_uint8_hwc.reshape(-1, c)
+    vtkArr = numpy_support.numpy_to_vtk(flat, deep=1, array_type=vtk.VTK_UNSIGNED_CHAR)
+    vtkArr.SetNumberOfComponents(c)
+
+    img = vtk.vtkImageData()
+    img.SetDimensions(w, h, 1)
+    img.AllocateScalars(vtk.VTK_UNSIGNED_CHAR, c)
+    img.GetPointData().SetScalars(vtkArr)
+
+    node.SetAndObserveImageData(img)
+    node.Modified()
+
+def _setVolumeGeometryFromSliceOnce(volumeNode, sliceNode):
+    xyToRAS_returned = sliceNode.GetXYToRAS()
+    m = vtk.vtkMatrix4x4()
+    m.DeepCopy(xyToRAS_returned)
+    volumeNode.SetIJKToRASMatrix(m)
+    volumeNode.Modified()
+
+#### Blending helpers ####
+
+
 
 
 ## Helper functions
@@ -4209,3 +5543,16 @@ class SlicerProgress:
                 pass
 
         self._last_eta_update = t
+
+
+#### feature type detect and cast
+def feature_cast(arr):
+    try:
+        floats = np.array([float(x) for x in arr], dtype=float)
+    except (TypeError, ValueError):
+        return arr.astype(str), str
+
+    if np.all(np.isfinite(floats)) and np.all(floats == floats.astype(int)):
+        return floats.astype(int), int
+
+    return floats, float
