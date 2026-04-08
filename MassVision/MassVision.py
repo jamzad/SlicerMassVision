@@ -461,7 +461,13 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.deployAGGcheck.connect("clicked(bool)", self.onDeployAggCheck)
 
 		self.ui.depMaskcheck.connect("clicked(bool)", self.onDepMaskcheck)
+
+		self.ui.depPCAVis.connect("clicked(bool)", self.onPCAButton)
 		self.ui.depGoVisButton.connect("clicked(bool)", self.onDepGoVis)
+
+		self.ui.depVisCombo.setMRMLScene(slicer.mrmlScene)
+		self.ui.depVisCombo.setEnabled(False)
+		
 		self.ui.depGoSegEdButton.connect("clicked(bool)", self.onDepGoSeg)
 
 		self.ui.deployRun.connect("clicked(bool)", self.onApplyDeployment)	
@@ -1391,13 +1397,13 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.tabWidget.setTabText(index, tab_names[index])
 		print('selected tab:',index, self.ui.tabWidget.tabText(index))
 		if index==9:
-			self.updateDepVisList()
+			# self.updateDepVisList()
 			self.updateDepSegList()
 		# elif index==3:
 		# 	self.updateVolumeList()
 	
 	def onModuleChange(self):
-		self.updateDepVisList()
+		# self.updateDepVisList()
 		self.updateDepSegList()
 		# self.updateVolumeList()
 
@@ -1410,12 +1416,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 	# 	for volumeNode in volumeNodes:
 	# 		self.ui.segVollist1.addItem(volumeNode.GetName())
 	# 		self.ui.segVollist2.addItem(volumeNode.GetName())
-
-	def updateDepVisList(self):
-		self.ui.depVisListCombo.clear()
-		volumeNodes = slicer.util.getNodesByClass('vtkMRMLScalarVolumeNode')
-		for volumeNode in volumeNodes:
-			self.ui.depVisListCombo.addItem(volumeNode.GetName())
 
 	def updateDepSegList(self):
 		segmentationNode = slicer.util.getNodesByClass('vtkMRMLSegmentationNode')
@@ -2221,7 +2221,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.visRenormalize()
 		self.logic.heatmap_display()
 		self.populateMzLists()
-		self.updateDepVisList()
+		# self.updateDepVisList()
   
 	def onDeployModelSel(self):
 		fileExplorer = qt.QFileDialog()
@@ -2288,7 +2288,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			state = False
 		self.ui.depGoVisButton.setEnabled(state)
 		self.ui.depVisSelLabel.setEnabled(state)
-		self.ui.depVisListCombo.setEnabled(state)
+		self.ui.depVisCombo.setEnabled(state)
+		self.ui.depPCAVis.setEnabled(state)
 		self.ui.depGoSegEdButton.setEnabled(state)
 		self.ui.depSegListLabel.setEnabled(state)
 		self.ui.depSegListCombo.setEnabled(state)
@@ -2297,7 +2298,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.tabWidget.setCurrentIndex(2)
 
 	def onDepGoSeg(self):
-		sourceVolumeNode = slicer.util.getNode( self.ui.depVisListCombo.currentText )
+		sourceVolumeNode = self.ui.depVisCombo.currentNode()
 		slicer.util.selectModule("SegmentEditor")
 
 		# set master volume and geometry
