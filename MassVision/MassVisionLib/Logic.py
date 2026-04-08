@@ -3581,7 +3581,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		slicer.app.processEvents()
 
 	# -------- Robert HMDB Database download code --------
-	def check_and_build_hmdb(self, db_path):
+	def check_and_build_hmdb(self, db_path, buttonClicked=False):
 		"""Checks if the HMDB SQLite database exists. If not, prompts the user with a Yes/No option."""
 		import os
 		import zipfile
@@ -3601,21 +3601,35 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		except ImportError:
 			slicer.util.pip_install("sqlite3")
 
-		if os.path.exists(db_path):
+		db_exists = os.path.exists(db_path)
+		if db_exists and not buttonClicked:
 			return True # Database already exists, skip building and return success!
-
-		# Ask the user if they want to set it up (Yes/No)
-		msgBox = qt.QMessageBox()
-		msgBox.setWindowTitle("HMDB Setup Required")
-		msgBox.setText("The local HMDB database has not been set up yet.")
-		msgBox.setInformativeText(
-			"To search HMDB, you need to set up the local database (requires ~5.5 GB of temporary space during setup, which is then deleted).\n\n"
-			"Would you like to set it up now?"
-		)
-		msgBox.setStandardButtons(qt.QMessageBox.Yes | qt.QMessageBox.No)
-		msgBox.setDefaultButton(qt.QMessageBox.Yes)
-		
-		choice = msgBox.exec_()
+		elif db_exists and buttonClicked:
+			# Database exists, ask if they want to update it
+			updateBox = qt.QMessageBox()
+			updateBox.setWindowTitle("Update HMDB Database")
+			updateBox.setText("The HMDB database is already downloaded on your system.")
+			updateBox.setInformativeText(
+                "Would you like to replace it with an updated version?\n\n"
+                "This will overwrite your existing database."
+            )
+			updateBox.setStandardButtons(qt.QMessageBox.Yes | qt.QMessageBox.No)
+			updateBox.setDefaultButton(qt.QMessageBox.No)
+			choice = updateBox.exec_()
+			if choice == qt.QMessageBox.No:
+				return True # Keep existing database and return success
+		else: # Ask the user if they want to set it up (Yes/No)
+			msgBox = qt.QMessageBox()
+			msgBox.setWindowTitle("HMDB Setup Required")
+			msgBox.setText("The local HMDB database has not been set up yet.")
+			msgBox.setInformativeText(
+				"To search HMDB, you need to set up the local database (requires ~5.5 GB of temporary space during setup, which is then deleted).\n\n"
+				"Would you like to set it up now?"
+			)
+			msgBox.setStandardButtons(qt.QMessageBox.Yes | qt.QMessageBox.No)
+			msgBox.setDefaultButton(qt.QMessageBox.Yes)
+			
+			choice = msgBox.exec_()
 
 		# Handle the "No" choice
 		if choice == qt.QMessageBox.No:
@@ -3626,7 +3640,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 				"LIPID MAPS Only Mode"
 			)
 			return False 
-
+		
 		# Handle the "Yes" choice (Manual download instructions)
 		setupBox = qt.QMessageBox()
 		setupBox.setWindowTitle("HMDB Setup Instructions")
@@ -3634,9 +3648,9 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		setupBox.setInformativeText(
 			"Due to server security, you must download the file manually:\n\n"
 			"1. Go to: https://hmdb.ca/downloads\n"
-			"1. Ensure you are under the tab with the most Current Version"
-			"2. Download the 'All Metabolites' XML file (Under Metabolite and Protein Data (in XML format))).\n"
-			"3. Click 'OK' below and select the .zip file you downloaded."
+			"2. Ensure you are under the tab with the most Current Version\n"
+			"3. Download the 'All Metabolites' XML file (Under Metabolite and Protein Data (in XML format))).\n"
+			"4. Click 'OK' below and select the .zip file you downloaded."
 		)
 		setupBox.exec_()
 
@@ -3807,6 +3821,12 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			progress.close()
 			if os.path.exists(xml_path): 
 				os.remove(xml_path)
+	
+	def default_hmdb_db_path(self):
+		import os
+		base_dir = os.path.dirname(os.path.abspath(__file__))
+		default_db_path = os.path.join(base_dir, "HMDBData", "HMDB_Neutral.db")
+		return default_db_path
 
 	# -------- Robert Pathway Labeling Code -------
 	def run_molecule_matching(self, peaks_str, tolerance_val, adducts_str, tol_unit="Da", database_unit="All",search_all=False, progress_callback=None):
@@ -4226,7 +4246,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		hmdb_conn = None
 		if database_unit in ["All", "HMDB"]:
 			try:
-				setup_success = self.check_and_build_hmdb(args.hmdb_db) 
+				buttonClicked = False
+				setup_success = self.check_and_build_hmdb(args.hmdb_db, buttonClicked) 
 				
 				# Abort the entire search if the user clicks "No" or cancels the file selection
 				if setup_success is False:

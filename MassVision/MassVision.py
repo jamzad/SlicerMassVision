@@ -203,6 +203,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		# Adduct button setup
 		self.ui.exportpeaklabelsCSVbutton.connect('clicked(bool)', self.onExportPeakLabelExcel)
 		self.ui.loadmzvaluescsvpushButton.connect('clicked(bool)', self.onLoadMzValuesCsv)
+		self.ui.loadmzvaluescsvpushButton.connect('clicked(bool)', self.onLoadMzValuesCsv)
 		# Radiobutton setup
 		self.ui.findclosestcandidateradioButton.setChecked(True) # Set the default starting button
 		self.buttonGroup = qt.QButtonGroup()
@@ -361,6 +362,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		
 		# ----- Robert button connection --------
 		self.ui.labelpeaksbutton.connect("clicked(bool)", self.onLabelPeaks)
+		self.ui.HMDBDownloadpushButton.connect("clicked(bool)", self.onUpdateHMDBDatabase)
 
 		self.ui.ExportPushBotton.connect("clicked(bool)",self.onExport)
 
@@ -1473,7 +1475,15 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			return True
 		else:
 			return False
-
+	def onUpdateHMDBDatabase(self):
+		"""Updates the HMDB database by calling the logic function and displays a message box with the result."""
+		import slicer
+		db_path = self.logic.default_hmdb_db_path()	
+		buttonClicked = True
+		result = self.logic.check_and_build_hmdb(db_path, buttonClicked)
+		if result:
+			slicer.util.infoDisplay("HMDB database updated successfully!")
+	
 	def onLabelPeaks(self):
 		' Function to label the peaks based on the inputted m/z values, tolerance, and adducts. '
 		'It also handles the UI updates to show the results in a table and allows for pathway searching. '

@@ -5727,6 +5727,19 @@ color: rgb(255, 255, 255);</string>
      </property>
     </widget>
    </widget>
+   <widget class="QPushButton" name="HMDBDownloadpushButton">
+    <property name="geometry">
+     <rect>
+      <x>230</x>
+      <y>210</y>
+      <width>131</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Update HMDB Database</string>
+    </property>
+   </widget>
   </widget>
  </widget>
  <customwidgets>
