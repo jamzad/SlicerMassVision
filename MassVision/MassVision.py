@@ -431,14 +431,22 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		# Dataset generation
 		self.ui.gotoRegistration.connect("clicked(bool)", self.landmark)
+
+		self.ui.segVolCombo1.setMRMLScene(slicer.mrmlScene)
+		self.ui.segVolCombo2.setMRMLScene(slicer.mrmlScene)
+
 		self.ui.segmentEditor.connect("clicked(bool)", self.showSegmentEditor)
 		self.ui.roiContrast.connect("clicked(bool)", self.onROIContrast)
 		self.ui.roiContrastLDA.connect("clicked(bool)", self.onROIContrastLDA)
 
 		self.ui.roiSimilarity.connect("clicked(bool)", self.onROISimilarity)
+		self.ui.roiExpand.connect("clicked(bool)", self.onROIExpand)
 
 		self.ui.segmentVisibility.connect("clicked(bool)", self.onSegmentVisibility)
+
 		self.ui.createCSVbutton.connect("clicked(bool)",self.onCSVconnect)
+		self.ui.createMetadata.connect("clicked(bool)", lambda checked: self.onCSVconnect(meta_only=True))
+
 		self.ui.saveScenePush.connect("clicked(bool)",self.onSaveScene)
 
 		# Multi-slide alignment
@@ -516,7 +524,13 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.deployAGGcheck.connect("clicked(bool)", self.onDeployAggCheck)
 
 		self.ui.depMaskcheck.connect("clicked(bool)", self.onDepMaskcheck)
+
+		self.ui.depPCAVis.connect("clicked(bool)", self.onPCAButton)
 		self.ui.depGoVisButton.connect("clicked(bool)", self.onDepGoVis)
+
+		self.ui.depVisCombo.setMRMLScene(slicer.mrmlScene)
+		self.ui.depVisCombo.setEnabled(False)
+		
 		self.ui.depGoSegEdButton.connect("clicked(bool)", self.onDepGoSeg)
 
 		self.ui.deployRun.connect("clicked(bool)", self.onApplyDeployment)	
@@ -957,7 +971,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		# logic processes pca in the ROI
 		self.logic.roi_lda_display(label_mask, extend=self.ui.roiCintrastExtend.isChecked())
 
-	def getSegmentData(delf):
+	def getSegmentData(self):
 		"""get the mask, color, and name of the segmentations"""
 
 		segmentationNode = slicer.mrmlScene.GetFirstNodeByClass('vtkMRMLSegmentationNode')
@@ -974,12 +988,25 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			segName.append(segment_name)
 			segColor.append(segment_color)
 
-		return segMask, segName, segColor
+		return segMask, segName, segColor, segmentationNode, segment_IDs
+
 
 	def onROISimilarity(self):
-		segMask, segName, segColor = self.getSegmentData()
+		segMask, segName, segColor, _, _ = self.getSegmentData()
 		similarity_threshold = self.ui.similarityThreshold.value
-		self.logic.roi_similarity_map(segMask, segName, segColor, similarity_threshold)
+		_ = self.logic.roi_similarity_map(segMask, segName, segColor, similarity_threshold)
+
+	def onROIExpand(self):
+		segMask, segName, segColor, segmentationNode, segID = self.getSegmentData()
+		similarity_threshold = self.ui.similarityThreshold.value
+		roi_expansion_ind = self.logic.roi_similarity_map(segMask, segName, segColor, similarity_threshold)
+		for ind in range(len(segMask)):
+			mask = segMask[ind]
+			mask[roi_expansion_ind==ind] = 1
+			slicer.util.updateSegmentBinaryLabelmapFromArray(
+				mask,
+				segmentationNode,
+				segID[ind])
 
 	def onSegmentVisibility(self):
 		lm = slicer.mrmlScene.GetFirstNodeByClass('vtkMRMLSegmentationNode')
@@ -1360,15 +1387,14 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		pluginHandlerSingleton.pluginByName('Default').switchToModule("LandmarkRegistration")
 
 	def showSegmentEditor(self):
-		segVol1 = self.ui.segVollist1.currentText
-		segVol2 = self.ui.segVollist2.currentText
+		segSelect1Node = self.ui.segVolCombo1.currentNode()
+		segSelect2Node = self.ui.segVolCombo2.currentNode()
 
-		if segVol1!='None':
+		if segSelect1Node:
 		
 			slicer.util.selectModule("SegmentEditor")
 
 			# set master volume and geometry
-			segSelect1Node = slicer.util.getNode( segVol1 )
 			sourceVolumeNode = segSelect1Node
 			segmentEditorNode = slicer.util.getNodesByClass('vtkMRMLSegmentEditorNode')[0]
 			segmentationNode = slicer.util.getNodesByClass('vtkMRMLSegmentationNode')[0]
@@ -1385,12 +1411,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
 			RedNode.SetOrientation("Axial")
 
-			if segVol2=='None':
+			if not segSelect2Node:
 				slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
-				slicer.util.resetSliceViews()
 
 			else:
-				segSelect2Node = slicer.util.getNode( segVol2 )
 				YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
 				YellowCompNode.SetBackgroundVolumeID(segSelect2Node.GetID())
 				YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
@@ -1398,19 +1422,26 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 				RedCompNode.SetLinkedControl(True)
 				YellowCompNode.SetLinkedControl(True)
 				slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutSideBySideView)
-				slicer.util.resetSliceViews()
+				
+			slicer.util.resetSliceViews()
 
   
-	def onCSVconnect(self):
+	def onCSVconnect(self, meta_only=False):
 		fileExplorer = qt.QFileDialog()
 		# defaultSave = self.ui.filenameTextBrowser.toPlainText()[:-4]+'_dataset'
-		defaultSave = self.ui.ImportlineEdit.text[:-4]+'_dataset'
+		defaultSave = os.path.splitext(self.ui.ImportlineEdit.text)[0]
+		if meta_only:
+			defaultSave += '_metadata'
+		else:
+			defaultSave += '_dataset'
 		
 		savepath = fileExplorer.getSaveFileName(None, "Save aligned dataset", defaultSave, "CSV Files (*.csv);;All Files (*)")
 		
-		retstr = self.logic.csvGeneration(savepath)
+		retstr = self.logic.csvGeneration(savepath, meta_only)
 		self.ui.csvcreateTextBrowser.setText(retstr)
-		self.logic.segmentationSave(savepath)
+
+		if meta_only:
+			self.logic.segmentationSave(savepath)
 	
 	def onSaveScene(self):
 		print('saving the project...')
@@ -1429,32 +1460,26 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			self.ui.tabWidget.setTabText(i, "")     
 		self.ui.tabWidget.setTabText(index, tab_names[index])
 		print('selected tab:',index, self.ui.tabWidget.tabText(index))
-		if index==10:
-			self.updateDepVisList()
+		if index==9:
+			# self.updateDepVisList()
 			self.updateDepSegList()
-		elif index==3:
-			self.updateVolumeList()
+		# elif index==3:
+		# 	self.updateVolumeList()
 	
 	def onModuleChange(self):
-		self.updateDepVisList()
+		# self.updateDepVisList()
 		self.updateDepSegList()
-		self.updateVolumeList()
+		# self.updateVolumeList()
 
-	def updateVolumeList(self):
-		self.ui.segVollist1.clear()
-		self.ui.segVollist1.addItem('None')
-		self.ui.segVollist2.clear()
-		self.ui.segVollist2.addItem('None')
-		volumeNodes = slicer.util.getNodesByClass('vtkMRMLScalarVolumeNode')
-		for volumeNode in volumeNodes:
-			self.ui.segVollist1.addItem(volumeNode.GetName())
-			self.ui.segVollist2.addItem(volumeNode.GetName())
-
-	def updateDepVisList(self):
-		self.ui.depVisListCombo.clear()
-		volumeNodes = slicer.util.getNodesByClass('vtkMRMLScalarVolumeNode')
-		for volumeNode in volumeNodes:
-			self.ui.depVisListCombo.addItem(volumeNode.GetName())
+	# def updateVolumeList(self):
+	# 	self.ui.segVollist1.clear()
+	# 	self.ui.segVollist1.addItem('None')
+	# 	self.ui.segVollist2.clear()
+	# 	self.ui.segVollist2.addItem('None')
+	# 	volumeNodes = slicer.util.getNodesByClass('vtkMRMLScalarVolumeNode')
+	# 	for volumeNode in volumeNodes:
+	# 		self.ui.segVollist1.addItem(volumeNode.GetName())
+	# 		self.ui.segVollist2.addItem(volumeNode.GetName())
 
 	def updateDepSegList(self):
 		segmentationNode = slicer.util.getNodesByClass('vtkMRMLSegmentationNode')
@@ -2653,7 +2678,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.visRenormalize()
 		self.logic.heatmap_display()
 		self.populateMzLists()
-		self.updateDepVisList()
+		# self.updateDepVisList()
   
 	def onDeployModelSel(self):
 		fileExplorer = qt.QFileDialog()
@@ -2720,7 +2745,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			state = False
 		self.ui.depGoVisButton.setEnabled(state)
 		self.ui.depVisSelLabel.setEnabled(state)
-		self.ui.depVisListCombo.setEnabled(state)
+		self.ui.depVisCombo.setEnabled(state)
+		self.ui.depPCAVis.setEnabled(state)
 		self.ui.depGoSegEdButton.setEnabled(state)
 		self.ui.depSegListLabel.setEnabled(state)
 		self.ui.depSegListCombo.setEnabled(state)
@@ -2729,7 +2755,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.tabWidget.setCurrentIndex(2)
 
 	def onDepGoSeg(self):
-		sourceVolumeNode = slicer.util.getNode( self.ui.depVisListCombo.currentText )
+		sourceVolumeNode = self.ui.depVisCombo.currentNode()
 		slicer.util.selectModule("SegmentEditor")
 
 		# set master volume and geometry
@@ -2751,16 +2777,16 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
 		slicer.util.resetSliceViews()
 
-	def onDepSegListUpdate(self):
-		segmentationNode = slicer.util.getNodesByClass('vtkMRMLSegmentationNode')[0]
-		segmentation = segmentationNode.GetSegmentation()
-		segIDs = segmentation.GetSegmentIDs()
-		segNames = [segmentation.GetSegment(segID).GetName() for segID in segIDs]
+	# def onDepSegListUpdate(self):
+	# 	segmentationNode = slicer.util.getNodesByClass('vtkMRMLSegmentationNode')[0]
+	# 	segmentation = segmentationNode.GetSegmentation()
+	# 	segIDs = segmentation.GetSegmentIDs()
+	# 	segNames = [segmentation.GetSegment(segID).GetName() for segID in segIDs]
 
-		self.ui.depSegListCombo.clear()
-		self.ui.depSegListCombo.addItem('None')
-		for segName in segNames:
-			self.ui.segVollist1.addItem(segName)
+	# 	self.ui.depSegListCombo.clear()
+	# 	self.ui.depSegListCombo.addItem('None')
+	# 	for segName in segNames:
+	# 		self.ui.segVollist1.addItem(segName)
 
 	def onApplyDeployment(self):
 		# spectrum normalization

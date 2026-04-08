@@ -1701,8 +1701,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	
 
 	# gets the segmentations, saves as an excel file
-	def csvGeneration(self, filename):
-		csv_columns = ['Slide','Class','Y','X'] + [str(x) for x in self.mz] #[int(self.dim_y), int(self.dim_x)]+list(self.mz)
+	def csvGeneration(self, filename, meta_only=False):
+
+		csv_columns = ['Slide','Class','Y','X']
+		if not meta_only:
+			csv_columns += [str(x) for x in self.mz] #[int(self.dim_y), int(self.dim_x)]+list(self.mz)
 
 		segmentationNode = slicer.util.getNodesByClass('vtkMRMLSegmentationNode')[0]
 		segmentation = segmentationNode.GetSegmentation()
@@ -1721,7 +1724,12 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 				x_col = x.reshape(-1,1)
 				name_col = np.array([self.slideName]*n_pixels).reshape(-1,1)
 				class_col = np.array([segNames[i].lower()]*n_pixels).reshape(-1,1)
-				seg_data = np.concatenate((name_col, class_col, y_col, x_col, self.peaks[inds]), axis=1)
+
+				if meta_only:
+					seg_data = np.concatenate((name_col, class_col, y_col, x_col), axis=1)
+				else:
+					seg_data = np.concatenate((name_col, class_col, y_col, x_col, self.peaks[inds]), axis=1)
+
 				csv_data.append(seg_data)
 
 		csv_data = np.concatenate(csv_data, axis=0)
@@ -1731,7 +1739,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		sample_label = ["spectra", "pixels"]
 		branches = ["├── ", "└── "]
 
-		retstr = 'Dataset successfully created! \n'
+		
+		retstr = f"{ ['Dataset', 'Metadata'][meta_only] } successfully created! \n"
 		retstr += os.path.basename(filename) + '\n\n'
 		retstr += f"classes:\t {n_classes} \n"
 		retstr += f"{sample_label[self.AppMode]}:\t {csv_data.shape[0]} \n"
@@ -1742,8 +1751,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			retstr += f'{branch} {str(y).ljust( len( str(sum(class_lens)) )+2 )} {sample_label[self.AppMode]} in  {x} \n'
 
 		return retstr
-
-	# gets the segmentations, saves them as images to directory they are working in 
+	
+	# gets the segmentations, saves them as images
 	def segmentationSave(self, savepath):
 		segmentationNode = slicer.util.getNodesByClass('vtkMRMLSegmentationNode')[0]
 		segmentation = segmentationNode.GetSegmentation()
@@ -3515,22 +3524,30 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		return volumeNode
 
 	def roi_similarity_map(self, segMask, segName, segColor, similarity_threshold):
-		pixel_locs, pixel_classes, pixel_colors = [], [], []
+		pixel_locs = []
+		# pixel_classes = []
+		pixel_colors = []
+		pixel_ind = []
+
 		for i in range(len(segMask)):
 			mask_inds = np.where(segMask[i].ravel())[0]
 			pixel_locs.append(mask_inds)
-			pixel_classes.append([segName[i]]*len(mask_inds))
+			# pixel_classes.append([segName[i]]*len(mask_inds))
 			pixel_colors.append([segColor[i]]*len(mask_inds))
+			pixel_ind.append([i]*len(mask_inds))
+
 		pixel_locs = np.concatenate(pixel_locs)
-		pixel_classes = np.concatenate(pixel_classes)
+		# pixel_classes = np.concatenate(pixel_classes)
 		pixel_colors = np.concatenate(pixel_colors)
+		pixel_ind = np.concatenate(pixel_ind)
 
 		pixel_peaks = self.peaks_norm[pixel_locs]
 
 		peaks_similarity = cosine_similarity(pixel_peaks, self.peaks_norm) # n_mask_pixels, n_all_pixels
 		max_similarity_ind = np.argmax(peaks_similarity, axis=0)
 		max_similarity_value = np.max(peaks_similarity, axis=0) # n_all_pixels,
-		max_similarity_colors = pixel_colors[max_similarity_ind] # n_all_pixels, 3
+		similarity_class = pixel_colors[max_similarity_ind] # n_all_pixels, 3
+		# max_similarity_colors = pixel_colors[max_similarity_ind] # n_all_pixels, 3
 		# max_similarity_classes = pixel_classes[max_similarity_ind]
 		# max_similarity_heatmap = max_similarity_colors * max_similarity_value[:, None]
 
@@ -3542,11 +3559,18 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# similarity_heatmap = (np.expand_dims(similarity_heatmap, axis=0)*255).astype('int')
 		# self.visualizationRunHelper(similarity_heatmap, similarity_heatmap.shape, visualization_type='similarity_heatmap')
 
-		similarity_class = max_similarity_colors.copy()
+		# similarity_class = max_similarity_colors.copy()
 		similarity_class[max_similarity_value<similarity_threshold] = 0 # remove pixels with similarity lower than a treshold
 		similarity_class = similarity_class.reshape((self.dim_y,self.dim_x,3),order='C')
 		similarity_class = (np.expand_dims(similarity_class, axis=0)*0.9*255).astype('int')
 		self.visualizationRunHelper(similarity_class, similarity_class.shape, visualization_type='similarity_assignment')
+
+		# for roi extension
+		similarity_ind = pixel_ind[max_similarity_ind]
+		similarity_ind[max_similarity_value<similarity_threshold] = -1
+		similarity_ind = similarity_ind.reshape((self.dim_y,self.dim_x),order='C')
+		similarity_ind = np.expand_dims(similarity_ind, axis=0)
+		return similarity_ind
 
 	def createCustomColorTable(self, segmentationNode):
 		# Create a new color table
