@@ -195,7 +195,65 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.statGroup1combo.setVisible(False)
 		self.ui.statGroup2Lab.setVisible(False)
 		self.ui.statGroup2combo.setVisible(False)
+
+		# --- Robert Addition of Buttons and Items For Peak Labeling ---
+		self.current_results_df = None
+		self.ui.inputtedpeakslineedit.setPlaceholderText("e.g., 302.1594, 281.231")
+		self.ui.moleculetoleranacelineedit.setPlaceholderText("e.g., 0.1, 0.005") 
+		# Adduct button setup
+		self.ui.exportpeaklabelsCSVbutton.connect('clicked(bool)', self.onExportPeakLabelExcel)
+		self.ui.loadmzvaluescsvpushButton.connect('clicked(bool)', self.onLoadMzValuesCsv)
+		self.ui.loadmzvaluescsvpushButton.connect('clicked(bool)', self.onLoadMzValuesCsv)
+		# Radiobutton setup
+		self.ui.findclosestcandidateradioButton.setChecked(True) # Set the default starting button
+		self.buttonGroup = qt.QButtonGroup()
+		self.buttonGroup.addButton(self.ui.findclosestcandidateradioButton)
+		self.buttonGroup.addButton(self.ui.findallcandidatesradioButton)
+		self.buttonGroup.buttonClicked.connect(self.onRadioButtonClicked)
 		
+		# --- Robert Addition for link opening ----
+		self.ui.displaypatwaystextbrowser.setOpenLinks(False)
+		self.ui.displaypatwaystextbrowser.anchorClicked.connect(self.onLinkClicked)
+		layoutManager = slicer.app.layoutManager()
+		self.redWidget = layoutManager.sliceWidget('Red')
+			# Create a Container to hold the web UI
+		self.webContainer = qt.QWidget()
+		self.webContainer.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding) 
+		self.webContainerLayout = qt.QVBoxLayout(self.webContainer)
+		self.webContainerLayout.setContentsMargins(0, 0, 0, 0) # Full screen, no margins
+			# Create the "Close" button
+		self.closeBrowserButton = qt.QPushButton("Close Pathway Explorer (Return to Image)")
+		self.closeBrowserButton.setStyleSheet("background-color: #d9534f; color: white; font-weight: bold; padding: 8px;")
+		self.closeBrowserButton.clicked.connect(self.hideInternalBrowser)
+			# Create the Web View and force it to expand
+		self.internalBrowser = slicer.qSlicerWebWidget()
+		self.internalBrowser.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding)
+			# Add the button and browser to the Container
+		self.webContainerLayout.addWidget(self.closeBrowserButton)
+		self.webContainerLayout.addWidget(self.internalBrowser, 1) 
+			# Insert the Container at the top of the Red node with a stretch factor
+		self.redWidget.layout().insertWidget(0, self.webContainer, 1) 
+		self.webContainer.hide()
+
+		# --- UI Setup for Peak Labeling ---
+			# Configure the display table created in Qt Designer
+		self.ui.moleculesTableWidget.setColumnCount(7)
+		self.ui.moleculesTableWidget.setHorizontalHeaderLabels(['Select', 'Searched m/z', 'Adduct', 'Molecule', 'Source ID','KEGG ID', 'Error'])
+		header = self.ui.moleculesTableWidget.horizontalHeader()
+			# Shrink the Checkbox, m/z, and Adduct columns to be as small as possible
+		header.setSectionResizeMode(0, qt.QHeaderView.ResizeToContents) 
+		header.setSectionResizeMode(1, qt.QHeaderView.ResizeToContents) 
+		header.setSectionResizeMode(2, qt.QHeaderView.ResizeToContents)
+			# Stretch the Molecule Name column to absorb all the extra empty space
+		header.setSectionResizeMode(3, qt.QHeaderView.Stretch)
+			# Shrink the KEGG ID and Error columns
+		header.setSectionResizeMode(4, qt.QHeaderView.ResizeToContents)
+		header.setSectionResizeMode(5, qt.QHeaderView.ResizeToContents)
+		header.setSectionResizeMode(6, qt.QHeaderView.ResizeToContents)
+			# Connect the button created in Qt Designer
+		self.ui.searchPathwaysButton.connect('clicked(bool)', self.onSearchPathways)
+		# ------- End of Robert Additions for this section --------
+
 		# Set logo in UI
 		logo_path = self.resourcePath('Icons/UI_nameM.png')
 		# logo_path = self.resourcePath('Icons/UI_logoS.png')
@@ -211,7 +269,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.placeFiducial_sim.setIcon(qt.QIcon(icon_path))
 
 		# Set tab widget tooltip and icons
-		icon_names = ['home', 'file', 'visualization', 'dataset', 'alignment', 'preprocess', 'stat', 'train', 'report', 'inference']
+		# ---Robert Added Icon Name 'label'------
+		icon_names = ['home', 'file', 'visualization', 'dataset', 'alignment', 'preprocess', 'stat', 'train', 'report', 'inference', 'label']
 		for i in range(self.ui.tabWidget.count):
 			tabText = self.ui.tabWidget.tabText(i)
 			self.ui.tabWidget.setTabText(i, "")            
@@ -300,6 +359,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.lockmassCheck.connect("clicked(bool)", self.onLockmassCheck)
 		self.ui.rawrangeCheck.connect("clicked(bool)", self.onRawrangCheck)
 		self.ui.rawProcess.connect("clicked(bool)", self.onRawProcess)
+		
+		# ----- Robert button connection --------
+		self.ui.labelpeaksbutton.connect("clicked(bool)", self.onLabelPeaks)
+		self.ui.HMDBDownloadpushButton.connect("clicked(bool)", self.onUpdateHMDBDatabase)
 
 		self.ui.ExportPushBotton.connect("clicked(bool)",self.onExport)
 
@@ -1390,8 +1453,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		slicer.util.saveScene(savepath)
 
 
+	# ---- Robert 'Peak Labelling' added to tab_names ------
 	def onTabChange(self, index):
-		tab_names = ['Home', 'Data', 'Visualization', 'Dataset', 'Alignment', 'Preprocessing', 'Statistical', 'AI training', 'AI Report', 'AI deployment']
+		tab_names = ['Home', 'Data', 'Visualization', 'Dataset', 'Alignment', 'Preprocessing', 'Statistical', 'AI training', 'AI Report', 'AI deployment', 'Peak Labelling']
 		for i in range(self.ui.tabWidget.count):
 			self.ui.tabWidget.setTabText(i, "")     
 		self.ui.tabWidget.setTabText(index, tab_names[index])
@@ -1428,7 +1492,400 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			self.ui.depSegListCombo.clear()
 			for segName in segNames:
 				self.ui.depSegListCombo.addItem(segName)
+	
+	#----- Robert Peak Labeling Running/Functions to do so -------
+	def onRadioButtonClicked(self):
+		"""Returns True if 'find all' is selected, False if 'find closest' is selected."""
+		if self.ui.findallcandidatesradioButton.isChecked():
+			return True
+		else:
+			return False
+	def onUpdateHMDBDatabase(self):
+		"""Updates the HMDB database by calling the logic function and displays a message box with the result."""
+		import slicer
+		db_path = self.logic.default_hmdb_db_path()	
+		buttonClicked = True
+		result = self.logic.check_and_build_hmdb(db_path, buttonClicked)
+		if result:
+			slicer.util.infoDisplay("HMDB database updated successfully!")
+	
+	def onLabelPeaks(self):
+		' Function to label the peaks based on the inputted m/z values, tolerance, and adducts. '
+		'It also handles the UI updates to show the results in a table and allows for pathway searching. '
+		import slicer
+		#Gather inputs
+		raw_peaks = self.ui.inputtedpeakslineedit.text
+		tolerance_str = self.ui.moleculetoleranacelineedit.text
+		checked_items = []
+		if self.ui.mhposcheckbox_2.isChecked():
+			checked_items.append("M+H")
+		if self.ui.mnaposcheckbox_2.isChecked():
+			checked_items.append("M+Na")
+		if self.ui.mkposcheckbox_2.isChecked():
+			checked_items.append("M+K")
+		if self.ui.mnh4poscheckbox_2.isChecked():
+			checked_items.append("M+NH4")
+		if self.ui.mhnegcheckbox_2.isChecked():
+			checked_items.append("M-H")
+		if self.ui.mclnegcheckbox_2.isChecked():
+			checked_items.append("M+Cl")
+		if self.ui.mfnegcheckbox_2.isChecked():
+			checked_items.append("M-F")
+		if self.ui.mch3coonegcheckbox_2.isChecked():
+			checked_items.append("M+CH3COO")
+		if self.ui.noadductcheckbox_2.isChecked():
+			checked_items.append("Neutral")
+		adducts_text = ",".join(checked_items)
+		#use_broad_pathways = self.ui.nonspecificpathwayscheckbox.isChecked()
+		
+		search_all = self.onRadioButtonClicked()
+		tol_unit = self.ui.toleranceunitcombobox.currentText
+		database_unit = self.ui.databasecombobox.currentText
 
+		# Validation and error handling
+		if not raw_peaks:
+			slicer.util.errorDisplay("Please enter at least one peak m/z value.")
+			return
+		try:
+			tolerance = float(tolerance_str)
+		except ValueError:
+			slicer.util.errorDisplay("Tolerance must be a valid number!")
+			return
+		if not adducts_text:
+			slicer.util.errorDisplay("Please select at least one adduct.")
+			return
+		
+		# Update UI to show it's working (API calls take time)
+		self.ui.displaypatwaystextbrowser.show()
+		slicer.app.processEvents()
+		
+		progress_dialog = slicer.util.createProgressDialog(labelText="Finding Molecules...", maximum=100)
+		def update_progress(message, percentage):
+			progress_dialog.labelText = message
+			progress_dialog.setValue(percentage)
+			slicer.app.processEvents()
+
+		try:
+			# Run the molecule matching logic
+			results_df = self.logic.run_molecule_matching(
+				raw_peaks, tolerance, adducts_text, tol_unit, database_unit, search_all, update_progress
+			)
+			self.current_results_df = results_df
+
+			if results_df is None or (isinstance(results_df, str)) or results_df.empty:
+				self.ui.moleculesTableWidget.setRowCount(0)
+				slicer.util.infoDisplay("No molecule matches found for the given peaks and parameters.")
+				return
+			results_df = results_df.sort_values(by=['Searched_m/z', 'DELTA'])
+			results_df = results_df.reset_index(drop=True)
+			self.current_results_df = results_df
+			self.current_pathway_df = None
+
+			self.ui.displaypatwaystextbrowser.setText("") # Clear out old results
+			
+			self.ui.moleculesTableWidget.show()
+			self.ui.searchPathwaysButton.show()
+			self.ui.moleculesTableWidget.setHorizontalHeaderLabels(['Select', 'Searched m/z', 'Adduct', 'Molecule', 'Source ID', 'KEGG ID', f'Error ({tol_unit})'])
+			self.ui.moleculesTableWidget.setRowCount(0)
+			slicer.app.processEvents() 
+
+			# Populate the Table
+			self.ui.moleculesTableWidget.setRowCount(len(results_df))
+			for i, row in results_df.iterrows():
+				chk_item = qt.QTableWidgetItem()
+				chk_item.setFlags(qt.Qt.ItemIsUserCheckable | qt.Qt.ItemIsEnabled)
+				chk_item.setCheckState(qt.Qt.Checked) 
+				chk_item.setData(qt.Qt.UserRole, i)
+
+				self.ui.moleculesTableWidget.setItem(i, 0, chk_item)
+				self.ui.moleculesTableWidget.setItem(i, 1, qt.QTableWidgetItem(str(row.get('Searched_m/z', ''))))
+				self.ui.moleculesTableWidget.setItem(i, 2, qt.QTableWidgetItem(str(row.get('Adduct', ''))))
+				self.ui.moleculesTableWidget.setItem(i, 3, qt.QTableWidgetItem(str(row.get('COMMON_NAME', ''))))
+				self.ui.moleculesTableWidget.setItem(i, 4, qt.QTableWidgetItem(str(row.get('Source ID', ''))))
+
+				kegg_id = str(row.get('KEGG_ID', ''))
+				# If KEGG ID is valid, make it a clickable link to the KEGG entry; otherwise just display the text
+				if kegg_id and kegg_id.startswith('C'):
+					link_label = qt.QLabel(f'<a href="https://www.kegg.jp/entry/{kegg_id}" style="color: #2980b9; text-decoration: underline;">{kegg_id}</a>')
+					link_label.setTextFormat(qt.Qt.RichText)
+					link_label.setTextInteractionFlags(qt.Qt.TextBrowserInteraction)
+					link_label.setAlignment(qt.Qt.AlignVCenter | qt.Qt.AlignLeft)
+					link_label.setStyleSheet("margin-left: 5px;")
+					link_label.linkActivated.connect(self.onTableLinkClicked)
+					
+					self.ui.moleculesTableWidget.setCellWidget(i, 5, link_label)
+				else:
+					self.ui.moleculesTableWidget.setItem(i, 5, qt.QTableWidgetItem(kegg_id))
+
+				self.ui.moleculesTableWidget.setItem(i, 6, qt.QTableWidgetItem(str(row.get('DELTA', ''))))
+				
+		finally:
+			progress_dialog.close()
+
+	def onSearchPathways(self):
+		"""Triggered when the user clicks 'Search Pathways' after selecting molecules.
+		It gathers the selected molecules, runs the pathway search logic, and updates the UI with results."""
+		self.ui.displaypatwaystextbrowser.clear()
+		selected_indices = []
+		
+		# Gather all rows where the checkbox is ticked
+		for row in range(self.ui.moleculesTableWidget.rowCount):
+			chk_item = self.ui.moleculesTableWidget.item(row, 0)
+			if chk_item is not None and chk_item.checkState() == qt.Qt.Checked:
+				df_idx = chk_item.data(qt.Qt.UserRole)
+				selected_indices.append(df_idx)
+
+		if not selected_indices:
+			slicer.util.errorDisplay("Please select at least one molecule to search pathways for.")
+			return
+
+		filtered_df = self.current_results_df.loc[selected_indices].copy()
+		filter_human = self.ui.onlyhumanpathwayscheckbox.isChecked()
+
+		# Update UI to show it's working (API calls take time)
+		progress_dialog = slicer.util.createProgressDialog(labelText="Searching Pathways...", maximum=100)
+		def update_progress(message, percentage):
+			progress_dialog.labelText = message
+			progress_dialog.setValue(percentage)
+			slicer.app.processEvents()
+
+		# Get Final Pathway DataFrame and update UI
+		try:
+			final_df = self.logic.run_pathway_search(filtered_df, filter_human, update_progress)
+			self.current_pathway_df = final_df
+			self.ui.displaypatwaystextbrowser.show()
+			
+			slicer.app.processEvents()
+
+			if final_df is None or final_df.empty or 'Pathway_Name' not in final_df.columns:
+				self.ui.displaypatwaystextbrowser.setText("No pathways found for the selected molecules.")
+			else:
+				self.renderHtmlPathwayResults(final_df, self.ui.moleculetoleranacelineedit.text, self.ui.toleranceunitcombobox.currentText)
+
+		finally:
+			progress_dialog.close()
+
+	def renderHtmlPathwayResults(self, results_df, tolerance, tol_unit):
+		"""Generates and sets the HTML layout for the final pathway results."""
+		output_html = f"""
+		<html>
+		<head>
+		<style>
+			body {{ font-family: Arial, sans-serif; color: #333; }}
+			h3 {{ color: #2c3e50; margin-bottom: 2px; }}
+			h4 {{ color: #1a5276; margin-top: 20px; margin-bottom: 5px; border-bottom: 2px solid #1a5276; padding-bottom: 3px; }}
+			p {{ margin-top: 0px; color: #555; }}
+			table {{ border-collapse: collapse; width: 100%; margin-bottom: 15px; }}
+			th, td {{ padding: 6px 10px; text-align: left; border-bottom: 1px solid #d4d4d4; }}
+			th {{ background-color: #e0e0e0; font-weight: bold; color: #333; }}
+			tr:nth-child(even) {{ background-color: #f9f9f9; }}
+		</style>
+		</head>
+		<body>
+			<h3>Matching & Pathways Complete</h3>
+			<p><b>Searched Tolerance:</b> {tolerance} {tol_unit}</p>
+		"""
+		
+		display_cols = ['Searched_m/z', 'Adduct', 'COMMON_NAME', 'Source ID', 'KEGG_ID', 'DELTA', 'Pathway_Name', 'Pathway_ID']
+		
+		for mz_val, group_df in results_df.groupby('Searched_m/z'):
+			display_df = group_df[[col for col in display_cols if col in group_df.columns]].copy()
+			display_df = display_df.sort_values(by=['Adduct', 'KEGG_ID'])
+
+			# Make KEGG_ID and Pathway_Name clickable links if the relevant information is present
+			if 'Pathway_ID' in display_df.columns:
+				display_df['Pathway_Name'] = '<a href="https://www.kegg.jp/pathway/' + display_df['Pathway_ID'] + '" style="color: #2980b9; text-decoration: none;">' + display_df['Pathway_Name'] + '</a>'
+				display_df.drop(columns=['Pathway_ID'], inplace=True)
+				
+			if 'KEGG_ID' in display_df.columns:
+				display_df['KEGG_ID'] = '<a href="https://www.kegg.jp/entry/' + display_df['KEGG_ID'] + '" style="color: #2980b9; text-decoration: none;">' + display_df['KEGG_ID'] + '</a>'
+
+			display_df.rename(columns={
+				'Searched_m/z': 'Searched m/z', 'Adduct': 'Adduct', 'COMMON_NAME': 'Molecule', 'Source ID': 'Source ID',
+				'KEGG_ID': 'KEGG ID', 'DELTA': f'Error ({tol_unit})', 'Pathway_Name': 'Pathway'
+			}, inplace=True)
+			
+			if 'Searched m/z' in display_df.columns:
+				display_df.drop(columns=['Searched m/z'], inplace=True)
+
+			output_html += f"<h4>>> Matches for m/z: {mz_val} <<</h4>\n"
+			output_html += display_df.to_html(index=False, border=0, justify='left', escape=False)
+
+		output_html += "</body></html>"
+		self.ui.displaypatwaystextbrowser.setText(output_html)
+	
+	def onExportPeakLabelExcel(self):
+		"""Export the pathway results to an excel file, preserving URLs."""
+		# Import openpyxl for Excel writing and hyperlink support        
+		try:
+			import openpyxl
+			from openpyxl.styles import Font
+		except ModuleNotFoundError:
+			slicer.util.pip_install("openpyxl")
+			import openpyxl
+			from openpyxl.styles import Font
+		
+        # Check if there is actually data to save
+		df_to_export = None
+		if hasattr(self, 'current_pathway_df') and self.current_pathway_df is not None and not self.current_pathway_df.empty:
+			df_to_export = self.current_pathway_df.copy()
+
+		if df_to_export is None:
+			slicer.util.infoDisplay("There are no results to export. Please run a pathway search first.")
+			return
+		
+		# Do not save the LIPID_CLASS column if it exists, as it is not relevant to the user
+		df_to_export.drop(columns=['LIPID_CLASS', 'FORMULA'], inplace=True, errors='ignore')
+
+        # Open a "Save As" dialog window
+		default_name = "Pathway_Labeling_Results.xlsx"
+		file_path = qt.QFileDialog.getSaveFileName(
+            None, 
+            "Save Results as excel", 
+            default_name, 
+            "Excel Files (*.xlsx)"
+        )
+
+        # If the user clicked "Save" (and didn't hit cancel)
+		if file_path:
+			try:
+                # Force the extension to be .xlsx 
+				if not file_path.lower().endswith('.xlsx'):
+					file_path = os.path.splitext(file_path)[0] + '.xlsx'
+
+                # Use Pandas ExcelWriter to save the base data
+				with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+					df_to_export.to_excel(writer, index=False, sheet_name='Pathways')
+                    
+                    # Access the underlying workbook to add native links
+					workbook = writer.book
+					worksheet = workbook['Pathways']
+                    
+                    # Standard Excel hyperlink styling (Blue and Underlined)
+					link_font = Font(color="0563C1", underline="single")
+                    
+                    # Find which column numbers belong to our IDs (openpyxl is 1-indexed)
+					columns = df_to_export.columns.tolist()
+					kegg_col_idx = columns.index('KEGG_ID') + 1 if 'KEGG_ID' in columns else None
+					path_name_idx = columns.index('Pathway_Name') + 1 if 'Pathway_Name' in columns else None
+					path_id_idx = columns.index('Pathway_ID') + 1 if 'Pathway_ID' in columns else None
+					hmdb_col_idx = None
+					if 'Source ID' in columns:
+						hmdb_col_idx = columns.index('Source ID') + 1
+					elif 'HMDB_ID' in columns:
+						hmdb_col_idx = columns.index('HMDB_ID') + 1
+
+                    # Iterate through the rows to add the hyperlinks directly to the text
+					for row in range(2, len(df_to_export) + 2): # Start at 2 to skip the header row
+                        
+                        # Apply link to KEGG_ID
+						if kegg_col_idx:
+							kegg_cell = worksheet.cell(row=row, column=kegg_col_idx)
+							val = kegg_cell.value
+							if pd.notna(val) and str(val).startswith('C'):
+								kegg_cell.hyperlink = f"https://www.kegg.jp/entry/{val}"
+								kegg_cell.font = link_font
+                                
+                        # Apply link to Pathway_Name
+						if path_name_idx and path_id_idx:
+							name_cell = worksheet.cell(row=row, column=path_name_idx)
+							id_val = worksheet.cell(row=row, column=path_id_idx).value
+							if pd.notna(id_val):
+								name_cell.hyperlink = f"https://www.kegg.jp/pathway/{id_val}"
+								name_cell.font = link_font
+						
+						# Apply link to HMDB ID if available
+						if hmdb_col_idx:
+							hmdb_cell = worksheet.cell(row=row, column=hmdb_col_idx)
+							val = hmdb_cell.value
+							if pd.notna(val):
+								hmdb_cell.hyperlink = f"https://www.hmdb.ca/metabolites/{val}"
+								hmdb_cell.font = link_font
+
+                    # Clean up: Delete the Pathway_ID column since the links are now attached to the Name
+					if path_id_idx:
+						worksheet.delete_cols(path_id_idx)
+
+				slicer.util.infoDisplay(f"Successfully saved Excel file to:\n{file_path}", "Export Complete")
+            
+			except Exception as e:
+				slicer.util.errorDisplay(f"Failed to save Excel file:\n{str(e)}")
+
+	def onLoadMzValuesCsv(self):
+		"""Opens a file dialog, reads a CSV, and populates the m/z text box."""
+		import pandas as pd
+        # Open a "File Open" dialog window
+		file_path = qt.QFileDialog.getOpenFileName(
+            None, 
+            "Select m/z CSV File", 
+            "", 
+            "CSV Files (*.csv)"
+        )
+
+        # If the user clicked Cancel, just stop
+		if not file_path:
+			return
+		
+		try:
+            # Read the CSV
+			df = pd.read_csv(file_path)
+
+            # Column Detection
+			target_col = None
+			for col in df.columns:
+				col_clean = str(col).strip().lower()
+				if col_clean in ['m/z', 'mz', 'mass', 'm.z']:
+					target_col = col
+					break
+            
+            # Fallback: If no matching header is found, just grab the first column
+			if target_col is None:
+				target_col = df.columns[0]
+
+            # Extract the numbers, drop empty rows, and convert to strings
+			mz_values = df[target_col].dropna().astype(str).tolist()
+            
+            # Join them with commas
+			mz_string = ", ".join(mz_values)
+
+            # Inject the string directly into the existing text box
+			self.ui.inputtedpeakslineedit.setText(mz_string)
+            
+            # Let the user know it worked
+			slicer.util.infoDisplay(f"Successfully loaded {len(mz_values)} peaks from column: '{target_col}'", "CSV Loaded")
+
+		except Exception as e:
+			slicer.util.errorDisplay(f"Failed to load CSV file:\n{str(e)}")
+
+	def onLinkClicked(self, url):
+		"""Catches the clicked link and opens it inside the Red window."""
+		self.internalBrowser.url = url.toString()
+		
+		# Hide Slicer's native widgets
+		self.redWidget.sliceController().hide()
+		self.redWidget.sliceView().hide()
+		
+		# Show the full-screen container
+		self.webContainer.show()
+
+
+	def hideInternalBrowser(self):
+		"""Hides the web browser and restores the full Red slice view."""
+		self.webContainer.hide()
+		
+		# Restore Slicer's native widgets
+		self.redWidget.sliceController().show()
+		self.redWidget.sliceView().show()
+		
+		self.internalBrowser.url = "about:blank"
+
+	def onTableLinkClicked(self, link_string):
+		"""Helper function to convert table string links into QUrls for the internal browser."""
+		# Convert the string to a QUrl and pass it to your existing browser function
+		url_object = qt.QUrl(link_string)
+		self.onLinkClicked(url_object)
+
+	# --- End of Robert Peak Labeling Tab Functions ---
 
 	### Multi-slide alignment tab
 
