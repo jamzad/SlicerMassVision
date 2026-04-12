@@ -25,6 +25,7 @@ set(MODULE_PYTHON_RESOURCES
   Resources/Icons/UI_nameM.png
   Resources/Icons/visualization.png
   Resources/Icons/embeddings_logo.png
+  Resources/Icons/pathway.png
   Resources/UI/${MODULE_NAME}.ui
   )
 

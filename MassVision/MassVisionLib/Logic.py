@@ -3607,13 +3607,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	# -------- Robert HMDB Database download code --------
 	def check_and_build_hmdb(self, db_path, buttonClicked=False):
 		"""Checks if the HMDB SQLite database exists. If not, prompts the user with a Yes/No option."""
-		import os
-		import zipfile
-		import sqlite3
 		import xml.etree.ElementTree as ET
-		import slicer
-		import qt
-
 		# Ensure required packages are installed
 		try:
 			import zipfile
@@ -3665,15 +3659,32 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			)
 			return False 
 		
-		# Handle the "Yes" choice (Manual download instructions)
+		# # Handle the "Yes" choice (Manual download instructions)
+		# setupBox = qt.QMessageBox()
+		# setupBox.setWindowTitle("HMDB Setup Instructions")
+		# setupBox.setText("Please provide the HMDB database file.")
+		# setupBox.setInformativeText(
+		# 	"Due to server security, you must download the file manually:\n\n"
+		# 	"1. Go to: https://hmdb.ca/downloads\n"
+		# 	"2. Ensure you are under the tab with the most Current Version\n"
+		# 	"3. Download the 'All Metabolites' XML file under 'Metabolite and Protein Data' in XML format).\n"
+		# 	"4. Click 'OK' below and select the .zip file you downloaded."
+		# )
+		# setupBox.exec_()
+
 		setupBox = qt.QMessageBox()
 		setupBox.setWindowTitle("HMDB Setup Instructions")
+
+		# 1. Enable Rich Text support
+		setupBox.setTextFormat(qt.Qt.RichText)
+
 		setupBox.setText("Please provide the HMDB database file.")
+
+		# 2. Use an HTML anchor tag for the link
 		setupBox.setInformativeText(
-			"Due to server security, you must download the file manually:\n\n"
-			"1. Go to: https://hmdb.ca/downloads\n"
-			"2. Ensure you are under the tab with the most Current Version\n"
-			"3. Download the 'All Metabolites' XML file (Under Metabolite and Protein Data (in XML format))).\n"
+			"1. Go to: <a href='https://hmdb.ca/downloads'>https://hmdb.ca/downloads</a><br>"
+			"2. Ensure you are under the tab with the most Current Version<br>"
+			"3. Download the 'All Metabolites' XML file (under 'Metabolite and Protein Data' in XML format).<br>"
 			"4. Click 'OK' below and select the .zip file you downloaded."
 		)
 		setupBox.exec_()
@@ -3843,13 +3854,17 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		finally:
 			progress.close()
-			if os.path.exists(xml_path): 
+			if os.path.exists(xml_path):
+				print(xml_path) 
 				os.remove(xml_path)
 	
 	def default_hmdb_db_path(self):
-		import os
-		base_dir = os.path.dirname(os.path.abspath(__file__))
-		default_db_path = os.path.join(base_dir, "HMDBData", "HMDB_Neutral.db")
+		# base_dir = os.path.dirname(os.path.abspath(__file__))
+		# default_db_path = os.path.join(base_dir, "HMDBData", "HMDB_Neutral.db")
+
+		base_dir = qt.QStandardPaths.writableLocation(qt.QStandardPaths.AppLocalDataLocation)
+		default_db_path = os.path.join(base_dir, "MassVision", "HMDB_Neutral.db")
+		print(default_db_path)
 		return default_db_path
 
 	# -------- Robert Pathway Labeling Code -------
@@ -3859,7 +3874,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		import time
 		import threading
 		import re
-		import os
 		from collections import deque
 		from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -3875,12 +3889,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			slicer.util.pip_install("sqlite3")
 			import sqlite3
 
-		try:
-			import pandas as pd
-		except ModuleNotFoundError:
-			slicer.util.pip_install("pandas")
-			import pandas as pd
-
 		# Setup arguments (adapted to accept dynamic variables)
 		def setup_arguments():
 			parser = argparse.ArgumentParser(description="Combined pipeline: LIPID MAPS + HMDB -> KEGG IDs -> KEGG Pathways")
@@ -3894,8 +3902,13 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			parser.add_argument("--proton-mass", type=float, default=1.007276)
 			
 			#Setup the HMDB database path relative to the script location
-			base_dir = os.path.dirname(os.path.abspath(__file__))
-			default_db_path = os.path.join(base_dir, "HMDBData", "HMDB_Neutral.db")
+			# base_dir = os.path.dirname(os.path.abspath(__file__))
+			# default_db_path = os.path.join(base_dir, "HMDBData", "HMDB_Neutral.db")
+
+			base_dir = qt.QStandardPaths.writableLocation(qt.QStandardPaths.AppLocalDataLocation)
+			default_db_path = os.path.join(base_dir, "MassVision", "HMDB_Neutral.db")
+			print(default_db_path)
+
 			parser.add_argument("--hmdb-db", type=str, default=default_db_path)
 			
 			parser.add_argument("--hmdb-table", type=str, default="metabolites")

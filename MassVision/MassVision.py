@@ -196,63 +196,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.statGroup2Lab.setVisible(False)
 		self.ui.statGroup2combo.setVisible(False)
 
-		# --- Robert Addition of Buttons and Items For Peak Labeling ---
-		self.current_results_df = None
-		self.ui.inputtedpeakslineedit.setPlaceholderText("e.g., 302.1594, 281.231")
-		self.ui.moleculetoleranacelineedit.setPlaceholderText("e.g., 0.1, 0.005") 
-		# Adduct button setup
-		self.ui.exportpeaklabelsCSVbutton.connect('clicked(bool)', self.onExportPeakLabelExcel)
-		self.ui.loadmzvaluescsvpushButton.connect('clicked(bool)', self.onLoadMzValuesCsv)
-		self.ui.loadmzvaluescsvpushButton.connect('clicked(bool)', self.onLoadMzValuesCsv)
-		# Radiobutton setup
-		self.ui.findclosestcandidateradioButton.setChecked(True) # Set the default starting button
-		self.buttonGroup = qt.QButtonGroup()
-		self.buttonGroup.addButton(self.ui.findclosestcandidateradioButton)
-		self.buttonGroup.addButton(self.ui.findallcandidatesradioButton)
-		self.buttonGroup.buttonClicked.connect(self.onRadioButtonClicked)
-		
-		# --- Robert Addition for link opening ----
-		self.ui.displaypatwaystextbrowser.setOpenLinks(False)
-		self.ui.displaypatwaystextbrowser.anchorClicked.connect(self.onLinkClicked)
-		layoutManager = slicer.app.layoutManager()
-		self.redWidget = layoutManager.sliceWidget('Red')
-			# Create a Container to hold the web UI
-		self.webContainer = qt.QWidget()
-		self.webContainer.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding) 
-		self.webContainerLayout = qt.QVBoxLayout(self.webContainer)
-		self.webContainerLayout.setContentsMargins(0, 0, 0, 0) # Full screen, no margins
-			# Create the "Close" button
-		self.closeBrowserButton = qt.QPushButton("Close Pathway Explorer (Return to Image)")
-		self.closeBrowserButton.setStyleSheet("background-color: #d9534f; color: white; font-weight: bold; padding: 8px;")
-		self.closeBrowserButton.clicked.connect(self.hideInternalBrowser)
-			# Create the Web View and force it to expand
-		self.internalBrowser = slicer.qSlicerWebWidget()
-		self.internalBrowser.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding)
-			# Add the button and browser to the Container
-		self.webContainerLayout.addWidget(self.closeBrowserButton)
-		self.webContainerLayout.addWidget(self.internalBrowser, 1) 
-			# Insert the Container at the top of the Red node with a stretch factor
-		self.redWidget.layout().insertWidget(0, self.webContainer, 1) 
-		self.webContainer.hide()
-
-		# --- UI Setup for Peak Labeling ---
-			# Configure the display table created in Qt Designer
-		self.ui.moleculesTableWidget.setColumnCount(7)
-		self.ui.moleculesTableWidget.setHorizontalHeaderLabels(['Select', 'Searched m/z', 'Adduct', 'Molecule', 'Source ID','KEGG ID', 'Error'])
-		header = self.ui.moleculesTableWidget.horizontalHeader()
-			# Shrink the Checkbox, m/z, and Adduct columns to be as small as possible
-		header.setSectionResizeMode(0, qt.QHeaderView.ResizeToContents) 
-		header.setSectionResizeMode(1, qt.QHeaderView.ResizeToContents) 
-		header.setSectionResizeMode(2, qt.QHeaderView.ResizeToContents)
-			# Stretch the Molecule Name column to absorb all the extra empty space
-		header.setSectionResizeMode(3, qt.QHeaderView.Stretch)
-			# Shrink the KEGG ID and Error columns
-		header.setSectionResizeMode(4, qt.QHeaderView.ResizeToContents)
-		header.setSectionResizeMode(5, qt.QHeaderView.ResizeToContents)
-		header.setSectionResizeMode(6, qt.QHeaderView.ResizeToContents)
-			# Connect the button created in Qt Designer
-		self.ui.searchPathwaysButton.connect('clicked(bool)', self.onSearchPathways)
-		# ------- End of Robert Additions for this section --------
 
 		# Set logo in UI
 		logo_path = self.resourcePath('Icons/UI_nameM.png')
@@ -270,7 +213,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		# Set tab widget tooltip and icons
 		# ---Robert Added Icon Name 'label'------
-		icon_names = ['home', 'file', 'visualization', 'dataset', 'alignment', 'preprocess', 'stat', 'train', 'report', 'inference', 'label']
+		icon_names = ['home', 'file', 'visualization', 'dataset', 'alignment', 'preprocess', 'stat', 'train', 'report', 'inference', 'pathway']
 		for i in range(self.ui.tabWidget.count):
 			tabText = self.ui.tabWidget.tabText(i)
 			self.ui.tabWidget.setTabText(i, "")            
@@ -326,7 +269,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.Go2tab6.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(6))
 		self.ui.Go2tab7.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(7))
 		self.ui.Go2tab8.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(8))
-		self.ui.Go2tab8.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(9))
+		self.ui.Go2tab9.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(9))
 
 		self.ui.userManual.clicked.connect(
 			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://slicermassvision.readthedocs.io/")))
@@ -508,7 +451,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		# Results
 		self.model_results = ''
 
-
 		# Deployment
 		self.ui.deploySelect.connect("clicked(bool)", self.onDeploySelect)
 		self.ui.deployImport.connect("clicked(bool)", self.onDeployLoad)
@@ -535,6 +477,49 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		self.ui.deployRun.connect("clicked(bool)", self.onApplyDeployment)	
 
+		# Pathway analysis
+
+		# --- Robert Addition of Buttons and Items For Peak Labeling ---
+		self.current_results_df = None
+		self.ui.inputtedpeakslineedit.setPlaceholderText("e.g., 302.1594, 281.231")
+		self.ui.moleculetoleranacelineedit.setPlaceholderText("e.g., 0.1, 0.005") 
+		# Adduct button setup
+		self.ui.exportpeaklabelsCSVbutton.connect('clicked(bool)', self.onExportPeakLabelExcel)
+		self.ui.loadmzvaluescsvpushButton.connect('clicked(bool)', self.onLoadMzValuesCsv)
+		# Radiobutton setup
+		self.ui.findclosestcandidateradioButton.setChecked(True) # Set the default starting button
+		self.buttonGroup = qt.QButtonGroup()
+		self.buttonGroup.addButton(self.ui.findclosestcandidateradioButton)
+		self.buttonGroup.addButton(self.ui.findallcandidatesradioButton)
+		self.buttonGroup.buttonClicked.connect(self.onRadioButtonClicked)
+		
+		# --- Robert Addition for link opening ----
+		self.ui.displaypatwaystextbrowser.setOpenLinks(False)
+		self.ui.displaypatwaystextbrowser.anchorClicked.connect(self.onLinkClicked)
+
+		# Create and setup browser view
+		self._setupBrowserOnlyView()
+
+		# --- UI Setup for Peak Labeling ---
+			# Configure the display table created in Qt Designer
+		self.ui.moleculesTableWidget.setColumnCount(7)
+		self.ui.moleculesTableWidget.setHorizontalHeaderLabels(['Select', 'Searched m/z', 'Adduct', 'Molecule', 'Source ID','KEGG ID', 'Error'])
+		header = self.ui.moleculesTableWidget.horizontalHeader()
+			# Shrink the Checkbox, m/z, and Adduct columns to be as small as possible
+		header.setSectionResizeMode(0, qt.QHeaderView.ResizeToContents) 
+		header.setSectionResizeMode(1, qt.QHeaderView.ResizeToContents) 
+		header.setSectionResizeMode(2, qt.QHeaderView.ResizeToContents)
+			# Stretch the Molecule Name column to absorb all the extra empty space
+		header.setSectionResizeMode(3, qt.QHeaderView.Stretch)
+			# Shrink the KEGG ID and Error columns
+		header.setSectionResizeMode(4, qt.QHeaderView.ResizeToContents)
+		header.setSectionResizeMode(5, qt.QHeaderView.ResizeToContents)
+		header.setSectionResizeMode(6, qt.QHeaderView.ResizeToContents)
+			# Connect the button created in Qt Designer
+		self.ui.searchPathwaysButton.connect('clicked(bool)', self.onSearchPathways)
+		# ------- End of Robert Additions for this section --------
+
+
 		# Mode change for ViT Embeddings
 		modeButtonGroup = qt.QButtonGroup()
 		modeButtonGroup.setExclusive(True)
@@ -550,6 +535,147 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		# Make sure parameter node is initialized (needed for module reload)
 		self.initializeParameterNode()
+
+
+	def _setupBrowserOnlyView(self):
+		#
+		# Main browser widget
+		#
+		self.internalBrowser = slicer.qSlicerWebWidget()
+		self.internalBrowser.handleExternalUrlWithDesktopService = False
+
+		webView = self.internalBrowser.webView()
+
+		#
+		# Toolbar
+		#
+		self.browserToolbar = qt.QToolBar()
+		self.browserToolbar.setMovable(False)
+		self.browserToolbar.setFloatable(False)
+		self.browserToolbar.setIconSize(qt.QSize(16, 16))
+		self.browserToolbar.setStyleSheet("""
+		QToolBar {
+			background: #006666;
+			border: 0px;
+			spacing: 4px;
+			padding: 2px;
+		}
+		QToolButton {
+			padding: 4px 6px;
+		}
+		QLabel {
+			font-weight: bold;
+			padding-left: 4px;
+			padding-right: 8px;
+		}
+		""")
+
+		self.browserTitleLabel = qt.QLabel("Browser View ")
+		self.browserToolbar.addWidget(self.browserTitleLabel)
+
+		self.backAction = self.browserToolbar.addAction("Back")
+		self.forwardAction = self.browserToolbar.addAction("Forward")
+		self.reloadAction = self.browserToolbar.addAction("Reload")
+
+		self.backAction.connect("triggered()", webView.back)
+		self.forwardAction.connect("triggered()", webView.forward)
+		self.reloadAction.connect("triggered()", webView.reload)
+
+		#
+		# Address bar
+		#
+		self.addressBar = qt.QLineEdit()
+		self.addressBar.setPlaceholderText("Enter URL and press Enter")
+		self.addressBar.connect("returnPressed()", self.onAddressEntered)
+		self.browserToolbar.addWidget(self.addressBar)
+
+		#
+		# Keep toolbar state and address bar in sync
+		#
+		def updateNavigationState(*args):
+			try:
+				self.backAction.enabled = webView.history().canGoBack()
+				self.forwardAction.enabled = webView.history().canGoForward()
+			except Exception:
+				self.backAction.enabled = True
+				self.forwardAction.enabled = True
+
+			try:
+				self.addressBar.setText(webView.url().toString())
+			except Exception:
+				pass
+
+		webView.loadFinished.connect(updateNavigationState)
+		webView.urlChanged.connect(updateNavigationState)
+
+		#
+		# Keep toolbar state and address bar in sync
+		#
+		def updateNavigationState(*args):
+			try:
+				self.backAction.enabled = webView.history().canGoBack()
+				self.forwardAction.enabled = webView.history().canGoForward()
+			except Exception:
+				self.backAction.enabled = True
+				self.forwardAction.enabled = True
+
+			try:
+				self.addressBar.setText(webView.url().toString())
+			except Exception:
+				pass
+
+		webView.loadFinished.connect(updateNavigationState)
+		webView.urlChanged.connect(updateNavigationState)
+
+		#
+		# Container widget shown in the Slicer view area
+		#
+		self.browserViewWidget = qt.QWidget()
+		browserLayout = qt.QVBoxLayout(self.browserViewWidget)
+		browserLayout.setContentsMargins(0, 0, 0, 0)
+		browserLayout.setSpacing(0)
+		browserLayout.addWidget(self.browserToolbar)
+		browserLayout.addWidget(self.internalBrowser)
+
+		#
+		# Register custom singleton view
+		#
+		self.browserViewFactory = slicer.qSlicerSingletonViewFactory()
+		self.browserViewFactory.setTagName("MassVisionBrowserView")
+		self.browserViewFactory.setWidget(self.browserViewWidget)
+		slicer.app.layoutManager().registerViewFactory(self.browserViewFactory)
+
+		#
+		# Layout that contains only the browser view
+		#
+		self.browserOnlyLayoutId = 501
+
+		layoutXml = """
+		<layout type="vertical">
+			<item>
+			<MassVisionBrowserView />
+			</item>
+		</layout>
+		"""
+
+		layoutNode = slicer.app.layoutManager().layoutLogic().GetLayoutNode()
+		layoutNode.AddLayoutDescription(self.browserOnlyLayoutId, layoutXml)
+
+	def showBrowserOnlyView(self, url="https://example.com"):
+		self.internalBrowser.setUrl(url)
+		slicer.app.layoutManager().setLayout(self.browserOnlyLayoutId)
+
+	def onAddressEntered(self):
+		text = self.addressBar.text.strip()
+		if not text:
+			return
+
+		# Add scheme if missing
+		if "://" not in text:
+			text = "https://" + text
+
+		self.internalBrowser.setUrl(text)
+
 
 
 	### Mode Selector
@@ -1453,9 +1579,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		slicer.util.saveScene(savepath)
 
 
-	# ---- Robert 'Peak Labelling' added to tab_names ------
 	def onTabChange(self, index):
-		tab_names = ['Home', 'Data', 'Visualization', 'Dataset', 'Alignment', 'Preprocessing', 'Statistical', 'AI training', 'AI Report', 'AI deployment', 'Peak Labelling']
+		tab_names = ['Home', 'Data', 'Visualization', 'Dataset', 'Alignment', 'Preprocessing', 'Statistical', 'AI training', 'AI report', 'AI deployment', 'Identification']
 		for i in range(self.ui.tabWidget.count):
 			self.ui.tabWidget.setTabText(i, "")     
 		self.ui.tabWidget.setTabText(index, tab_names[index])
@@ -1500,9 +1625,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			return True
 		else:
 			return False
+		
 	def onUpdateHMDBDatabase(self):
 		"""Updates the HMDB database by calling the logic function and displays a message box with the result."""
-		import slicer
 		db_path = self.logic.default_hmdb_db_path()	
 		buttonClicked = True
 		result = self.logic.check_and_build_hmdb(db_path, buttonClicked)
@@ -1512,7 +1637,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 	def onLabelPeaks(self):
 		' Function to label the peaks based on the inputted m/z values, tolerance, and adducts. '
 		'It also handles the UI updates to show the results in a table and allows for pathway searching. '
-		import slicer
 		#Gather inputs
 		raw_peaks = self.ui.inputtedpeakslineedit.text
 		tolerance_str = self.ui.moleculetoleranacelineedit.text
@@ -1859,14 +1983,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 	def onLinkClicked(self, url):
 		"""Catches the clicked link and opens it inside the Red window."""
-		self.internalBrowser.url = url.toString()
-		
-		# Hide Slicer's native widgets
-		self.redWidget.sliceController().hide()
-		self.redWidget.sliceView().hide()
-		
-		# Show the full-screen container
-		self.webContainer.show()
+		self.internalBrowser.setUrl(url.toString())
+		self.addressBar.setText(url.toString())
+		slicer.app.layoutManager().setLayout(self.browserOnlyLayoutId)
 
 
 	def hideInternalBrowser(self):
