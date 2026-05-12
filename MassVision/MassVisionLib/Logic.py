@@ -1215,7 +1215,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	def ViewTableThumbnail(self, param, mode):
 		if mode=="cluster":
 			# param is cluster_id the index of the clustering
-			segmentation_mask = (self.pixel_clusters == param).astype(int)
+			cluster_ind, cluster_invert = param
+			segmentation_mask = (self.pixel_clusters == cluster_ind).astype(int)
+			if cluster_invert:
+				segmentation_mask = 1 - segmentation_mask
 		elif mode=="similarity":
 			# param is sim_thresh_value threshold for similarity heatmap binarization
 			segmentation_mask = self.similarity_heatmap >= param

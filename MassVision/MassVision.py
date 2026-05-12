@@ -1255,8 +1255,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		if mode=="cluster":
 			clusterText = self.ui.ClusterInd.currentText
 			cluster_ind = int(clusterText.split(' ')[-1])-1
+			cluster_invert = self.ui.invertCluster_checkBox.isChecked()
 			volcano_mz, dice_score, volcano_fc, volcano_pval, pearson_corr = \
-				self.logic.ViewTableThumbnail(cluster_ind, mode)
+				self.logic.ViewTableThumbnail([cluster_ind, cluster_invert], mode)
 		elif mode=="similarity":
 			sim_thresh_value = self.ui.simHeatmapSlider.value
 			volcano_mz, dice_score, volcano_fc, volcano_pval, pearson_corr = \
