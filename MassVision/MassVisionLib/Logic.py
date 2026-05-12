@@ -146,6 +146,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.CNNHyperparameters = {}
 		self.REIMS_H = 300
 		self.lastPCA = None
+		lastPCA_pixelInd = None
 		self.contrast_thumbnail_inds = None
 		self.pixel_clusters = None
 		self.peaks_pca = None
@@ -913,19 +914,52 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.visualizationRunHelper(peaks_reduced_img, peaks_reduced_img.shape, visualization_type=method)
 	
 	
+	def pca_export(self, file, pixel_norm_method, feature_norm_method):
+		meta_data = {
+			"n_components": self.lastPCA.n_components_,
+			"n_features": self.lastPCA.n_features_in_,
+			"source_file_name": self.slideName,
+			"source_file_path": self.saveFolder,
+			"pixel_norm": pixel_norm_method,
+			"feature_norm": feature_norm_method,
+			"source_file_pixels": self.lastPCA_pixelInd,
+		}
+		print(meta_data)
+		with open(file,'wb') as f:
+			pickle.dump([self.lastPCA, meta_data],f)
+	
+	def pca_import(self, file):
+		with open(file,"rb") as f:
+			pca_model, meta_data = pickle.load(f)
+
+		print(meta_data)
+
+		peaks_pca = pca_model.transform(self.peaks_norm)
+		peaks_pca = MinMaxScaler().fit_transform( peaks_pca )
+		
+		pca_image = peaks_pca.reshape((self.dim_y,self.dim_x,-1),order='C')
+		pca_image = np.expand_dims(pca_image, axis=0)*255
+		
+		self.visualizationRunHelper(pca_image, pca_image.shape, visualization_type='external_pca')
+		self.peaks_pca = peaks_pca
+		self.lastPCA = pca_model
+		self.lastPCA_pixelInd = None
+
 	# generates and displays the pca image
 	def pca_display(self):
 		# generates and displays the pca image
 		dim_reduction = PCA(n_components=3)
 		peaks_pca = dim_reduction.fit_transform(self.peaks_norm)
 		peaks_pca = MinMaxScaler().fit_transform( peaks_pca )
-		self.peaks_pca = peaks_pca
+		
 		pca_image = peaks_pca.reshape((self.dim_y,self.dim_x,-1),order='C')
 		pca_image = np.expand_dims(pca_image, axis=0)*255
 		
 		self.visualizationRunHelper(pca_image, pca_image.shape, visualization_type='pca')
 
 		self.lastPCA = dim_reduction
+		self.peaks_pca = peaks_pca
+		self.lastPCA_pixelInd = None
 		return True
 	
 	def LoadingsRank(self):
@@ -3401,6 +3435,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		
 		self.peaks_pca = local_peaks_pca
 		self.lastPCA = local_pca
+		self.lastPCA_pixelInd = local_peaks_ind
 		return True
 
 
@@ -3438,6 +3473,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		
 		self.lastPCA = local_pca
 		self.peaks_pca = local_peaks_pca
+		self.lastPCA_pixelInd = local_peaks_ind
 		return True
 	
 

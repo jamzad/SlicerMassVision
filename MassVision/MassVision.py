@@ -334,6 +334,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.dataInfo = ''
 		self.ui.ContrastThumbnail.connect("clicked(bool)", self.onContrastThumbnail)
 
+		self.ui.saveProjection.connect("clicked(bool)", self.onSaveProjection)
+		self.ui.loadProjection.connect("clicked(bool)", self.onLoadProjection)
+
 		self.ui.NLVisMethod.currentTextChanged.connect(self.onNLVisMethod)
 		self.ui.UmapButton.connect("clicked(bool)", self.onUMAPVis)
 
@@ -1149,6 +1152,24 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		info = self.logic.LoadingsRank()
 		info = 'Global Contrast \n\n' + info
 		self.ui.LoadingsInfo.setText(info)
+
+	def onSaveProjection(self):
+		fileExplorer = qt.QFileDialog()
+		defaultSave = self.logic.savenameBase+"_PCA.pkl"
+		savepath = fileExplorer.getSaveFileName(None, "Save PCA projection", defaultSave, "Pickle Files (*.pkl);;All Files (*)")
+		
+		pixel_norm_method = self.ui.visNorm_spectra.currentText
+		feature_norm_method = self.ui.visNorm_ions.currentText
+		self.logic.pca_export(savepath, pixel_norm_method, feature_norm_method)
+		
+		print(savepath)
+
+	def onLoadProjection(self):
+		fileExplorer = qt.QFileDialog()
+		filePath = fileExplorer.getOpenFileName(None, "Load PCA projection", "", "Pickle Files (*.pkl);;All Files (*)")
+		print(filePath)
+		self.logic.pca_import(filePath)
+		pass
 
 	def onNLVisMethod(self, text):
 		if text=="UMAP":
