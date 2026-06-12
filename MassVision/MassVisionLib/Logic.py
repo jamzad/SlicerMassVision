@@ -4,16 +4,16 @@ import vtk, qt, slicer
 from vtk.util import numpy_support
 
 try:
-	import matplotlib
+	import matplotlib as mpl
 except ModuleNotFoundError:
 	slicer.util.pip_install("matplotlib")
-	import matplotlib
+	import matplotlib as mpl
 
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
+# import matplotlib.cm as cm
 
 ## fix Mac crash
-matplotlib.use('Agg')
+mpl.use('Agg')
 
 try:
 	from PIL import Image as PILImage
@@ -440,8 +440,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		if image_save_info!=None:
 			
 			n_colors = len(class2num.classes_)
-			cmap_colors = cm.get_cmap('jet')(np.linspace(0, 1, n_colors))
-			cmap_custom = cm.colors.ListedColormap( np.vstack(([0,0,0,1], cmap_colors)) )
+			# cmap_colors = cm.get_cmap('jet')(np.linspace(0, 1, n_colors))
+			# cmap_custom = cm.colors.ListedColormap( np.vstack(([0,0,0,1], cmap_colors)) )
+			cmap_colors = mpl.colormaps['jet'](np.linspace(0, 1, n_colors))
+			cmap_custom = mpl.colors.ListedColormap( np.vstack(([0,0,0,1], cmap_colors)) )
 			plt.figure(figsize=[6,6])
 			plt.imshow(roi_reconstruct_num.T, cmap=cmap_custom, 
 					   interpolation=None, vmin=-0.5, vmax=len(class2num.classes_)+0.5)
@@ -656,8 +658,9 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		if n_colors<=10:
 			class_colors = plt.cm.tab10(range(n_colors))
 		else:
-			class_colors = cm.get_cmap('jet_r')(np.linspace(0, 1, n_colors))
-		cmap_custom = cm.colors.ListedColormap( class_colors )
+			# class_colors = cm.get_cmap('jet_r')(np.linspace(0, 1, n_colors))
+			class_colors = mpl.colormaps['jet'](np.linspace(0, 1, n_colors))
+		cmap_custom = mpl.colors.ListedColormap( class_colors )
 
 
 		# masked deployment
@@ -1198,7 +1201,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# color_image = centers[labels].reshape((self.dim_y,self.dim_x,-1),order='C')
 		
 		## clusters have jet colormap
-		cluster_colors = cm.get_cmap('jet')(np.linspace(0, 1, n_clusters))
+		# cluster_colors = cm.get_cmap('jet')(np.linspace(0, 1, n_clusters))
+		cluster_colors = mpl.colormaps['jet'](np.linspace(0, 1, n_clusters))
 		cluster_colors = cluster_colors[:,:3]
 		color_image = cluster_colors[labels].reshape((self.dim_y,self.dim_x,-1),order='C')
 
@@ -1429,7 +1433,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			plotSeriesNode.SetMarkerStyle(slicer.vtkMRMLPlotSeriesNode.MarkerStyleNone)
 			plotSeriesNode.SetLineStyle(slicer.vtkMRMLPlotSeriesNode.LineStyleSolid)
 
-			colour = cm.get_cmap("tab10")(i % 10)[:3]
+			colour = mpl.colormaps['tab10'](i % 10)[:3]
 			plotSeriesNode.SetColor(*colour)
 
 			plotChartNode.AddAndObservePlotSeriesNodeID(plotSeriesNode.GetID())
@@ -1566,7 +1570,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			plotSeriesNode.SetMarkerStyle(slicer.vtkMRMLPlotSeriesNode.MarkerStyleNone)
 			plotSeriesNode.SetLineStyle(slicer.vtkMRMLPlotSeriesNode.LineStyleSolid)
 
-			colour = cm.get_cmap("tab10")(i % 10)[:3]
+			colour = mpl.colormaps['tab10'](i % 10)[:3]
 			plotSeriesNode.SetColor(*colour)
 
 			plotChartNode.AddAndObservePlotSeriesNodeID(plotSeriesNode.GetID())
@@ -2511,8 +2515,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			if n_colors<=10:
 				class_colors = plt.cm.tab10(range(n_colors))
 			else:
-				class_colors = cm.get_cmap('jet_r')(np.linspace(0, 1, n_colors))
-
+				class_colors = mpl.colormaps['jet_r'](np.linspace(0, 1, n_colors))
+				
 			for i in range(len(legend_labels)):
 		
 				ind = scatter_labels == legend_labels[i]
@@ -2584,7 +2588,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			if n_colors<=10:
 				class_colors = plt.cm.tab10(range(n_colors))
 			else:
-				class_colors = cm.get_cmap('jet_r')(np.linspace(0, 1, n_colors))
+				class_colors = mpl.colormaps['jet_r'](np.linspace(0, 1, n_colors))
 
 			for i in range(len(legend_labels)):
 		
@@ -5175,7 +5179,7 @@ def get_performance(y_train, y_train_preds, y_train_prob, class_order):
 
 def plot_custom_boxplot(grouped_data, groups, mz_title, figsize=(5,5), save_path=None):
 	num_groups = len(grouped_data)
-	colors = cm.jet(np.linspace(0, 1, num_groups))
+	colors = plt.cm.jet(np.linspace(0, 1, num_groups))
 	fig, ax = plt.subplots(figsize=figsize)
 
 	box = ax.boxplot(
