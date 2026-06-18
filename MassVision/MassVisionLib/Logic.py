@@ -146,7 +146,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.CNNHyperparameters = {}
 		self.REIMS_H = 300
 		self.lastPCA = None
-		lastPCA_pixelInd = None
+		self.lastPCA_pixelInd = None
 		self.contrast_thumbnail_inds = None
 		self.pixel_clusters = None
 		self.peaks_pca = None
