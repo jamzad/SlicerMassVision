@@ -11,6 +11,15 @@ import logging
 import os
 from MassVisionLib.Logic import * 
 
+#Robert imports
+import pandas as pd
+try:
+	import openpyxl
+	from openpyxl.styles import Font
+except ModuleNotFoundError:
+	slicer.util.pip_install("openpyxl")
+	import openpyxl
+	from openpyxl.styles import Font
 
 class MassVision(ScriptedLoadableModule):
 	"""
