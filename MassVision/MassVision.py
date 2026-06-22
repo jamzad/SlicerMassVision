@@ -205,7 +205,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.statGroup2Lab.setVisible(False)
 		self.ui.statGroup2combo.setVisible(False)
 
-
 		# Set logo in UI
 		logo_path = self.resourcePath('Icons/UI_nameM.png')
 		# logo_path = self.resourcePath('Icons/UI_logoS.png')
@@ -504,6 +503,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.buttonGroup.addButton(self.ui.findclosestcandidateradioButton)
 		self.buttonGroup.addButton(self.ui.findallcandidatesradioButton)
 		self.buttonGroup.buttonClicked.connect(self.onRadioButtonClicked)
+		# Connect the molecule table export button
+		self.ui.exportMoleculeLabelsButton.connect('clicked(bool)', self.onExportMoleculeLabels)
 		
 		# --- Robert Addition for link opening ----
 		self.ui.displaypatwaystextbrowser.setOpenLinks(False)
@@ -547,6 +548,15 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		# Make sure parameter node is initialized (needed for module reload)
 		self.initializeParameterNode()
+
+# --- Check HMDB Database Version and Update Dropdown ---
+		db_path = self.logic.default_hmdb_db_path()
+		hmdb_label = self.logic.get_hmdb_version_label(db_path)
+		
+		# Find the item that currently says "HMDB" and replace it
+		for i in range(self.ui.databasecombobox.count):
+			if "HMDB" in self.ui.databasecombobox.itemText(i):
+				self.ui.databasecombobox.setItemText(i, hmdb_label)
 
 
 	def _setupBrowserOnlyView(self):
@@ -1723,7 +1733,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		try:
 			# Run the molecule matching logic
 			results_df = self.logic.run_molecule_matching(
-				raw_peaks, tolerance, adducts_text, tol_unit, database_unit, search_all, update_progress
+				raw_peaks, tolerance, adducts_text, tol_unit, database_unit, 
+				search_all, update_progress
 			)
 			self.current_results_df = results_df
 
@@ -1822,18 +1833,46 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 	def renderHtmlPathwayResults(self, results_df, tolerance, tol_unit):
 		"""Generates and sets the HTML layout for the final pathway results."""
+		# 1. Detect if Slicer is currently using the Dark Theme
+		bg_color = slicer.app.palette().color(qt.QPalette.Window)
+		# lightness() returns a value from 0 (black) to 255 (white). 
+		is_dark_mode = bg_color.lightness() < 128
+
+		# 2. Define our color palette based on the active theme
+		if is_dark_mode:
+			c_text = "#e0e0e0"       
+			c_h3 = "#99ccff"         
+			c_h4 = "#6bb5ff"         
+			c_p = "#b0b0b0"          
+			c_th_bg = "#3a3a3a"      
+			c_th_text = "#ffffff"    
+			c_tr_even = "#2a2a2a"    
+			c_border = "#555555"     
+			c_link = "#5faee3"       
+		else:
+			c_text = "#333"          
+			c_h3 = "#2c3e50"         
+			c_h4 = "#1a5276"         
+			c_p = "#555"             
+			c_th_bg = "#e0e0e0"      
+			c_th_text = "#333"       
+			c_tr_even = "#f9f9f9"    
+			c_border = "#d4d4d4"     
+			c_link = "#2980b9"       
+
+		# 3. Inject the variables into the CSS block
 		output_html = f"""
 		<html>
 		<head>
 		<style>
-			body {{ font-family: Arial, sans-serif; color: #333; }}
-			h3 {{ color: #2c3e50; margin-bottom: 2px; }}
-			h4 {{ color: #1a5276; margin-top: 20px; margin-bottom: 5px; border-bottom: 2px solid #1a5276; padding-bottom: 3px; }}
-			p {{ margin-top: 0px; color: #555; }}
+			body {{ font-family: Arial, sans-serif; color: {c_text}; }}
+			h3 {{ color: {c_h3}; margin-bottom: 2px; }}
+			h4 {{ color: {c_h4}; margin-top: 20px; margin-bottom: 5px; border-bottom: 2px solid {c_h4}; padding-bottom: 3px; }}
+			p {{ margin-top: 0px; color: {c_p}; }}
 			table {{ border-collapse: collapse; width: 100%; margin-bottom: 15px; }}
-			th, td {{ padding: 6px 10px; text-align: left; border-bottom: 1px solid #d4d4d4; }}
-			th {{ background-color: #e0e0e0; font-weight: bold; color: #333; }}
-			tr:nth-child(even) {{ background-color: #f9f9f9; }}
+			th, td {{ padding: 6px 10px; text-align: left; border-bottom: 1px solid {c_border}; }}
+			th {{ background-color: {c_th_bg}; font-weight: bold; color: {c_th_text}; }}
+			tr:nth-child(even) {{ background-color: {c_tr_even}; }}
 		</style>
 		</head>
 		<body>
@@ -1847,13 +1886,13 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			display_df = group_df[[col for col in display_cols if col in group_df.columns]].copy()
 			display_df = display_df.sort_values(by=['Adduct', 'KEGG_ID'])
 
-			# Make KEGG_ID and Pathway_Name clickable links if the relevant information is present
+			# 4. Inject the link color variable into the inline styles
 			if 'Pathway_ID' in display_df.columns:
-				display_df['Pathway_Name'] = '<a href="https://www.kegg.jp/pathway/' + display_df['Pathway_ID'] + '" style="color: #2980b9; text-decoration: none;">' + display_df['Pathway_Name'] + '</a>'
+				display_df['Pathway_Name'] = '<a href="https://www.kegg.jp/pathway/' + display_df['Pathway_ID'] + f'" style="color: {c_link}; text-decoration: none;">' + display_df['Pathway_Name'] + '</a>'
 				display_df.drop(columns=['Pathway_ID'], inplace=True)
 				
 			if 'KEGG_ID' in display_df.columns:
-				display_df['KEGG_ID'] = '<a href="https://www.kegg.jp/entry/' + display_df['KEGG_ID'] + '" style="color: #2980b9; text-decoration: none;">' + display_df['KEGG_ID'] + '</a>'
+				display_df['KEGG_ID'] = '<a href="https://www.kegg.jp/entry/' + display_df['KEGG_ID'] + f'" style="color: {c_link}; text-decoration: none;">' + display_df['KEGG_ID'] + '</a>'
 
 			display_df.rename(columns={
 				'Searched_m/z': 'Searched m/z', 'Adduct': 'Adduct', 'COMMON_NAME': 'Molecule', 'Source ID': 'Source ID',
@@ -1868,17 +1907,110 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		output_html += "</body></html>"
 		self.ui.displaypatwaystextbrowser.setText(output_html)
+		
+	def onExportMoleculeLabels(self):
+		"""Exports the molecule search results to an Excel file, preserving hyperlinks and dropping the Select column."""
+
+		# 1. Check if there is data to save
+		if not hasattr(self, 'current_results_df') or self.current_results_df is None or self.current_results_df.empty:
+			slicer.util.infoDisplay("There are no molecule results to export. Please run a search first.")
+			return
+
+		# 2. Prompt the user for a save location
+		default_name = "Molecule_Search_Results.xlsx"
+		save_path = qt.QFileDialog.getSaveFileName(
+			None, "Save Molecule Labels as Excel", default_name, "Excel Files (*.xlsx)"
+		)
+		
+		# If the user cancels the dialog, exit
+		if not save_path:
+			return 
+
+		try:
+			# Force the extension to be .xlsx 
+			if not save_path.lower().endswith('.xlsx'):
+				save_path = os.path.splitext(save_path)[0] + '.xlsx'
+
+			# Gather all rows where the checkbox is ticked
+			selected_indices = []
+			for row in range(self.ui.moleculesTableWidget.rowCount):
+				chk_item = self.ui.moleculesTableWidget.item(row, 0)
+				if chk_item is not None and chk_item.checkState() == qt.Qt.Checked:
+					df_idx = chk_item.data(qt.Qt.UserRole)
+					selected_indices.append(df_idx)
+
+			if not selected_indices:
+				slicer.util.errorDisplay("Please select (check) at least one molecule in the table to export.")
+				return
+
+			# 3. Format the DataFrame for export
+			df_to_export = self.current_results_df.loc[selected_indices].copy()
+			
+			# Rename columns to match the UI table headers
+			tol_unit = self.ui.toleranceunitcombobox.currentText
+			rename_dict = {
+				'Searched_m/z': 'Searched m/z',
+				'Adduct': 'Adduct',
+				'COMMON_NAME': 'Molecule',
+				'Source ID': 'Source ID',
+				'KEGG_ID': 'KEGG ID',
+				'DELTA': f'Error ({tol_unit})'
+			}
+			
+			# Only rename columns that exist
+			df_to_export = df_to_export.rename(columns={k: v for k, v in rename_dict.items() if k in df_to_export.columns})
+			
+			# Keep only the columns we want to display (filtering out hidden backend columns)
+			cols_to_keep = [v for k, v in rename_dict.items() if v in df_to_export.columns]
+			df_to_export = df_to_export[cols_to_keep]
+
+			# 4. Write to Excel
+			with pd.ExcelWriter(save_path, engine='openpyxl') as writer:
+				df_to_export.to_excel(writer, index=False, sheet_name='Molecules')
+				
+				# Access the underlying workbook to add native links
+				workbook = writer.book
+				worksheet = workbook['Molecules']
+				
+				# Standard Excel hyperlink styling (Blue and Underlined)
+				link_font = Font(color="0563C1", underline="single")
+				
+				# Find which column numbers belong to our IDs (openpyxl is 1-indexed)
+				columns = df_to_export.columns.tolist()
+				kegg_col_idx = columns.index('KEGG ID') + 1 if 'KEGG ID' in columns else None
+				source_col_idx = columns.index('Source ID') + 1 if 'Source ID' in columns else None
+
+				# Iterate through the rows to add hyperlinks
+				for row in range(2, len(df_to_export) + 2): 
+					
+					# Apply link to KEGG ID
+					if kegg_col_idx:
+						kegg_cell = worksheet.cell(row=row, column=kegg_col_idx)
+						val = kegg_cell.value
+						if pd.notna(val) and str(val).startswith('C'):
+							kegg_cell.hyperlink = f"https://www.kegg.jp/entry/{val}"
+							kegg_cell.font = link_font
+							
+					# Apply link to Source ID
+					if source_col_idx:
+						source_cell = worksheet.cell(row=row, column=source_col_idx)
+						val = source_cell.value
+						if pd.notna(val):
+							val_str = str(val)
+							if val_str.startswith('HMDB'):
+								source_cell.hyperlink = f"https://www.hmdb.ca/metabolites/{val_str}"
+								source_cell.font = link_font
+							elif val_str.startswith('LM'):
+								source_cell.hyperlink = f"https://www.lipidmaps.org/databases/lmsd/{val_str}"
+								source_cell.font = link_font
+
+			slicer.util.infoDisplay(f"Molecule labels successfully exported to:\n{save_path}", "Export Complete")
+			
+		except Exception as e:
+			slicer.util.errorDisplay(f"Failed to export Excel file:\n{str(e)}")
 	
 	def onExportPeakLabelExcel(self):
 		"""Export the pathway results to an excel file, preserving URLs."""
-		# Import openpyxl for Excel writing and hyperlink support        
-		try:
-			import openpyxl
-			from openpyxl.styles import Font
-		except ModuleNotFoundError:
-			slicer.util.pip_install("openpyxl")
-			import openpyxl
-			from openpyxl.styles import Font
 		
         # Check if there is actually data to save
 		df_to_export = None
@@ -1968,7 +2100,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 	def onLoadMzValuesCsv(self):
 		"""Opens a file dialog, reads a CSV, and populates the m/z text box."""
-		import pandas as pd
         # Open a "File Open" dialog window
 		file_path = qt.QFileDialog.getOpenFileName(
             None, 

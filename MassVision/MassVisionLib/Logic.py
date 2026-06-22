@@ -78,6 +78,19 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from MassVisionLib.Utils import *
 
+#Robert Added Libraries
+import zipfile
+import sqlite3
+import io
+import threading
+from collections import deque, defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
+try:
+	from curl_cffi import requests as cffi_requests
+except ModuleNotFoundError:
+	slicer.util.pip_install("curl_cffi")
+	from curl_cffi import requests as cffi_requests
+
 
 def show_wait_message(func):
 	def wrapper(*args, **kwargs):
@@ -103,6 +116,31 @@ def show_wait_message(func):
 			qt.QApplication.processEvents()
 
 	return wrapper
+
+class SearchConfigPeakLabeling:
+    def __init__(self, peaks_str, tolerance_val, adducts_str):
+        self.mz_values = peaks_str
+        self.tolerance_da = float(tolerance_val)
+        self.adducts = adducts_str
+        self.proton_mass = 1.007276
+        self.lipid_maps_url = "https://www.lipidmaps.org/rest/moverz/LIPIDS"
+        
+        # Setup the HMDB database path
+        import qt, os # Ensure these are available for the path resolution
+        base_dir = qt.QStandardPaths.writableLocation(qt.QStandardPaths.AppLocalDataLocation)
+        self.hmdb_db = os.path.join(base_dir, "MassVision", "HMDB_Neutral.db")
+        
+        self.hmdb_table = "metabolites"
+        self.hmdb_mz_column = "mz_neutral"
+        self.hmdb_kegg_column = "KEGG_ID"
+        self.kegg_api_url = "https://rest.kegg.jp/find/compound/{query}/formula"
+        self.kegg_api_base = "https://rest.kegg.jp"
+        self.rate_limit = 3.0
+        self.rate_window = 1.5
+        self.api_call_delay = 0.5
+        self.batch_size = 10
+        self.max_workers = 10
+        self.request_timeout = 30
 
 class MassVisionLogic(ScriptedLoadableModuleLogic):
 	"""This class should implement all the actual
@@ -3647,49 +3685,36 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# Update the view
 		slicer.app.processEvents()
 
-	# -------- Robert HMDB Database download code --------
+# -------- Robert HMDB Database download code --------
 	def check_and_build_hmdb(self, db_path, buttonClicked=False):
 		"""Checks if the HMDB SQLite database exists. If not, prompts the user with a Yes/No option."""
-		import xml.etree.ElementTree as ET
-		# Ensure required packages are installed
-		try:
-			import zipfile
-		except ImportError:
-			slicer.util.pip_install("zipfile")
-
-		try:
-			import sqlite3
-		except ImportError:
-			slicer.util.pip_install("sqlite3")
 
 		db_exists = os.path.exists(db_path)
 		if db_exists and not buttonClicked:
 			return True # Database already exists, skip building and return success!
 		elif db_exists and buttonClicked:
-			# Database exists, ask if they want to update it
 			updateBox = qt.QMessageBox()
 			updateBox.setWindowTitle("Update HMDB Database")
 			updateBox.setText("The HMDB database is already downloaded on your system.")
 			updateBox.setInformativeText(
-                "Would you like to replace it with an updated version?\n\n"
-                "This will overwrite your existing database."
-            )
+				"Would you like to replace it with an updated version?\n\n"
+				"This will overwrite your existing database."
+			)
 			updateBox.setStandardButtons(qt.QMessageBox.Yes | qt.QMessageBox.No)
 			updateBox.setDefaultButton(qt.QMessageBox.No)
 			choice = updateBox.exec_()
 			if choice == qt.QMessageBox.No:
-				return True # Keep existing database and return success
-		else: # Ask the user if they want to set it up (Yes/No)
+				return True 
+		else: 
 			msgBox = qt.QMessageBox()
 			msgBox.setWindowTitle("HMDB Setup Required")
 			msgBox.setText("The local HMDB database has not been set up yet.")
 			msgBox.setInformativeText(
-				"To search HMDB, you need to set up the local database (requires ~5.5 GB of temporary space during setup, which is then deleted).\n\n"
+				"To search HMDB, you need to set up the local database.\n\n"
 				"Would you like to set it up now?"
 			)
 			msgBox.setStandardButtons(qt.QMessageBox.Yes | qt.QMessageBox.No)
 			msgBox.setDefaultButton(qt.QMessageBox.Yes)
-			
 			choice = msgBox.exec_()
 
 		# Handle the "No" choice
@@ -3702,28 +3727,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			)
 			return False 
 		
-		# # Handle the "Yes" choice (Manual download instructions)
-		# setupBox = qt.QMessageBox()
-		# setupBox.setWindowTitle("HMDB Setup Instructions")
-		# setupBox.setText("Please provide the HMDB database file.")
-		# setupBox.setInformativeText(
-		# 	"Due to server security, you must download the file manually:\n\n"
-		# 	"1. Go to: https://hmdb.ca/downloads\n"
-		# 	"2. Ensure you are under the tab with the most Current Version\n"
-		# 	"3. Download the 'All Metabolites' XML file under 'Metabolite and Protein Data' in XML format).\n"
-		# 	"4. Click 'OK' below and select the .zip file you downloaded."
-		# )
-		# setupBox.exec_()
-
 		setupBox = qt.QMessageBox()
 		setupBox.setWindowTitle("HMDB Setup Instructions")
-
-		# 1. Enable Rich Text support
 		setupBox.setTextFormat(qt.Qt.RichText)
-
 		setupBox.setText("Please provide the HMDB database file.")
-
-		# 2. Use an HTML anchor tag for the link
 		setupBox.setInformativeText(
 			"1. Go to: <a href='https://hmdb.ca/downloads'>https://hmdb.ca/downloads</a><br>"
 			"2. Ensure you are under the tab with the most Current Version<br>"
@@ -3732,34 +3739,23 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		)
 		setupBox.exec_()
 
-		# Open a file browser to let them select the ZIP
 		zip_path = qt.QFileDialog.getOpenFileName(None, "Select downloaded hmdb_metabolites.zip", "", "ZIP Files (*.zip)")
 		
 		if not zip_path:
 			slicer.util.warningDisplay("Setup cancelled. Please switch your database to LIPID MAPS to continue searching.")
 			return False
 
-		# Setup directories
 		db_dir = os.path.dirname(db_path)
 		os.makedirs(db_dir, exist_ok=True)
-		xml_path = os.path.join(db_dir, "hmdb_metabolites.xml")
 
-		# Progress bar for unzipping and database building
-		progress = slicer.util.createProgressDialog(labelText="Unzipping HMDB (Extracting ~5.5 GB)...", maximum=100)
+		progress = slicer.util.createProgressDialog(labelText="Building SQLite Database directly from ZIP...", maximum=100)
 		slicer.app.processEvents()
 
 		try:
-			# Unzip the file
-			with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-				zip_ref.extractall(db_dir)
-
-			# Build the SQLite Database
-			progress.labelText = "Building SQLite Database... (May take 3-5 minutes)"
-			slicer.app.processEvents()
-
 			conn = sqlite3.connect(db_path)
 			cursor = conn.cursor()
 
+			# Create main table
 			cursor.execute('''
 				CREATE TABLE IF NOT EXISTS metabolites (
 					hmdb_id TEXT PRIMARY KEY,
@@ -3772,6 +3768,14 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 					pubchem_id TEXT,
 					kegg_id TEXT,
 					pathways TEXT
+				)
+			''')
+			
+			# Create metadata table
+			cursor.execute('''
+				CREATE TABLE IF NOT EXISTS metadata (
+					info_key TEXT PRIMARY KEY,
+					info_value TEXT
 				)
 			''')
 
@@ -3793,95 +3797,104 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			MAX_MZ = 10000.0
 			PROTON_MASS = 0
 
-			context = ET.iterparse(xml_path, events=("end",))
+			with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+				xml_filename = next((name for name in zip_ref.namelist() if name.endswith('.xml')), None)
+				
+				if not xml_filename:
+					slicer.util.errorDisplay("Could not find an XML file inside the provided ZIP.")
+					return False
+				
+				with zip_ref.open(xml_filename) as xml_file:
+					context = ET.iterparse(xml_file, events=("end",))
 
-			# Go through each metabolite entry in the XML and extract relevant information
-			for event, elem in context:
-				if elem.tag.endswith('metabolite'):
-					# Extract basic metabolite information from XML tags
-					name = get_tag_text(elem, 'name')
-					hmdb_id = get_tag_text(elem, 'accession')
-					formula = get_tag_text(elem, 'chemical_formula')
-					kegg_id = get_tag_text(elem, 'kegg_id')
-					pubchem_id = get_tag_text(elem, 'pubchem_compound_id')
+					db_version = "Unknown"
+					db_date = "Unknown"
 
-					# Initialize taxonomy and pathway information
-					super_class = "N/A"
-					class_name = "N/A"
-					pathway_list = []
-					pathways = None
-					
-					# Parse child elements for taxonomy and pathway data
-					for child in elem:
-						if child.tag.endswith('taxonomy'):
-							super_class = get_tag_text(child, 'super_class')
-							class_name = get_tag_text(child, 'class')
-						
-						# Extract pathway information from main pathways section
-						if child.tag.endswith('pathways'):
-							for pathway in child:
-								sn = get_tag_text(pathway, 'smpdb_id')
-								name_p = get_tag_text(pathway, 'name')
-								if sn and name_p:
-									pathway_list.append(f"{sn}: {name_p}")
+					for event, elem in context:
+						# Capture Metadata
+						if elem.tag.endswith('version') and db_version == "Unknown":
+							db_version = elem.text
+							cursor.execute("INSERT OR REPLACE INTO metadata (info_key, info_value) VALUES ('version', ?)", (db_version,))
+							conn.commit()
+							elem.clear()
+							
+						elif elem.tag.endswith('update_date') and db_date == "Unknown":
+							db_date = elem.text
+							cursor.execute("INSERT OR REPLACE INTO metadata (info_key, info_value) VALUES ('date', ?)", (db_date,))
+							conn.commit()
+							elem.clear()
 
-						# Extract pathway information from biological properties section
-						if child.tag.endswith('biological_properties'):
-							for bio_child in child:
-								if bio_child.tag.endswith('pathways'):
-									for pathway in bio_child:
+						# Process Metabolites
+						elif elem.tag.endswith('metabolite'):
+							name = get_tag_text(elem, 'name')
+							hmdb_id = get_tag_text(elem, 'accession')
+							formula = get_tag_text(elem, 'chemical_formula')
+							kegg_id = get_tag_text(elem, 'kegg_id')
+							pubchem_id = get_tag_text(elem, 'pubchem_compound_id')
+
+							super_class = "N/A"
+							class_name = "N/A"
+							pathway_list = []
+							pathways = None
+							
+							for child in elem:
+								if child.tag.endswith('taxonomy'):
+									super_class = get_tag_text(child, 'super_class')
+									class_name = get_tag_text(child, 'class')
+								
+								if child.tag.endswith('pathways'):
+									for pathway in child:
 										sn = get_tag_text(pathway, 'smpdb_id')
 										name_p = get_tag_text(pathway, 'name')
 										if sn and name_p:
 											pathway_list.append(f"{sn}: {name_p}")
+
+								if child.tag.endswith('biological_properties'):
+									for bio_child in child:
+										if bio_child.tag.endswith('pathways'):
+											for pathway in bio_child:
+												sn = get_tag_text(pathway, 'smpdb_id')
+												name_p = get_tag_text(pathway, 'name')
+												if sn and name_p:
+													pathway_list.append(f"{sn}: {name_p}")
+											
+							if pathway_list:
+								pathways = '; '.join(pathway_list)
+								
+							mass_str = get_tag_text(elem, 'monoisotopic_molecular_weight')
+							if not mass_str:
+								for child in elem:
+									if child.tag.endswith('predicted_properties'):
+										for prop in child:
+											kind = get_tag_text(prop, 'kind')
+											source = get_tag_text(prop, 'source')
+											if kind == 'mono_mass' and source == 'ChemAxon':
+												mass_str = get_tag_text(prop, 'value')
+												break
+									if mass_str: break
+
+							if mass_str and name:
+								try:
+									neutral_mass = float(mass_str)
+									mz_neutral = neutral_mass - PROTON_MASS
 									
-					# Combine all pathways into a semicolon-separated string
-					if pathway_list:
-						pathways = '; '.join(pathway_list)
-						
-					# Extract molecular mass; fallback to predicted properties if not available
-					mass_str = get_tag_text(elem, 'monoisotopic_molecular_weight')
-					if not mass_str:
-						# Search predicted_properties for ChemAxon monoisotopic mass
-						for child in elem:
-							if child.tag.endswith('predicted_properties'):
-								for prop in child:
-									kind = get_tag_text(prop, 'kind')
-									source = get_tag_text(prop, 'source')
-									if kind == 'mono_mass' and source == 'ChemAxon':
-										mass_str = get_tag_text(prop, 'value')
-										break
-							if mass_str: break
+									if mz_neutral <= MAX_MZ:
+										batch_data.append((
+											hmdb_id, name, formula, neutral_mass, mz_neutral, 
+											super_class, class_name, pubchem_id, kegg_id, pathways
+										))
+								except ValueError:
+									pass
 
-					# Calculate m/z and add to database batch if valid
-					if mass_str and name:
-						try:
-							neutral_mass = float(mass_str)
-							# Calculate m/z by subtracting proton mass (Zero here since we are saving a neutral database)
-							mz_neutral = neutral_mass - PROTON_MASS
+							elem.clear()
 							
-							# Only add if m/z is within reasonable mass spec range
-							if mz_neutral <= MAX_MZ:
-								batch_data.append((
-									hmdb_id, name, formula, neutral_mass, mz_neutral, 
-									super_class, class_name, pubchem_id, kegg_id, pathways
-								))
-						except ValueError:
-							# Skip if mass cannot be converted to float
-							pass
-
-					# Clear element from memory to save RAM during large XML parsing
-					elem.clear()
-					
-					# Batch insert to database for efficiency (reduces I/O operations)
-					if len(batch_data) >= batch_size:
-						cursor.executemany(insert_sql, batch_data)
-						conn.commit()
-						count += len(batch_data)
-						batch_data = []
-						# Update progress dialog with insertion count
-						progress.labelText = f"Building DB: Inserted {count} molecules..."
-						slicer.app.processEvents()
+							if len(batch_data) >= batch_size:
+								cursor.executemany(insert_sql, batch_data)
+								conn.commit()
+								count += len(batch_data)
+								batch_data = []
+								progress.labelText = f"Building DB: Inserted {count} molecules..."
+								slicer.app.processEvents()
 
 			if batch_data:
 				cursor.executemany(insert_sql, batch_data)
@@ -3893,155 +3906,139 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			conn.commit()
 			
 			conn.close()
-			return True # Success!
+			return True
 
 		finally:
 			progress.close()
-			if os.path.exists(xml_path):
-				print(xml_path) 
-				os.remove(xml_path)
 	
 	def default_hmdb_db_path(self):
-		# base_dir = os.path.dirname(os.path.abspath(__file__))
-		# default_db_path = os.path.join(base_dir, "HMDBData", "HMDB_Neutral.db")
+		"""Determines the default path for the HMDB SQLite database based on the user's operating system."""
 
 		base_dir = qt.QStandardPaths.writableLocation(qt.QStandardPaths.AppLocalDataLocation)
 		default_db_path = os.path.join(base_dir, "MassVision", "HMDB_Neutral.db")
 		print(default_db_path)
 		return default_db_path
 
+	def get_hmdb_version_label(self, db_path):
+		"""Fetches version info from SQLite and formats it for the UI."""
+		
+		if not os.path.exists(db_path):
+			return "HMDB (Not Installed)"
+			
+		try:
+			conn = sqlite3.connect(db_path)
+			cursor = conn.cursor()
+			
+			cursor.execute("SELECT info_value FROM metadata WHERE info_key='version'")
+			version_row = cursor.fetchone()
+			
+			cursor.execute("SELECT info_value FROM metadata WHERE info_key='date'")
+			date_rows = cursor.fetchone()
+			
+			conn.close()
+			
+			if version_row and date_rows:
+				version = version_row[0]
+				if len(date_rows) > 1:
+					date_short = date_rows[1].split(' ')[0] 
+				else:
+					# Fallback just in case there is only one date
+					date_short = date_rows[0].split(' ')[0]
+				return f"HMDB (v{version} - {date_short})"
+				
+			return "HMDB (Metadata Missing)"
+		except Exception:
+			return "HMDB"
+		
 	# -------- Robert Pathway Labeling Code -------
-	def run_molecule_matching(self, peaks_str, tolerance_val, adducts_str, tol_unit="Da", database_unit="All",search_all=False, progress_callback=None):
-		import argparse
-		import io
-		import time
-		import threading
-		import re
-		from collections import deque
-		from concurrent.futures import ThreadPoolExecutor, as_completed
-
-		try:
-			import requests
-		except ModuleNotFoundError:
-			slicer.util.pip_install("requests")
-			import requests
-
-		try:
-			import sqlite3
-		except ModuleNotFoundError:
-			slicer.util.pip_install("sqlite3")
-			import sqlite3
-
-		# Setup arguments (adapted to accept dynamic variables)
-		def setup_arguments():
-			parser = argparse.ArgumentParser(description="Combined pipeline: LIPID MAPS + HMDB -> KEGG IDs -> KEGG Pathways")
-			group = parser.add_mutually_exclusive_group()
-			group.add_argument("--mz-values", type=str, help="Comma-separated list of m/z values")
-			group.add_argument("--mz-file", type=str, help="Path to a text file")
-			parser.add_argument("--output-file", type=str, default="Final_KEGG_Pathways.csv")
-			parser.add_argument("--tolerance-da", type=float, default=0.01) # Default overwritten below
-			parser.add_argument("--lipid-maps-url", type=str, default="https://www.lipidmaps.org/rest/moverz/LIPIDS")
-			parser.add_argument("--adducts", type=str, default="M-H")
-			parser.add_argument("--proton-mass", type=float, default=1.007276)
-			
-			#Setup the HMDB database path relative to the script location
-			# base_dir = os.path.dirname(os.path.abspath(__file__))
-			# default_db_path = os.path.join(base_dir, "HMDBData", "HMDB_Neutral.db")
-
-			base_dir = qt.QStandardPaths.writableLocation(qt.QStandardPaths.AppLocalDataLocation)
-			default_db_path = os.path.join(base_dir, "MassVision", "HMDB_Neutral.db")
-			print(default_db_path)
-
-			parser.add_argument("--hmdb-db", type=str, default=default_db_path)
-			
-			parser.add_argument("--hmdb-table", type=str, default="metabolites")
-			parser.add_argument("--hmdb-mz-column", type=str, default="mz_neutral")
-			parser.add_argument("--hmdb-kegg-column", type=str, default="KEGG_ID")
-			parser.add_argument("--kegg-api-url", type=str, default="https://rest.kegg.jp/find/compound/{query}/formula")
-			parser.add_argument("--rate-limit", type=float, default=3.0)
-			parser.add_argument("--rate-window", type=float, default=1.5)
-			parser.add_argument("--kegg-api-base", type=str, default="https://rest.kegg.jp")
-			parser.add_argument("--api-call-delay", type=float, default=0.5)
-			parser.add_argument("--batch-size", type=int, default=10)
-			parser.add_argument("--max-workers", type=int, default=10)
-			parser.add_argument("--request-timeout", type=int, default=30)
-			return parser
+	def run_molecule_matching(self, peaks_str, tolerance_val, adducts_str, tol_unit="Da", database_unit="All",search_all=False, progress_callback=None,):
+		args = SearchConfigPeakLabeling(peaks_str, tolerance_val, adducts_str)
 
 		# Parse Lipid Maps (using the provided m/z values and adducts)
 		def stage1_lipid_maps_search(mz_list, args):
 			print("\n>>> Stage 1A: LIPID MAPS m/z Search")
 			REST_URL_BASE = args.lipid_maps_url
 			TABULAR_COLUMNS = ['Input m/z', 'Matched m/z', 'Delta', 'Name', 'Formula', 'Ion']
+			EMPTY_TEXT_RESPONSE = 'Input m/z\tMatched m/z\tDelta\tName\tFormula\tIon\n'
 			NEGATIVE_ADDUCTS = [adduct.strip() for adduct in args.adducts.split(',')]
+			ALL_ADDUCTS = [adduct.strip() for adduct in args.adducts.split(',')]
 			all_results = []
-			
-			# search function for a single m/z and adduct combination
+
+			# Add our mass correction dictionary here
+			ADDUCT_CORRECTIONS = {
+				"Neutral": 0.0,
+				"M-H": 1.007276,        # H+ (Proton mass: Neutral H - electron)
+				"M+Cl": -34.969401,     # Cl- (Neutral Cl + electron)
+				"M+F": -18.998952,      # F- (Neutral F + electron)
+				"M+CH3COO": -59.013851, # CH3COO- 
+				"M+H": -1.007276,       # H+ (Proton mass)
+				"M+Na": -22.989221,     # Na+ (Neutral Na - electron)
+				"M+K": -38.963159,      # K+ (Neutral K - electron)
+				"M+NH4": -18.033826     # NH4+ (Neutral NH4 - electron)
+			}
+
 			def _search_task(mz_val, adduct_val):
-				mz_norm_local = float(mz_val)
-				
-				# Assuming tol_unit is defined in your outer scope/globals
+				mass_correction = ADDUCT_CORRECTIONS.get(adduct_val, 0.0)
+				# Apply the missing adduct mass adjustment
+				mz_norm_local = float(f"{float(mz_val):.4f}")
+				mz_norm_local += mass_correction
+				mz_norm_local = round(mz_norm_local, 4)
 				if tol_unit == "ppm":
-					# Formula: (m/z * ppm) / 1,000,000
-					local_tol_da = (mz_norm_local * float(args.tolerance_da)) / 1000000.0
+					local_tol_da = (mz_norm_local * args.tolerance_da) / 1000000.0
 				else:
-					local_tol_da = float(args.tolerance_da)
+					local_tol_da = args.tolerance_da
 					
-				full_url = f"{REST_URL_BASE}/{mz_norm_local}/{adduct_val}//{local_tol_da}"
-				
+				local_tol_da = round(local_tol_da, 4)
+				full_url = f"{REST_URL_BASE}/{mz_norm_local:.3f}/{adduct_val}//{local_tol_da}"
+
 				try:
-					resp = requests.get(full_url, timeout=args.request_timeout)
+					# impersonate="chrome" perfectly mimics the TLS fingerprint and HTTP/2 headers of Chrome
+					resp = cffi_requests.get(full_url, impersonate="chrome", timeout=args.request_timeout)
 					resp.raise_for_status()
 					response_text = resp.text.strip()
 					
-					if 'Input m/z' not in response_text or 'This function does not exist' in response_text:
+					if response_text.endswith(EMPTY_TEXT_RESPONSE.strip()) or 'This function does not exist' in response_text:
 						return []
-						
-					data_io = io.StringIO(response_text)
-					temp_df = pd.read_csv(data_io, sep='\t', skiprows=[0])
 					
-					if temp_df.empty or len(temp_df.columns) < 6:
+					try:
+						data_io = io.StringIO(response_text)
+						temp_df = pd.read_csv(data_io, sep='\t', skiprows=[0])
+						if temp_df.empty or len(temp_df.columns) < 6:
+							return []
+						
+						temp_df.columns = TABULAR_COLUMNS
+						temp_df.rename(columns={'Delta': 'COMMON_NAME', 'Name': 'FORMULA', 'Matched m/z': 'DELTA', 'Formula': 'ADDUCT'}, inplace=True)
+						records = temp_df.to_dict('records')
+						
+						filtered = []
+						for hit in records:
+							hit['Searched_m/z'] = mz_val
+							hit['Tolerance_Da'] = (args.tolerance_da)
+							hit['Adduct'] = adduct_val
+							hit['Source'] = 'LIPID_MAPS'
+							hit['Source ID'] = 'LIPID_MAPS'
+							if not pd.isna(hit.get('COMMON_NAME')):
+								filtered.append(hit)
+						return filtered
+					except Exception:
 						return []
-						
-					temp_df.columns = TABULAR_COLUMNS
-					temp_df.rename(columns={
-						'Delta': 'COMMON_NAME', 
-						'Name': 'FORMULA', 
-						'Matched m/z': 'DELTA', 
-						'Formula': 'ADDUCT'
-					}, inplace=True)
-					
-					records = temp_df.to_dict('records')
-					filtered = []
-					
-					for hit in records:
-						name_str = str(hit.get('COMMON_NAME', ''))
-				
-						# Extract Lipid Class (e.g., 'PA' from 'PA O-49:3')
-						class_match = re.match(r'^([A-Za-z\-]+)', name_str)
-						lipid_class = class_match.group(1) if class_match else None
-						
-						hit['Searched_m/z'] = mz_val
-						hit['Tolerance_Da'] = args.tolerance_da
-						hit['Adduct'] = adduct_val
-						hit['Source ID'] = 'LIPIDMAPS'  # Removed the underscore here!
-						hit['COMMON_NAME'] = name_str
-						
-						if pd.notna(hit.get('COMMON_NAME')):
-							filtered.append(hit)
-							
-					return filtered
-				except Exception:
+				except Exception as err:
+					print(f"[DEBUG] EXCEPTION CAUGHT for {mz_val}: {str(err)}")
 					return []
+					
+			tasks = [(float(f"{mz}"), adduct) for mz in mz_list for adduct in ALL_ADDUCTS]
 			
-			# Create tasks for all m/z and adduct combinations
-			tasks = [(float(f"{mz}"), adduct) for mz in mz_list for adduct in NEGATIVE_ADDUCTS]
 			with ThreadPoolExecutor(max_workers=args.max_workers) as exe:
 				futures = {exe.submit(_search_task, mzv, ad): (mzv, ad) for (mzv, ad) in tasks}
 				for fut in as_completed(futures):
-					res = fut.result()
-					if res:
-						all_results.extend(res)
-			
+					# Wrap in try/except to prevent the entire thread pool from crashing on one timeout
+					try:
+						res = fut.result()
+						if res:
+							all_results.extend(res)
+					except Exception:
+						pass
+						
 			# Check if empty, and return DataFrames with proper columns so 'Source ID' doesn't cause KeyErrors upstream
 			if not all_results:
 				empty_cols = ['Searched_m/z', 'FORMULA', 'Adduct', 'COMMON_NAME', 'DELTA', 'Source ID']
@@ -4188,7 +4185,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			all_results = []
 			recent_requests = deque()
 			rate_lock = threading.Lock()
-			session = requests.Session()
+			session = cffi_requests.Session(impersonate="chrome")
 			
 			# Helper function to enforce rate limiting (or else the KEGG API will start returning errors)
 			def _wait_for_slot():
@@ -4214,7 +4211,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 					for line in resp.text.strip().split('\n'):
 						parts = line.split('\t')
 						if len(parts) >= 2 and parts[1].split(';')[0].strip() == formula:
-							out.append({'KEGG_ID': parts[0][4:], 'FORMULA': formula})
+							out.append({'KEGG_ID': parts[0], 'FORMULA': formula})
 					return out
 				except Exception:
 					return []
@@ -4227,7 +4224,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 					if res: all_results.extend(res)
 			
 			kegg_ids_from_formulas = set(r['KEGG_ID'] for r in all_results)
-			
+
 			out_Combined = pd.DataFrame(all_results) if all_results else pd.DataFrame(columns=['KEGG_ID', 'FORMULA'])
 			all_kegg_ids = hmdb_kegg_ids.union(kegg_ids_from_formulas)
 			return list(all_kegg_ids), out_Combined
@@ -4246,7 +4243,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 					combined_matched_results = pd.concat([combined_matched_results, lm_match], ignore_index=True)
 
 			if progress_callback: progress_callback("Stage 1B: Searching HMDB...", 30)
-			if database_unit == "All" or database_unit == "HMDB":
+			if database_unit == "All" or "HMDB" in database_unit:
 				hmdb_res, hmdb_match = stage1_hmdb_search(mz_list, args, hmdb_conn)
 				if not hmdb_res.empty:
 					combined_results = pd.concat([combined_results, hmdb_res], ignore_index=True)
@@ -4313,18 +4310,12 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			return combined_matched_results
 
 		# --- Execution starts here ---
-		parser = setup_arguments()
-		# We pass UI variables directly into argparse to simulate CLI args
-		args = parser.parse_args([
-			"--mz-values", peaks_str, 
-			"--tolerance-da", str(tolerance_val),
-			"--adducts", adducts_str
-		])
+		args = SearchConfigPeakLabeling(peaks_str, tolerance_val, adducts_str)
 
 		mz_list = [float(x.strip()) for x in args.mz_values.split(',') if x.strip()]
 		
 		hmdb_conn = None
-		if database_unit in ["All", "HMDB"]:
+		if database_unit == "All" or "HMDB" in database_unit:
 			try:
 				buttonClicked = False
 				setup_success = self.check_and_build_hmdb(args.hmdb_db, buttonClicked) 
@@ -4352,22 +4343,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	
 	def run_pathway_search(self, molecules_df, filter_human=False, progress_callback=None):
 		"""Stage 3: Takes a filtered dataframe of molecules and fetches KEGG pathways."""
-		try:
-			import requests
-		except ModuleNotFoundError:
-			slicer.util.pip_install("requests")
-			import requests
-
-		import time
-
-		try:
-			import pandas as pd
-		except ModuleNotFoundError:
-			slicer.util.pip_install("pandas")
-			import pandas as pd
-
-		from concurrent.futures import ThreadPoolExecutor
-		from collections import defaultdict
 
 		# API defaults to ensure the querry does not crash KEGG's servers 
 		kegg_api_base = "https://rest.kegg.jp"
@@ -4378,7 +4353,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		# Progreess bar display
 		if progress_callback: progress_callback("Extracting KEGG IDs...", 10)
-		kegg_ids = molecules_df['KEGG_ID'].dropna().unique().tolist()
+		kegg_ids = [k for k in molecules_df['KEGG_ID'].dropna().unique().tolist() if k != 'N/A']
 
 		if not kegg_ids:
 			return molecules_df
@@ -4387,7 +4362,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		pathway_to_compound = defaultdict(set)
 		unique_pathways = set()
-		session = requests.Session()
+		session = cffi_requests.Session(impersonate="chrome")
 
 		# Find the url for the compound and extract the pathway codes from the response
 		def _link_compound(cid):
@@ -4415,7 +4390,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		for i in range(0, len(pathway_list), batch_size):
 			batch = "+".join(pathway_list[i:i + batch_size])
 			try:
-				resp = requests.get(f"{kegg_api_base}/get/{batch}")
+				resp = cffi_requests.get(f"{kegg_api_base}/get/{batch}", impersonate="chrome", timeout=request_timeout)
 				if resp.status_code == 200:
 					for entry in resp.text.strip().split('///\n'):
 						p_code, p_name = None, None
