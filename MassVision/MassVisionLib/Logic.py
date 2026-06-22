@@ -4224,7 +4224,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 					if res: all_results.extend(res)
 			
 			kegg_ids_from_formulas = set(r['KEGG_ID'] for r in all_results)
-			print(kegg_ids_from_formulas)
 
 			out_Combined = pd.DataFrame(all_results) if all_results else pd.DataFrame(columns=['KEGG_ID', 'FORMULA'])
 			all_kegg_ids = hmdb_kegg_ids.union(kegg_ids_from_formulas)

@@ -1833,18 +1833,46 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 	def renderHtmlPathwayResults(self, results_df, tolerance, tol_unit):
 		"""Generates and sets the HTML layout for the final pathway results."""
+		# 1. Detect if Slicer is currently using the Dark Theme
+		bg_color = slicer.app.palette().color(qt.QPalette.Window)
+		# lightness() returns a value from 0 (black) to 255 (white). 
+		is_dark_mode = bg_color.lightness() < 128
+
+		# 2. Define our color palette based on the active theme
+		if is_dark_mode:
+			c_text = "#e0e0e0"       
+			c_h3 = "#99ccff"         
+			c_h4 = "#6bb5ff"         
+			c_p = "#b0b0b0"          
+			c_th_bg = "#3a3a3a"      
+			c_th_text = "#ffffff"    
+			c_tr_even = "#2a2a2a"    
+			c_border = "#555555"     
+			c_link = "#5faee3"       
+		else:
+			c_text = "#333"          
+			c_h3 = "#2c3e50"         
+			c_h4 = "#1a5276"         
+			c_p = "#555"             
+			c_th_bg = "#e0e0e0"      
+			c_th_text = "#333"       
+			c_tr_even = "#f9f9f9"    
+			c_border = "#d4d4d4"     
+			c_link = "#2980b9"       
+
+		# 3. Inject the variables into the CSS block
 		output_html = f"""
 		<html>
 		<head>
 		<style>
-			body {{ font-family: Arial, sans-serif; color: #333; }}
-			h3 {{ color: #2c3e50; margin-bottom: 2px; }}
-			h4 {{ color: #1a5276; margin-top: 20px; margin-bottom: 5px; border-bottom: 2px solid #1a5276; padding-bottom: 3px; }}
-			p {{ margin-top: 0px; color: #555; }}
+			body {{ font-family: Arial, sans-serif; color: {c_text}; }}
+			h3 {{ color: {c_h3}; margin-bottom: 2px; }}
+			h4 {{ color: {c_h4}; margin-top: 20px; margin-bottom: 5px; border-bottom: 2px solid {c_h4}; padding-bottom: 3px; }}
+			p {{ margin-top: 0px; color: {c_p}; }}
 			table {{ border-collapse: collapse; width: 100%; margin-bottom: 15px; }}
-			th, td {{ padding: 6px 10px; text-align: left; border-bottom: 1px solid #d4d4d4; }}
-			th {{ background-color: #e0e0e0; font-weight: bold; color: #333; }}
-			tr:nth-child(even) {{ background-color: #f9f9f9; }}
+			th, td {{ padding: 6px 10px; text-align: left; border-bottom: 1px solid {c_border}; }}
+			th {{ background-color: {c_th_bg}; font-weight: bold; color: {c_th_text}; }}
+			tr:nth-child(even) {{ background-color: {c_tr_even}; }}
 		</style>
 		</head>
 		<body>
@@ -1858,13 +1886,13 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			display_df = group_df[[col for col in display_cols if col in group_df.columns]].copy()
 			display_df = display_df.sort_values(by=['Adduct', 'KEGG_ID'])
 
-			# Make KEGG_ID and Pathway_Name clickable links if the relevant information is present
+			# 4. Inject the link color variable into the inline styles
 			if 'Pathway_ID' in display_df.columns:
-				display_df['Pathway_Name'] = '<a href="https://www.kegg.jp/pathway/' + display_df['Pathway_ID'] + '" style="color: #2980b9; text-decoration: none;">' + display_df['Pathway_Name'] + '</a>'
+				display_df['Pathway_Name'] = '<a href="https://www.kegg.jp/pathway/' + display_df['Pathway_ID'] + f'" style="color: {c_link}; text-decoration: none;">' + display_df['Pathway_Name'] + '</a>'
 				display_df.drop(columns=['Pathway_ID'], inplace=True)
 				
 			if 'KEGG_ID' in display_df.columns:
-				display_df['KEGG_ID'] = '<a href="https://www.kegg.jp/entry/' + display_df['KEGG_ID'] + '" style="color: #2980b9; text-decoration: none;">' + display_df['KEGG_ID'] + '</a>'
+				display_df['KEGG_ID'] = '<a href="https://www.kegg.jp/entry/' + display_df['KEGG_ID'] + f'" style="color: {c_link}; text-decoration: none;">' + display_df['KEGG_ID'] + '</a>'
 
 			display_df.rename(columns={
 				'Searched_m/z': 'Searched m/z', 'Adduct': 'Adduct', 'COMMON_NAME': 'Molecule', 'Source ID': 'Source ID',
