@@ -3933,13 +3933,17 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			version_row = cursor.fetchone()
 			
 			cursor.execute("SELECT info_value FROM metadata WHERE info_key='date'")
-			date_row = cursor.fetchone()
+			date_rows = cursor.fetchone()
 			
 			conn.close()
 			
-			if version_row and date_row:
+			if version_row and date_rows:
 				version = version_row[0]
-				date_short = date_row[0].split(' ')[0] 
+				if len(date_rows) > 1:
+					date_short = date_rows[1].split(' ')[0] 
+				else:
+					# Fallback just in case there is only one date
+					date_short = date_rows[0].split(' ')[0]
 				return f"HMDB (v{version} - {date_short})"
 				
 			return "HMDB (Metadata Missing)"
