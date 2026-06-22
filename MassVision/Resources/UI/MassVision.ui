@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>557</width>
+    <width>533</width>
     <height>1725</height>
    </rect>
   </property>
@@ -32,7 +32,7 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>2</number>
+   <number>10</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
@@ -5477,219 +5477,10 @@ color: rgb(255, 255, 255);</string>
     <string>Molecule Labeling</string>
    </attribute>
    <layout class="QGridLayout" name="gridLayout_7">
-    <item row="10" column="0" colspan="6">
-     <spacer name="verticalSpacer_55">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Fixed</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="1" column="2" colspan="4">
-     <widget class="QLineEdit" name="inputtedpeakslineedit"/>
-    </item>
-    <item row="3" column="0" colspan="6">
-     <spacer name="verticalSpacer">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Fixed</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="15" column="1" colspan="5">
-     <widget class="QPushButton" name="searchPathwaysButton">
-      <property name="styleSheet">
-       <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
-      </property>
+    <item row="2" column="0">
+     <widget class="QLabel" name="label_18">
       <property name="text">
-       <string>Search Pathways</string>
-      </property>
-     </widget>
-    </item>
-    <item row="18" column="0" colspan="6">
-     <spacer name="verticalSpacer_54">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Expanding</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>10</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="16" column="0" colspan="6">
-     <widget class="QTextBrowser" name="displaypatwaystextbrowser">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="verticalScrollBarPolicy">
-       <enum>Qt::ScrollBarAlwaysOn</enum>
-      </property>
-     </widget>
-    </item>
-    <item row="9" column="1" colspan="5">
-     <widget class="QPushButton" name="labelpeaksbutton">
-      <property name="styleSheet">
-       <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
-      </property>
-      <property name="text">
-       <string>Ion Identification</string>
-      </property>
-     </widget>
-    </item>
-    <item row="11" column="0" colspan="6">
-     <widget class="QTableWidget" name="moleculesTableWidget">
-      <property name="enabled">
-       <bool>true</bool>
-      </property>
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="0">
-     <widget class="QLabel" name="label_12">
-      <property name="text">
-       <string>Input m/z Values</string>
-      </property>
-     </widget>
-    </item>
-    <item row="7" column="0">
-     <widget class="QLabel" name="label_41">
-      <property name="text">
-       <string>Database</string>
-      </property>
-     </widget>
-    </item>
-    <item row="15" column="0">
-     <widget class="QCheckBox" name="onlyhumanpathwayscheckbox">
-      <property name="text">
-       <string>Only Human Pathways</string>
-      </property>
-     </widget>
-    </item>
-    <item row="7" column="3">
-     <widget class="QRadioButton" name="findallcandidatesradioButton">
-      <property name="text">
-       <string>Find All Candidates Within Set Tolerance</string>
-      </property>
-     </widget>
-    </item>
-    <item row="12" column="0" colspan="6">
-     <spacer name="verticalSpacer_53">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Fixed</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="4" column="0">
-     <widget class="QLabel" name="label_33">
-      <property name="text">
-       <string>Adducts</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-      </property>
-     </widget>
-    </item>
-    <item row="6" column="0">
-     <widget class="QLabel" name="label_40">
-      <property name="text">
-       <string>Database</string>
-      </property>
-     </widget>
-    </item>
-    <item row="6" column="2" colspan="2">
-     <widget class="QPushButton" name="HMDBDownloadpushButton">
-      <property name="text">
-       <string>Download/Update HMDB Database</string>
-      </property>
-     </widget>
-    </item>
-    <item row="6" column="1">
-     <widget class="QComboBox" name="databasecombobox">
-      <item>
-       <property name="text">
-        <string>All</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>HMDB</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>LipidMaps</string>
-       </property>
-      </item>
-     </widget>
-    </item>
-    <item row="8" column="0" colspan="6">
-     <spacer name="verticalSpacer_4">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Fixed</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>10</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="2" column="2" colspan="4">
-     <widget class="QLineEdit" name="moleculetoleranacelineedit">
-      <property name="text">
-       <string>0.1</string>
-      </property>
-     </widget>
-    </item>
-    <item row="17" column="1" colspan="5">
-     <widget class="QPushButton" name="exportpeaklabelsCSVbutton">
-      <property name="text">
-       <string>Export...</string>
+       <string>Input Tolerance</string>
       </property>
      </widget>
     </item>
@@ -5700,10 +5491,14 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="7" column="1">
-     <widget class="QRadioButton" name="findclosestcandidateradioButton">
+    <item row="16" column="1" colspan="5">
+     <widget class="QPushButton" name="searchPathwaysButton">
+      <property name="styleSheet">
+       <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+      </property>
       <property name="text">
-       <string>Find Closest Candidate</string>
+       <string>Search Pathways</string>
       </property>
      </widget>
     </item>
@@ -5800,6 +5595,79 @@ color: rgb(255, 255, 255);</string>
       </layout>
      </widget>
     </item>
+    <item row="14" column="0" colspan="5">
+     <widget class="QLabel" name="label_32">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Molecule to Pathway</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="0" colspan="6">
+     <spacer name="verticalSpacer">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="9" column="1" colspan="5">
+     <widget class="QPushButton" name="labelpeaksbutton">
+      <property name="styleSheet">
+       <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+      </property>
+      <property name="text">
+       <string>Ion Identification</string>
+      </property>
+     </widget>
+    </item>
+    <item row="19" column="0" colspan="6">
+     <spacer name="verticalSpacer_54">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Expanding</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>10</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="10" column="0" colspan="6">
+     <spacer name="verticalSpacer_55">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
     <item row="0" column="0" colspan="6">
      <widget class="QLabel" name="label_27">
       <property name="font">
@@ -5814,18 +5682,74 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="2" column="1">
-     <widget class="QComboBox" name="toleranceunitcombobox">
+    <item row="6" column="0">
+     <widget class="QLabel" name="label_40">
+      <property name="text">
+       <string>Database</string>
+      </property>
+     </widget>
+    </item>
+    <item row="16" column="0">
+     <widget class="QCheckBox" name="onlyhumanpathwayscheckbox">
+      <property name="text">
+       <string>Only Human Pathways</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="1">
+     <widget class="QComboBox" name="databasecombobox">
       <item>
        <property name="text">
-        <string>Da</string>
+        <string>All</string>
        </property>
       </item>
       <item>
        <property name="text">
-        <string>ppm</string>
+        <string>HMDB</string>
        </property>
       </item>
+      <item>
+       <property name="text">
+        <string>LipidMaps</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+    <item row="17" column="0" colspan="6">
+     <widget class="QTextBrowser" name="displaypatwaystextbrowser">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOn</enum>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="0">
+     <widget class="QLabel" name="label_33">
+      <property name="text">
+       <string>Adducts</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="2" colspan="4">
+     <widget class="QLineEdit" name="moleculetoleranacelineedit">
+      <property name="text">
+       <string>0.1</string>
+      </property>
+     </widget>
+    </item>
+    <item row="18" column="1" colspan="5">
+     <widget class="QPushButton" name="exportpeaklabelsCSVbutton">
+      <property name="text">
+       <string>Export...</string>
+      </property>
      </widget>
     </item>
     <item row="5" column="0" colspan="6">
@@ -5844,24 +5768,100 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="2" column="0">
-     <widget class="QLabel" name="label_18">
+    <item row="1" column="0">
+     <widget class="QLabel" name="label_12">
       <property name="text">
-       <string>Input Tolerance</string>
+       <string>Input m/z Values</string>
       </property>
      </widget>
     </item>
-    <item row="13" column="0" colspan="5">
-     <widget class="QLabel" name="label_32">
-      <property name="font">
-       <font>
-        <pointsize>10</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
-      </property>
+    <item row="6" column="2" colspan="2">
+     <widget class="QPushButton" name="HMDBDownloadpushButton">
       <property name="text">
-       <string>Molecule to Pathway</string>
+       <string>Download/Update HMDB Database</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="2" colspan="4">
+     <widget class="QLineEdit" name="inputtedpeakslineedit"/>
+    </item>
+    <item row="11" column="0" colspan="6">
+     <widget class="QTableWidget" name="moleculesTableWidget">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="0" colspan="6">
+     <spacer name="verticalSpacer_4">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>10</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="7" column="1">
+     <widget class="QRadioButton" name="findclosestcandidateradioButton">
+      <property name="text">
+       <string>Find Closest Candidate</string>
+      </property>
+     </widget>
+    </item>
+    <item row="13" column="0" colspan="6">
+     <spacer name="verticalSpacer_53">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="2" column="1">
+     <widget class="QComboBox" name="toleranceunitcombobox">
+      <item>
+       <property name="text">
+        <string>Da</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ppm</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+    <item row="7" column="3">
+     <widget class="QRadioButton" name="findallcandidatesradioButton">
+      <property name="text">
+       <string>Find All Candidates Within Set Tolerance</string>
+      </property>
+     </widget>
+    </item>
+    <item row="12" column="1" colspan="5">
+     <widget class="QPushButton" name="exportMoleculeLabelsButton">
+      <property name="text">
+       <string>Export...</string>
       </property>
      </widget>
     </item>
