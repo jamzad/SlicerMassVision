@@ -2145,30 +2145,6 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 
 		# ranked.to_csv('rank.csv', index=True, index_label='ranked')
 
-		## create a table node
-		tableNode = slicer.mrmlScene.GetFirstNodeByName("Ranking")
-		if not tableNode:
-			tableNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTableNode', 'Ranking')
-		else:
-			tableNode.RemoveAllColumns()
-
-		for col in ranked.columns:
-			array = vtk.vtkVariantArray()
-			array.SetName(str(col))
-			for val in ranked[col]:
-				array.InsertNextValue(vtk.vtkVariant(str(val)))
-			tableNode.AddColumn(array)
-
-		## set the table view node
-		tableViewNodes = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
-		if tableViewNodes:
-			tableViewNode = tableViewNodes[0]
-			tableViewNode.SetTableNodeID(tableNode.GetID())
-
-		## lock the table
-		tableNode.SetUseColumnTitleAsColumnHeader(True)
-		tableNode.SetLocked(True)
-		
 		return ranked
 	
 	def balanceData(self, X_train, y_train, track_info_train):

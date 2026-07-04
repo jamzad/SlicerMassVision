@@ -2605,12 +2605,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 	def onFeatureRank(self):
 		rankMethod = self.ui.FRankMethod.currentText
 		rankParam = float(self.ui.FRankParamVal.text)
-		df = self.logic.feature_ranking(rankMethod, rankParam)
-
-		## show the table
-		# slicer.app.layoutManager().setLayout(35)
-		# tableViewNode = slicer.util.getNodesByClass("vtkMRMLTableViewNode")[0]
-		# slicer.app.layoutManager().addMaximizedViewNode(tableViewNode)
+		ranked_df = self.logic.feature_ranking(rankMethod, rankParam)
 
 		customLayoutId = 70
 		customLayout = """
@@ -2622,6 +2617,35 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		"""
 		slicer.app.layoutManager().layoutLogic().GetLayoutNode().AddLayoutDescription(customLayoutId, customLayout)
 		slicer.app.layoutManager().setLayout(customLayoutId)
+
+		## create a table node
+		tableNode = slicer.mrmlScene.GetFirstNodeByName("Ranking")
+		if not tableNode:
+			tableNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTableNode', 'Ranking')
+		else:
+			tableNode.RemoveAllColumns()
+
+		for col in ranked_df.columns:
+			array = vtk.vtkVariantArray()
+			array.SetName(str(col))
+			for val in ranked_df[col]:
+				array.InsertNextValue(vtk.vtkVariant(str(val)))
+			tableNode.AddColumn(array)
+
+
+		# TableView node (singleton tag "FeatureTable")
+		tableViewNode = slicer.mrmlScene.GetSingletonNode("FeatureTable", "vtkMRMLTableViewNode")
+		# Fallback if needed:
+		if not tableViewNode:
+			tvs = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
+			tableViewNode = tvs[0] if tvs else None
+
+		if tableViewNode:
+			tableViewNode.SetTableNodeID(tableNode.GetID())
+
+		## lock the table
+		tableNode.SetUseColumnTitleAsColumnHeader(True)
+		tableNode.SetLocked(True)
 
 	def onSelMethodChange(self, text):
 		if text == "Top ranked":
