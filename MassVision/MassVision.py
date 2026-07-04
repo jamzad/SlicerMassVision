@@ -1025,14 +1025,16 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		max_y = min(self.logic.dim_y, np.ceil(abs(bounds[2])))
 		min_y = 0 if bounds[3] > 0 else np.ceil(-bounds[3])
 
-		print(f'partial PCA region: ({min_y}, {max_y}) ({min_x}, {max_x})')
+		# print(f'partial PCA region: ({int(min_y)}, {int(max_y)}) ({int(min_x)}, {int(max_x)})')
+		
 		# logic processes pca in the ROI
 		self.logic.partial_pca_display((int(min_y), int(min_x)), (int(max_y), int(max_x)), 
 								 extend=self.ui.pcaExtendCheckbox.isChecked())
 		
 		info = self.logic.LoadingsRank()
-		info = f'Local Contrast \nregion ({int(min_y[0])},{int(max_y[0])}), ({int(min_x[0])},{int(max_x[0])})\n\n' + info
+		info = f'Local Contrast \nregion ({int(min_y)},{int(max_y)}), ({int(min_x)},{int(max_x)})\n\n' + info
 		self.ui.LoadingsInfo.setText(info)
+		print(info)
 
 	def onROIforLocalContrast(self):
 		# Remove any existing ROI for local contrast
