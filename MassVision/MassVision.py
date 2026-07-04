@@ -261,15 +261,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.clearReloadPush.connect("clicked(bool)", self.onClearReload)
 		self.ui.loadScenePush.connect("clicked(bool)", self.onLoadScene)
 
-		self.ui.Go2tab1.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(1))
-		self.ui.Go2tab2.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(2))
-		self.ui.Go2tab3.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(3))
-		self.ui.Go2tab4.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(4))
-		self.ui.Go2tab5.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(5))
-		self.ui.Go2tab6.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(6))
-		self.ui.Go2tab7.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(7))
-		self.ui.Go2tab8.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(8))
-		self.ui.Go2tab9.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(9))
+		for i in range(1, 11):
+			button = getattr(self.ui, f"Go2tab{i}")
+			button.clicked.connect(lambda checked=False, idx=i: self.ui.tabWidget.setCurrentIndex(idx))
 
 		self.ui.userManual.clicked.connect(
 			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://slicermassvision.readthedocs.io/")))
@@ -705,7 +699,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			slicer.mrmlScene.Clear()
 			
 			# disable irrelevant tabs
-			[self.ui.tabWidget.setTabEnabled(x,False) for x in range(4,self.ui.tabWidget.count)]
+			# [self.ui.tabWidget.setTabEnabled(x,False) for x in range(4,self.ui.tabWidget.count)]
+			[self.ui.tabWidget.setTabEnabled(x,False) for x in [4,9,10]]
 
 			# change style and color
 			target_bg  = "background-color: #006666;"
@@ -727,7 +722,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			[recolorTabIcon(self.ui.tabWidget, i, color=self.EmbedColor) for i in range(self.ui.tabWidget.count)]
 
 			# disable unnecessary buttons
-			for i in range(4, 10):  # 3 to 9 inclusive
+			# for i in range(4, 10):  # 3 to 9 inclusive
+			for i in [4,9,10]:
 				btn = getattr(self.ui, f"Go2tab{i}")
 				btn.setEnabled(False)
 			# btns = ["database1", "database2"]

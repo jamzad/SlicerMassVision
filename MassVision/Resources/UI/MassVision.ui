@@ -32,7 +32,7 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>10</number>
+   <number>0</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
@@ -64,25 +64,35 @@
        <string/>
       </property>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="22" column="0" colspan="2">
-        <widget class="QPushButton" name="sampleData">
-         <property name="styleSheet">
-          <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
-         </property>
+       <item row="20" column="0">
+        <widget class="QLabel" name="label_29">
          <property name="text">
-          <string>Sample data</string>
+          <string>Resources</string>
          </property>
         </widget>
        </item>
-       <item row="23" column="0" colspan="2">
-        <widget class="QPushButton" name="codeBase">
+       <item row="26" column="0">
+        <widget class="QLabel" name="label_30">
+         <property name="text">
+          <string>External links</string>
+         </property>
+        </widget>
+       </item>
+       <item row="24" column="0" colspan="2">
+        <widget class="QPushButton" name="publication">
          <property name="styleSheet">
           <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
          </property>
          <property name="text">
-          <string>Codebase</string>
+          <string>Publication</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0" colspan="2">
+        <widget class="QPushButton" name="loadScenePush">
+         <property name="text">
+          <string>Load project...</string>
          </property>
         </widget>
        </item>
@@ -102,28 +112,6 @@ color: rgb(255, 255, 255);</string>
          </property>
         </spacer>
        </item>
-       <item row="10" column="0">
-        <widget class="QPushButton" name="Go2tab4">
-         <property name="styleSheet">
-          <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
-         </property>
-         <property name="text">
-          <string>Multi-dataset alignment</string>
-         </property>
-        </widget>
-       </item>
-       <item row="8" column="1">
-        <widget class="QPushButton" name="Go2tab3">
-         <property name="styleSheet">
-          <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
-         </property>
-         <property name="text">
-          <string>Dataset curation</string>
-         </property>
-        </widget>
-       </item>
        <item row="8" column="0">
         <widget class="QPushButton" name="Go2tab2">
          <property name="styleSheet">
@@ -135,91 +123,10 @@ color: rgb(255, 255, 255);</string>
          </property>
         </widget>
        </item>
-       <item row="4" column="0" colspan="2">
-        <widget class="QPushButton" name="loadScenePush">
+       <item row="6" column="0">
+        <widget class="QLabel" name="label_25">
          <property name="text">
-          <string>Load project...</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="0" colspan="2">
-        <spacer name="verticalSpacer_16">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Fixed</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="20" column="0">
-        <widget class="QLabel" name="label_29">
-         <property name="text">
-          <string>Resources</string>
-         </property>
-        </widget>
-       </item>
-       <item row="7" column="0" colspan="2">
-        <widget class="QPushButton" name="Go2tab1">
-         <property name="styleSheet">
-          <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
-         </property>
-         <property name="text">
-          <string>Data import/export</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0" colspan="2">
-        <widget class="QPushButton" name="clearReloadPush">
-         <property name="text">
-          <string>Clear data and analysis</string>
-         </property>
-        </widget>
-       </item>
-       <item row="15" column="1">
-        <widget class="QPushButton" name="Go2tab7">
-         <property name="styleSheet">
-          <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
-         </property>
-         <property name="text">
-          <string>AI supervised training</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="label_28">
-         <property name="text">
-          <string>Projects</string>
-         </property>
-        </widget>
-       </item>
-       <item row="21" column="0" colspan="2">
-        <widget class="QPushButton" name="userManual">
-         <property name="styleSheet">
-          <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
-         </property>
-         <property name="text">
-          <string>User manual</string>
-         </property>
-        </widget>
-       </item>
-       <item row="17" column="1">
-        <widget class="QPushButton" name="Go2tab9">
-         <property name="styleSheet">
-          <string notr="true">background-color: #006666;
-color: rgb(255, 255, 255);</string>
-         </property>
-         <property name="text">
-          <string>AI model deployment</string>
+          <string>Quick access</string>
          </property>
         </widget>
        </item>
@@ -239,21 +146,37 @@ color: rgb(255, 255, 255);</string>
          </property>
         </spacer>
        </item>
-       <item row="15" column="0">
-        <widget class="QPushButton" name="Go2tab6">
+       <item row="2" column="0" colspan="2">
+        <widget class="QPushButton" name="clearReloadPush">
+         <property name="text">
+          <string>Clear data and analysis</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0" colspan="2">
+        <spacer name="verticalSpacer_16">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="22" column="0" colspan="2">
+        <widget class="QPushButton" name="sampleData">
          <property name="styleSheet">
           <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
          </property>
          <property name="text">
-          <string>Statistical analysis</string>
-         </property>
-        </widget>
-       </item>
-       <item row="26" column="0">
-        <widget class="QLabel" name="label_30">
-         <property name="text">
-          <string>External links</string>
+          <string>Sample data</string>
          </property>
         </widget>
        </item>
@@ -264,6 +187,35 @@ color: rgb(255, 255, 255);</string>
          </property>
         </widget>
        </item>
+       <item row="21" column="0" colspan="2">
+        <widget class="QPushButton" name="userManual">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>User manual</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_28">
+         <property name="text">
+          <string>Projects</string>
+         </property>
+        </widget>
+       </item>
+       <item row="23" column="0" colspan="2">
+        <widget class="QPushButton" name="codeBase">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Codebase</string>
+         </property>
+        </widget>
+       </item>
        <item row="27" column="0" colspan="2">
         <widget class="QPushButton" name="database1">
          <property name="text">
@@ -271,7 +223,40 @@ color: rgb(255, 255, 255);</string>
          </property>
         </widget>
        </item>
-       <item row="10" column="1">
+       <item row="7" column="0">
+        <widget class="QPushButton" name="Go2tab1">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Data import/export</string>
+         </property>
+        </widget>
+       </item>
+       <item row="10" column="0">
+        <widget class="QPushButton" name="Go2tab3">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Dataset curation</string>
+         </property>
+        </widget>
+       </item>
+       <item row="15" column="0">
+        <widget class="QPushButton" name="Go2tab4">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Multi-dataset alignment</string>
+         </property>
+        </widget>
+       </item>
+       <item row="17" column="0">
         <widget class="QPushButton" name="Go2tab5">
          <property name="styleSheet">
           <string notr="true">background-color: #006666;
@@ -282,7 +267,7 @@ color: rgb(255, 255, 255);</string>
          </property>
         </widget>
        </item>
-       <item row="17" column="0">
+       <item row="10" column="1">
         <widget class="QPushButton" name="Go2tab8">
          <property name="styleSheet">
           <string notr="true">background-color: #006666;
@@ -293,21 +278,47 @@ color: rgb(255, 255, 255);</string>
          </property>
         </widget>
        </item>
-       <item row="6" column="0">
-        <widget class="QLabel" name="label_25">
-         <property name="text">
-          <string>Quick access</string>
-         </property>
-        </widget>
-       </item>
-       <item row="24" column="0" colspan="2">
-        <widget class="QPushButton" name="publication">
+       <item row="7" column="1">
+        <widget class="QPushButton" name="Go2tab6">
          <property name="styleSheet">
           <string notr="true">background-color: #006666;
 color: rgb(255, 255, 255);</string>
          </property>
          <property name="text">
-          <string>Publication</string>
+          <string>Statistical analysis</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="1">
+        <widget class="QPushButton" name="Go2tab7">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>AI supervised training</string>
+         </property>
+        </widget>
+       </item>
+       <item row="15" column="1">
+        <widget class="QPushButton" name="Go2tab9">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>AI model deployment</string>
+         </property>
+        </widget>
+       </item>
+       <item row="17" column="1">
+        <widget class="QPushButton" name="Go2tab10">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Pathway analysis</string>
          </property>
         </widget>
        </item>
