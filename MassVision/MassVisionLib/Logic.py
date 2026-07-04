@@ -1,4 +1,4 @@
-import os
+import os, re
 import SimpleITK as sitk
 import vtk, qt, slicer
 from vtk.util import numpy_support
@@ -388,7 +388,104 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		dim_y = int(np.round((n_iter-5)/dim_x))
 		
 		return peaks, mz, dim_y, dim_x
-			
+
+	def DESI_MRM_txt2numpy(self, desi_text):
+		"""
+		Read Waters/MassLynx DESI-MRM/SRM Analyte TXT files.
+
+		Returns
+		-------
+		peaks : np.ndarray, shape (dim_y * dim_x, n_features)
+		mz : np.ndarray, shape (n_features,)
+			Transition labels, e.g. "196.0000 -> 123.0000"
+		dim_y : int
+		dim_x : int
+		"""
+		print("Loading Waters DESI-MRM/SRM")
+		with open(desi_text, "r", encoding="utf-8", errors="replace") as f:
+			lines = [line.strip() for line in f if line.strip()]
+
+		if len(lines) < 5:
+			raise ValueError("MRM TXT file does not contain enough rows.")
+
+		# Header layout after removing blank lines:
+		# lines[0]: not reliable as feature count in all exports
+		# lines[1]: transition/channel IDs
+		# lines[2]: precursor m/z values
+		# lines[3]: product m/z values
+		# lines[4:]: pixel data
+		header0 = lines[0].split()
+		header1 = lines[1].split()
+		header2 = lines[2].split()
+		header3 = lines[3].split()
+
+		first_data = lines[4].split()
+
+		# Data row = pixel_id, x, y, intensities..., function_id, duplicate_pixel_id
+		n_features_from_data = len(first_data) - 5
+
+		# Use the transition definition rows, not header0[0].
+		n_features = min(
+			len(header1),
+			len(header2),
+			len(header3),
+			n_features_from_data,
+		)
+
+		channel_ids = header1[:n_features]
+		precursor_mz = np.asarray(header2[:n_features], dtype=float)
+		product_mz = np.asarray(header3[:n_features], dtype=float)
+
+		mz = np.asarray(
+			[
+				f"{precursor_mz[i]:.4f} -> {product_mz[i]:.4f}"
+				for i in range(n_features)
+			],
+			dtype=object,
+		)
+
+		x_vals = []
+		y_vals = []
+		peaks = []
+
+		for line in lines[4:]:
+			data = line.split()
+
+			if len(data) < 3 + n_features:
+				raise ValueError(
+					f"Unexpected short data row with {len(data)} columns. "
+					f"Expected at least {3 + n_features}."
+				)
+
+			x_vals.append(float(data[1]))
+			y_vals.append(float(data[2]))
+
+			# Intensities are directly after pixel_id, x, y
+			peaks.append([float(v) for v in data[3:3 + n_features]])
+
+		x_vals = np.asarray(x_vals, dtype=float)
+		y_vals = np.asarray(y_vals, dtype=float)
+		peaks = np.asarray(peaks, dtype=float)
+
+		x_unique = np.unique(x_vals)
+		y_unique = np.unique(y_vals)
+
+		dim_x = len(x_unique)
+		dim_y = len(y_unique)
+
+		expected_n = dim_x * dim_y
+		if peaks.shape[0] != expected_n:
+			raise ValueError(
+				f"MRM TXT grid size mismatch: found {peaks.shape[0]} pixels, "
+				f"but dim_y * dim_x = {dim_y} * {dim_x} = {expected_n}."
+			)
+
+		# Sort into y-major, x-fastest order.
+		order = np.lexsort((x_vals, y_vals))
+		peaks = peaks[order]
+
+		return peaks, mz, dim_y, dim_x
+
 	# noramlizes the peaks 
 	def tic_normalize(self, peaks):
 		tot_ion_cur = np.sum(peaks, axis=1)
@@ -508,10 +605,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# return np.round(threshold, 2)
 		return 0
 
-	# the whole postporocessing fuction including nomalization, band filtering, and pixel aggregation
-	def dataset_post_processing(self, spec_normalization, normalization_param, subband_selection, pixel_aggregation, processed_dataset_name):
+	# the whole postprocessing function including normalization, band filtering, and pixel aggregation
+	def dataset_post_processing(self, spec_normalization, normalization_param, subband_selection, low_abundance, low_variance, pixel_aggregation, processed_dataset_name):
 		"""
-		the whole postporocessing fuction including nomalization, band filtering, and pixel aggregation
+		the whole postprocessing function including normalization, band filtering, and pixel aggregation
 		author: @moon
 		"""
 		
@@ -519,13 +616,17 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		df = self.df
 
 		# extract information
+		# peak_start_col = self.peak_start_col
+		# mz = np.array(df.columns[peak_start_col:], dtype='float')
+		# peaks = df[df.columns[peak_start_col:]].values
 		peak_start_col = self.peak_start_col
-		mz = np.array(df.columns[peak_start_col:], dtype='float')
-		peaks = df[df.columns[peak_start_col:]].values
+		mz = self.mz
+		peaks = self.peaks
+
 		labels =  df[df.columns[0:peak_start_col]].values 
 
 		# handle missing values
-		peaks = np.nan_to_num(peaks)
+		# peaks = np.nan_to_num(peaks)
 
 		# spectrum nrmalization
 		print("spec_normalization:",spec_normalization)
@@ -533,7 +634,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			if spec_normalization == "Total ion current (TIC)":
 				peaks = dataset_normalization(peaks, "TIC")
 			elif spec_normalization == "Reference ion":
-				ion_index = mz == normalization_param
+				ion_index = mz == self.mz_dtype(normalization_param)
 				peaks = dataset_normalization(peaks, "Reference", ion_index=ion_index)
 			elif spec_normalization == "Root mean square (RMS)":
 				peaks = dataset_normalization(peaks, "RMS")
@@ -554,12 +655,24 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			# print('mass spectra normalization done!')
 
 		# spectrum range filtering
-		if subband_selection != None:
+		if (subband_selection != None) and (self.mz_dtype != str):
 			lower_band, upper_band = subband_selection
 			ind_subband = (mz>=lower_band) & (mz<=upper_band)
 			mz = mz[ind_subband]
 			peaks = peaks[:,ind_subband]
 			print('m/z range filtering done!')
+
+		# ion filtering
+		if (low_abundance != None):
+			filter_method, filter_value = low_abundance
+			ind_abundance, _ = abundance_filter_mask(peaks.copy(), method=filter_method, percentage=filter_value)
+			mz = mz[ind_abundance]
+			peaks = peaks[:, ind_abundance]
+		if (low_variance != None):
+			filter_method, filter_value = low_variance
+			ind_variance, _ = variance_filter_mask(peaks.copy(), method=filter_method, percentage=filter_value)
+			mz = mz[ind_variance]
+			peaks = peaks[:, ind_variance]
 
 		# pixel aggregation
 		if pixel_aggregation != None:
@@ -1068,11 +1181,13 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		dim_y = self.dim_y
 		dim_x = self.dim_x
 
-		n_ionImages = min(50, len(self.mz))
+		n_ionImages = min(50, len(self.mz)+1)
 		max_width = 15 #inches
 		fig_dpi = 75
 
-		n_row, n_col = best_thumbnail_grid(n_ionImages, dim_y, dim_x)
+		# n_row, n_col = best_thumbnail_grid(n_ionImages, dim_y, dim_x)
+		n_row, n_col, _, _ = best_thumbnail_grid_with_drop(n_ionImages, dim_y, dim_x)
+		print(n_row, n_col)
 		fig_size = np.array( (n_col*dim_x/fig_dpi, n_row*dim_y/fig_dpi) )
 		fig_size = fig_size/np.max(fig_size)*max_width
 
@@ -1090,12 +1205,15 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 				ax.imshow(image_data, cmap='gray')
 				ax.text(0, 0, image_label, color='yellow', fontsize=10, ha='left', va='top', 
 						bbox=dict(facecolor='black', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
-			else:
+			elif i<n_ionImages:
 				ion_image = self.peaks_norm[:, sorted_indices[i-1]].reshape((dim_y,dim_x),order='C')
 				# ion_image = ion_image[::2,::2]
 				ax.imshow(ion_image, cmap='inferno')
 				ax.text(0, 0, str(self.mz[ sorted_indices[i-1] ])+f' (#{i})', color='black', fontsize=10, ha='left', va='top', 
 						bbox=dict(facecolor='yellow', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
+			else:
+				ion_image = np.zeros((dim_y,dim_x))
+				ax.imshow(ion_image, cmap='inferno')
 			ax.axis('off')
 
 		plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
@@ -1304,7 +1422,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		sorted_indices = np.argsort(-pearson_corrs)
 
 		# Get top ions and their scores for thumbnail
-		top_n = 10 
+		top_n = 9 
 
 		dim_y = self.dim_y
 		dim_x = self.dim_x
@@ -1312,11 +1430,12 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		# mz_inds = sorted_indices[:top_n]
 		# fig, axes = plt.subplots(1, 1+top_n, figsize=(top_n/dim_y*dim_x*3, 1*3), dpi=100, gridspec_kw={'wspace': 0, 'hspace': 0})
 
-		n_ionImages = 1+top_n
+		n_ionImages = min(top_n, len(self.mz))+1
 		max_width = 8 #inches
 		fig_dpi = 75
 
-		n_row, n_col = best_thumbnail_grid(n_ionImages, dim_y, dim_x)
+		# n_row, n_col = best_thumbnail_grid(n_ionImages, dim_y, dim_x)
+		n_row, n_col, _, _ = best_thumbnail_grid_with_drop(n_ionImages, dim_y, dim_x)
 		mz_inds = sorted_indices[:n_row*n_col]
 
 		fig_size = np.array( (n_col*dim_x/fig_dpi, n_row*dim_y/fig_dpi) )
@@ -1334,11 +1453,14 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 				ax.imshow(mask_image, cmap='inferno')
 				ax.text(0, 0, first_label, color='yellow', fontsize=10, ha='left', va='top', 
 						bbox=dict(facecolor='black', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
-			else:
+			elif i<n_ionImages:
 				ion_image = self.peaks_norm[:, mz_inds[i-1]].reshape((dim_y,dim_x),order='C')
 				ax.imshow(ion_image, cmap='inferno')
 				ax.text(0, 0, str(self.mz[ mz_inds[i-1] ]), color='black', fontsize=10, ha='left', va='top', 
 						bbox=dict(facecolor='yellow', alpha=0.9, boxstyle='round,pad=0.3'))  # Add label
+			else:
+				ion_image = np.zeros((dim_y,dim_x))
+				ax.imshow(ion_image, cmap='inferno')
 			ax.axis('off')  # Turn off axes
 
 		plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
@@ -1955,7 +2077,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		peaks = self.df.iloc[0:, self.peak_start_col:].values
 		peaks = np.nan_to_num(peaks)
 		classes =  self.df["Class"].values
-		mz = np.array(self.df.columns[self.peak_start_col:], dtype='float')
+		# mz = np.array(self.df.columns[self.peak_start_col:], dtype='float')
+		mz = np.array(self.df.columns[self.peak_start_col:])
+		mz, mz_dtype = feature_cast(mz)
+		self.mz_dtype = mz_dtype
 
 		if method=="Linear SVC":
 			from sklearn.svm import LinearSVC
@@ -2242,7 +2367,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 				if self.train_balancing != "None":
 					X_train, y_train, track_info_train = self.balanceData(X_train, y_train, track_info_train)
 				
-				reference_mz = np.array(self.df.columns[4:], dtype='float')
+				# reference_mz = np.array(self.df.columns[4:], dtype='float')
+				reference_mz = np.array(self.df.columns[4:])
+				reference_mz, mz_dtype = feature_cast(reference_mz)
+				self.mz_dtype = mz_dtype
+
 				# Feature selection
 				if self.selected_features_indices:
 					X_train = X_train[:,self.selected_features_indices]
@@ -2315,7 +2444,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		if self.train_balancing != "None":
 			X_train, y_train, track_info_train = self.balanceData(X_train, y_train, track_info_train)
 		
-		reference_mz = np.array(self.df.columns[4:], dtype='float')
+		# reference_mz = np.array(self.df.columns[4:], dtype='float')
+		reference_mz = np.array(self.df.columns[4:])
+		reference_mz, mz_dtype = feature_cast(reference_mz)
+		self.mz_dtype = mz_dtype
 		# Feature selection
 		if self.selected_features_indices:
 			X_train = X_train[:,self.selected_features_indices]
@@ -2483,7 +2615,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			return volcano_results
 	
 	def BoxPlot(self, mz_ref, label_config):
-		mz_ind = np.where(self.mz == mz_ref)[0][0]
+		mz_ind = np.where(self.mz == self.mz_dtype(mz_ref))[0][0]
 
 		class_1, class_2 = label_config
 		classes = self.classes
@@ -2516,6 +2648,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			grouped_data = [self.peaks[classes == cls, mz_ind] for cls in unique_classes]
 
 		saveName = os.path.splitext(self.csvFile)[0]+ f'_{mz_ref}_boxplot.jpeg'
+		saveName = re.sub(r'[<>:"/\\|?*]', "", saveName)
+
 		plot_custom_boxplot(grouped_data, unique_classes, mz_ref, (5,5), saveName)
 		df_summary = boxplot_summary(grouped_data, unique_classes)
 		# table_node = pandas_to_slicer_table(df_summary, 'Statistics')
@@ -2662,7 +2796,12 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	def CsvLoad(self, filename):
 		df = pd.read_csv(filename)
 		peak_start_col = self.peak_start_col
-		mz = np.array(df.columns[peak_start_col:], dtype='float')
+		# mz = np.array(df.columns[peak_start_col:], dtype='float')
+
+		mz = np.array(df.columns[peak_start_col:])
+		mz, mz_dtype = feature_cast(mz)
+		self.mz_dtype = mz_dtype
+
 		peaks = df[df.columns[peak_start_col:]].values
 		# handle missing values
 		peaks = np.nan_to_num(peaks)
@@ -2867,7 +3006,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			retstr += f'     {x}\n'
 
 		retstr += f'\nnumber of m/z:\t{len(reference_mz)}\n'
-		retstr += f'range of m/z:\t{reference_mz.min()} to {reference_mz.max()}\n'
+		try:
+			retstr += f'range of m/z:\t{reference_mz.min()} to {reference_mz.max()}\n'
+		except:
+			pass
 
 		return retstr
 
@@ -2881,7 +3023,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		data_extension = os.path.splitext(slide_name)[1].lower()
 
 		if data_extension == '.txt':
-			[peaks, mz, dim_y, dim_x] = self.DESI_txt2numpy(name)
+			try:
+				[peaks, mz, dim_y, dim_x] = self.DESI_txt2numpy(name)
+			except:
+				[peaks, mz, dim_y, dim_x] = self.DESI_MRM_txt2numpy(name)
 		elif data_extension == '.csv':
 			[peaks, mz, dim_y, dim_x] = self.MSI_csv2numpy(name)
 		elif data_extension == '.h5':
@@ -5304,6 +5449,61 @@ def best_thumbnail_grid(n_images, dim_y, dim_x):
     
     return best_row, best_col
 
+def best_thumbnail_grid_with_drop(n_images, dim_y, dim_x, max_drop=2, target_aspect=1.0):
+    """
+    Choose a thumbnail grid with no empty cells.
+
+    Logic:
+    - Only consider complete grids: rows * cols <= n_images
+    - Sort by closeness to target aspect ratio
+    - Pick the closest-to-square grid that does not drop more than max_drop images
+
+    Returns:
+        rows, cols, n_show, info
+    """
+
+    if n_images < 1:
+        raise ValueError("n_images must be >= 1")
+    if dim_y <= 0 or dim_x <= 0:
+        raise ValueError("dim_y and dim_x must be positive")
+    if max_drop < 0:
+        raise ValueError("max_drop must be >= 0")
+
+    candidates = []
+
+    # Only consider grid capacities close enough to n_images
+    min_show = max(1, n_images - max_drop)
+
+    for n_show in range(min_show, n_images + 1):
+        for rows in range(1, n_show + 1):
+            if n_show % rows != 0:
+                continue
+
+            cols = n_show // rows
+
+            grid_aspect = (cols * dim_x) / (rows * dim_y)
+            aspect_error = abs(np.log(grid_aspect / target_aspect))
+            dropped = n_images - n_show
+
+            candidates.append({
+                "rows": rows,
+                "cols": cols,
+                "n_show": n_show,
+                "dropped": dropped,
+                "grid_aspect": grid_aspect,
+                "aspect_error": aspect_error,
+            })
+
+    best = min(
+        candidates,
+        key=lambda c: (
+            c["aspect_error"],  # closest to square first
+            c["dropped"],       # fewer dropped images second
+        )
+    )
+
+    return best["rows"], best["cols"], best["n_show"], best
+
 # def pandas_to_slicer_table(df: pd.DataFrame, table_name="StatsTable"):
 #     # Create new table node
 #     table_node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode", table_name)
@@ -5632,3 +5832,115 @@ def feature_cast(arr):
         return floats.astype(int), int
 
     return floats, float
+
+## ion filtering helpers
+def _bottom_percentage_remove_mask(scores, percentage):
+    """
+    Returns remove_mask where True = remove feature.
+    """
+    scores = np.asarray(scores, dtype=float)
+
+    if percentage < 0 or percentage > 100:
+        raise ValueError("percentage must be between 0 and 100.")
+
+    n_features = scores.size
+    n_remove = int(np.floor(n_features * percentage / 100.0))
+
+    remove_mask = np.zeros(n_features, dtype=bool)
+
+    if n_remove == 0:
+        return remove_mask
+
+    # NaN scores are treated as lowest-quality and removed first
+    clean_scores = np.nan_to_num(scores, nan=-np.inf)
+
+    remove_indices = np.argsort(clean_scores)[:n_remove]
+    remove_mask[remove_indices] = True
+
+    return remove_mask
+
+
+def abundance_filter_mask(peaks, method="mean", percentage=10):
+    """
+    MetaboAnalyst-style low-abundance filtering.
+
+    Parameters
+    ----------
+    peaks : np.ndarray
+        Shape: [n_pixels_or_spectra, n_ions]
+
+    method : str
+        "mean" or "median"
+
+    percentage : float
+        Percent of lowest-abundance ions to remove.
+
+    Returns
+    -------
+    ind : np.ndarray
+        Boolean keep mask. True = keep ion.
+
+    scores : np.ndarray
+        Abundance score for each ion.
+    """
+    peaks = np.asarray(peaks, dtype=float)
+
+    if method == "mean":
+        scores = np.nanmean(peaks, axis=0)
+
+    elif method == "median":
+        scores = np.nanmedian(peaks, axis=0)
+
+    else:
+        raise ValueError("method must be 'mean' or 'median'.")
+
+    remove_mask = _bottom_percentage_remove_mask(scores, percentage)
+    ind = ~remove_mask
+
+    return ind, scores
+
+
+def variance_filter_mask(peaks, method="iqr", percentage=10):
+    """
+    MetaboAnalyst-style low-variance filtering.
+
+    Parameters
+    ----------
+    peaks : np.ndarray
+        Shape: [n_pixels_or_spectra, n_ions]
+
+    method : str
+        "sd", "iqr", or "mad"
+
+    percentage : float
+        Percent of lowest-variance ions to remove.
+
+    Returns
+    -------
+    ind : np.ndarray
+        Boolean keep mask. True = keep ion.
+
+    scores : np.ndarray
+        Variance/spread score for each ion.
+    """
+    peaks = np.asarray(peaks, dtype=float)
+
+    if method == "sd":
+        scores = np.nanstd(peaks, axis=0)
+
+    elif method == "iqr":
+        q75 = np.nanpercentile(peaks, 75, axis=0)
+        q25 = np.nanpercentile(peaks, 25, axis=0)
+        scores = q75 - q25
+
+    elif method == "mad":
+        med = np.nanmedian(peaks, axis=0)
+        scores = np.nanmedian(np.abs(peaks - med), axis=0)
+
+    else:
+        raise ValueError("method must be 'sd', 'iqr', or 'mad'.")
+
+    remove_mask = _bottom_percentage_remove_mask(scores, percentage)
+    ind = ~remove_mask
+
+    return ind, scores
