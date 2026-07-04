@@ -99,7 +99,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.parameterSetNode = None
 		self.REIMS = 0
 		self.AppMode = 0 #0:MSI, 1:Embeddings
-		self.EmbedColor = "#80350E"
+		self.EmbedColor = "#A35C36"
+		self.EmbedColor_btn = "#72300C" #80360E
+		self._blendCtrl = None
 
 	def setup(self):
 		"""
@@ -193,7 +195,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.statGroup1combo.setVisible(False)
 		self.ui.statGroup2Lab.setVisible(False)
 		self.ui.statGroup2combo.setVisible(False)
-		
+
+
 		# Set logo in UI
 		logo_path = self.resourcePath('Icons/UI_nameM.png')
 		# logo_path = self.resourcePath('Icons/UI_logoS.png')
@@ -209,7 +212,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.placeFiducial_sim.setIcon(qt.QIcon(icon_path))
 
 		# Set tab widget tooltip and icons
-		icon_names = ['home', 'file', 'visualization', 'dataset', 'alignment', 'preprocess', 'stat', 'train', 'report', 'inference']
+		# ---Robert Added Icon Name 'label'------
+		icon_names = ['home', 'file', 'visualization', 'dataset', 'alignment', 'preprocess', 'stat', 'train', 'report', 'inference', 'pathway']
 		for i in range(self.ui.tabWidget.count):
 			tabText = self.ui.tabWidget.tabText(i)
 			self.ui.tabWidget.setTabText(i, "")            
@@ -265,7 +269,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.Go2tab6.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(6))
 		self.ui.Go2tab7.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(7))
 		self.ui.Go2tab8.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(8))
-		self.ui.Go2tab8.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(9))
+		self.ui.Go2tab9.clicked.connect(lambda: self.ui.tabWidget.setCurrentIndex(9))
 
 		self.ui.userManual.clicked.connect(
 			lambda: qt.QDesktopServices.openUrl(qt.QUrl("https://slicermassvision.readthedocs.io/")))
@@ -290,10 +294,18 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.RAWplaceFiducial.connect("clicked(bool)", lambda checked: self.onPutFiducial("raw-spectrum"))
 		self.ui.RAWplotSpectra.connect("clicked(bool)", self.onRawPlotSpectra)
 		self.ui.RawPlotImg.connect("clicked(bool)", self.onRawPlotImg)
+
+		self.logic.raw_image_tol = float(self.ui.RawImgTol.text)
+		self.ui.RawImgTol.textChanged.connect(self.onRawImgTolChange)
+		
 		self.ui.rawsmoothCheck.connect("clicked(bool)", self.onRawsmoothCheck)
 		self.ui.lockmassCheck.connect("clicked(bool)", self.onLockmassCheck)
 		self.ui.rawrangeCheck.connect("clicked(bool)", self.onRawrangCheck)
 		self.ui.rawProcess.connect("clicked(bool)", self.onRawProcess)
+		
+		# ----- Robert button connection --------
+		self.ui.labelpeaksbutton.connect("clicked(bool)", self.onLabelPeaks)
+		self.ui.HMDBDownloadpushButton.connect("clicked(bool)", self.onUpdateHMDBDatabase)
 
 		self.ui.ExportPushBotton.connect("clicked(bool)",self.onExport)
 
@@ -306,7 +318,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.visNorm_ions.currentTextChanged.connect(self.visRenormalize)
 
 		self.ui.spectrumPlot.connect("clicked(bool)", self.onSpectrumPlot)
-		self.ui.placeFiducial.connect("clicked(bool)", lambda checked: self.onPutFiducial("spectrum"))
+		self.ui.placeFiducial.connect("clicked(bool)", lambda checked: self.onPutFiducial( ["spectrum", "pixel"][self.AppMode] ))
 
 		self.ui.simHeatmap.connect("clicked(bool)", self.onSimHeatmap)
 		self.ui.SimThumbnail.connect("clicked(bool)", self.onSimThumbnail)
@@ -322,22 +334,65 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.dataInfo = ''
 		self.ui.ContrastThumbnail.connect("clicked(bool)", self.onContrastThumbnail)
 
+		self.ui.saveProjection.connect("clicked(bool)", self.onSaveProjection)
+		self.ui.loadProjection.connect("clicked(bool)", self.onLoadProjection)
+
 		self.ui.NLVisMethod.currentTextChanged.connect(self.onNLVisMethod)
 		self.ui.UmapButton.connect("clicked(bool)", self.onUMAPVis)
 
 		self.ui.Cluster_button.connect("clicked(bool)", self.onClusterButton)
 		self.ui.ClusterThumbnail.connect("clicked(bool)", self.onClusterThumbnail)
 
+		#### Blending
+		# 1) Node selectors must know the scene
+		self.ui.bgVolumeSelector.setMRMLScene(slicer.mrmlScene)
+		self.ui.fgVolumeSelector.setMRMLScene(slicer.mrmlScene)
+
+		# 2) Create controller handle (None until enabled)
+		self.ui.blendGroupBox.checked = False
+		self._setBlendWidgetsEnabled(False)
+		self._blendCtrl = None
+
+		# 3) Debounce timer for selector changes (prevents double-firing)
+		self._blendDebounce = qt.QTimer()
+		self._blendDebounce.setSingleShot(True)
+		self._blendDebounce.timeout.connect(self._applyBlendInputs)
+
+		# 4) Connect UI signals
+		self.ui.blendGroupBox.toggled.connect(self._onBlendEnabledChanged)
+
+		# qMRMLNodeComboBox commonly emits currentNodeChanged(vtkMRMLNode*)
+		self.ui.bgVolumeSelector.currentNodeChanged.connect(lambda _n: self._scheduleBlendApply())
+		self.ui.fgVolumeSelector.currentNodeChanged.connect(lambda _n: self._scheduleBlendApply())
+
+		self.ui.overlayRadioButton.toggled.connect(self._onBlendModeToggled)
+		self.ui.wipeRadioButton.toggled.connect(self._onBlendModeToggled)
+		self.ui.verticalWipeRadioButton.toggled.connect(self._onBlendModeToggled)
+
+		self.ui.blendSlider.valueChanged.connect(self._onBlendSliderChanged)
+
+		self._setupBlendSliderSweepUI()
+		self.ui.overlayRadioButton.checked = True
+		#### Blending
+
 		# Dataset generation
 		self.ui.gotoRegistration.connect("clicked(bool)", self.landmark)
+
+		self.ui.segVolCombo1.setMRMLScene(slicer.mrmlScene)
+		self.ui.segVolCombo2.setMRMLScene(slicer.mrmlScene)
+
 		self.ui.segmentEditor.connect("clicked(bool)", self.showSegmentEditor)
 		self.ui.roiContrast.connect("clicked(bool)", self.onROIContrast)
 		self.ui.roiContrastLDA.connect("clicked(bool)", self.onROIContrastLDA)
 
 		self.ui.roiSimilarity.connect("clicked(bool)", self.onROISimilarity)
+		self.ui.roiExpand.connect("clicked(bool)", self.onROIExpand)
 
 		self.ui.segmentVisibility.connect("clicked(bool)", self.onSegmentVisibility)
+
 		self.ui.createCSVbutton.connect("clicked(bool)",self.onCSVconnect)
+		self.ui.createMetadata.connect("clicked(bool)", lambda checked: self.onCSVconnect(meta_only=True))
+
 		self.ui.saveScenePush.connect("clicked(bool)",self.onSaveScene)
 
 		# Multi-slide alignment
@@ -359,6 +414,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.normMethodComboBox.currentTextChanged.connect(self.onNormMethodChange)
 
 		self.ui.spectrumFiltercheckBox.connect("clicked(bool)", self.onFilterState)
+
+		self.ui.lowIntFiltercheckBox.connect("clicked(bool)", self.onIntFilterState)
+		self.ui.lowVarFiltercheckBox.connect("clicked(bool)", self.onVarFilterState)
+
 		self.ui.pixelaggcheckBox.connect("clicked(bool)", self.onAggState)
 		self.ui.applyProcessingButton.connect("clicked(bool)", self.onApplyProcessing)	
   
@@ -399,7 +458,6 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		# Results
 		self.model_results = ''
 
-
 		# Deployment
 		self.ui.deploySelect.connect("clicked(bool)", self.onDeploySelect)
 		self.ui.deployImport.connect("clicked(bool)", self.onDeployLoad)
@@ -415,10 +473,59 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.deployAGGcheck.connect("clicked(bool)", self.onDeployAggCheck)
 
 		self.ui.depMaskcheck.connect("clicked(bool)", self.onDepMaskcheck)
+
+		self.ui.depPCAVis.connect("clicked(bool)", self.onPCAButton)
 		self.ui.depGoVisButton.connect("clicked(bool)", self.onDepGoVis)
+
+		self.ui.depVisCombo.setMRMLScene(slicer.mrmlScene)
+		self.ui.depVisCombo.setEnabled(False)
+		
 		self.ui.depGoSegEdButton.connect("clicked(bool)", self.onDepGoSeg)
 
 		self.ui.deployRun.connect("clicked(bool)", self.onApplyDeployment)	
+
+		# Pathway analysis
+
+		# --- Robert Addition of Buttons and Items For Peak Labeling ---
+		self.current_results_df = None
+		self.ui.inputtedpeakslineedit.setPlaceholderText("e.g., 302.1594, 281.231")
+		self.ui.moleculetoleranacelineedit.setPlaceholderText("e.g., 0.1, 0.005") 
+		# Adduct button setup
+		self.ui.exportpeaklabelsCSVbutton.connect('clicked(bool)', self.onExportPeakLabelExcel)
+		self.ui.loadmzvaluescsvpushButton.connect('clicked(bool)', self.onLoadMzValuesCsv)
+		# Radiobutton setup
+		self.ui.findclosestcandidateradioButton.setChecked(True) # Set the default starting button
+		self.buttonGroup = qt.QButtonGroup()
+		self.buttonGroup.addButton(self.ui.findclosestcandidateradioButton)
+		self.buttonGroup.addButton(self.ui.findallcandidatesradioButton)
+		self.buttonGroup.buttonClicked.connect(self.onRadioButtonClicked)
+		
+		# --- Robert Addition for link opening ----
+		self.ui.displaypatwaystextbrowser.setOpenLinks(False)
+		self.ui.displaypatwaystextbrowser.anchorClicked.connect(self.onLinkClicked)
+
+		# Create and setup browser view
+		self._setupBrowserOnlyView()
+
+		# --- UI Setup for Peak Labeling ---
+			# Configure the display table created in Qt Designer
+		self.ui.moleculesTableWidget.setColumnCount(7)
+		self.ui.moleculesTableWidget.setHorizontalHeaderLabels(['Select', 'Searched m/z', 'Adduct', 'Molecule', 'Source ID','KEGG ID', 'Error'])
+		header = self.ui.moleculesTableWidget.horizontalHeader()
+			# Shrink the Checkbox, m/z, and Adduct columns to be as small as possible
+		header.setSectionResizeMode(0, qt.QHeaderView.ResizeToContents) 
+		header.setSectionResizeMode(1, qt.QHeaderView.ResizeToContents) 
+		header.setSectionResizeMode(2, qt.QHeaderView.ResizeToContents)
+			# Stretch the Molecule Name column to absorb all the extra empty space
+		header.setSectionResizeMode(3, qt.QHeaderView.Stretch)
+			# Shrink the KEGG ID and Error columns
+		header.setSectionResizeMode(4, qt.QHeaderView.ResizeToContents)
+		header.setSectionResizeMode(5, qt.QHeaderView.ResizeToContents)
+		header.setSectionResizeMode(6, qt.QHeaderView.ResizeToContents)
+			# Connect the button created in Qt Designer
+		self.ui.searchPathwaysButton.connect('clicked(bool)', self.onSearchPathways)
+		# ------- End of Robert Additions for this section --------
+
 
 		# Mode change for ViT Embeddings
 		modeButtonGroup = qt.QButtonGroup()
@@ -435,6 +542,147 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 		# Make sure parameter node is initialized (needed for module reload)
 		self.initializeParameterNode()
+
+
+	def _setupBrowserOnlyView(self):
+		#
+		# Main browser widget
+		#
+		self.internalBrowser = slicer.qSlicerWebWidget()
+		self.internalBrowser.handleExternalUrlWithDesktopService = False
+
+		webView = self.internalBrowser.webView()
+
+		#
+		# Toolbar
+		#
+		self.browserToolbar = qt.QToolBar()
+		self.browserToolbar.setMovable(False)
+		self.browserToolbar.setFloatable(False)
+		self.browserToolbar.setIconSize(qt.QSize(16, 16))
+		self.browserToolbar.setStyleSheet("""
+		QToolBar {
+			background: #006666;
+			border: 0px;
+			spacing: 4px;
+			padding: 2px;
+		}
+		QToolButton {
+			padding: 4px 6px;
+		}
+		QLabel {
+			font-weight: bold;
+			padding-left: 4px;
+			padding-right: 8px;
+		}
+		""")
+
+		self.browserTitleLabel = qt.QLabel("Browser View ")
+		self.browserToolbar.addWidget(self.browserTitleLabel)
+
+		self.backAction = self.browserToolbar.addAction("Back")
+		self.forwardAction = self.browserToolbar.addAction("Forward")
+		self.reloadAction = self.browserToolbar.addAction("Reload")
+
+		self.backAction.connect("triggered()", webView.back)
+		self.forwardAction.connect("triggered()", webView.forward)
+		self.reloadAction.connect("triggered()", webView.reload)
+
+		#
+		# Address bar
+		#
+		self.addressBar = qt.QLineEdit()
+		self.addressBar.setPlaceholderText("Enter URL and press Enter")
+		self.addressBar.connect("returnPressed()", self.onAddressEntered)
+		self.browserToolbar.addWidget(self.addressBar)
+
+		#
+		# Keep toolbar state and address bar in sync
+		#
+		def updateNavigationState(*args):
+			try:
+				self.backAction.enabled = webView.history().canGoBack()
+				self.forwardAction.enabled = webView.history().canGoForward()
+			except Exception:
+				self.backAction.enabled = True
+				self.forwardAction.enabled = True
+
+			try:
+				self.addressBar.setText(webView.url().toString())
+			except Exception:
+				pass
+
+		webView.loadFinished.connect(updateNavigationState)
+		webView.urlChanged.connect(updateNavigationState)
+
+		#
+		# Keep toolbar state and address bar in sync
+		#
+		def updateNavigationState(*args):
+			try:
+				self.backAction.enabled = webView.history().canGoBack()
+				self.forwardAction.enabled = webView.history().canGoForward()
+			except Exception:
+				self.backAction.enabled = True
+				self.forwardAction.enabled = True
+
+			try:
+				self.addressBar.setText(webView.url().toString())
+			except Exception:
+				pass
+
+		webView.loadFinished.connect(updateNavigationState)
+		webView.urlChanged.connect(updateNavigationState)
+
+		#
+		# Container widget shown in the Slicer view area
+		#
+		self.browserViewWidget = qt.QWidget()
+		browserLayout = qt.QVBoxLayout(self.browserViewWidget)
+		browserLayout.setContentsMargins(0, 0, 0, 0)
+		browserLayout.setSpacing(0)
+		browserLayout.addWidget(self.browserToolbar)
+		browserLayout.addWidget(self.internalBrowser)
+
+		#
+		# Register custom singleton view
+		#
+		self.browserViewFactory = slicer.qSlicerSingletonViewFactory()
+		self.browserViewFactory.setTagName("MassVisionBrowserView")
+		self.browserViewFactory.setWidget(self.browserViewWidget)
+		slicer.app.layoutManager().registerViewFactory(self.browserViewFactory)
+
+		#
+		# Layout that contains only the browser view
+		#
+		self.browserOnlyLayoutId = 501
+
+		layoutXml = """
+		<layout type="vertical">
+			<item>
+			<MassVisionBrowserView />
+			</item>
+		</layout>
+		"""
+
+		layoutNode = slicer.app.layoutManager().layoutLogic().GetLayoutNode()
+		layoutNode.AddLayoutDescription(self.browserOnlyLayoutId, layoutXml)
+
+	def showBrowserOnlyView(self, url="https://example.com"):
+		self.internalBrowser.setUrl(url)
+		slicer.app.layoutManager().setLayout(self.browserOnlyLayoutId)
+
+	def onAddressEntered(self):
+		text = self.addressBar.text.strip()
+		if not text:
+			return
+
+		# Add scheme if missing
+		if "://" not in text:
+			text = "https://" + text
+
+		self.internalBrowser.setUrl(text)
+
 
 
 	### Mode Selector
@@ -464,7 +712,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			target_fg  = "color: rgb(255, 255, 255);"
 			newStyle = f"""
 			QPushButton:enabled {{
-				background-color: {self.EmbedColor};
+				background-color: {self.EmbedColor_btn};
 				color: rgb(255, 255, 255);
 			}}
 			"""
@@ -555,23 +803,56 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 				self.logic.slideName = os.path.basename(filePath)
 
 	def onPutFiducial(self, listName, single_point=False):
-		fiducialNode = slicer.util.getFirstNodeByName(listName, className="vtkMRMLMarkupsFiducialNode")
+		scene = slicer.mrmlScene
+		appLogic = slicer.app.applicationLogic()
+		selectionNode = appLogic.GetSelectionNode()
+		interactionNode = appLogic.GetInteractionNode()
+		markupsLogic = slicer.modules.markups.logic()
+
+		# Exact-name lookup only
+		fiducialNode = slicer.util.getFirstNodeByClassByName(
+			"vtkMRMLMarkupsFiducialNode", listName
+		)
+
+		# Recreate one-shot lists such as "similarity"
 		if single_point and fiducialNode:
-			slicer.mrmlScene.RemoveNode(fiducialNode)
+			scene.RemoveNode(fiducialNode)
 			fiducialNode = None
-		
+
+		# Create node using Slicer's node factory
 		if not fiducialNode:
-			fiducialNode = slicer.vtkMRMLMarkupsFiducialNode()
-			fiducialNode.SetName(listName)
-			slicer.mrmlScene.AddNode(fiducialNode)
+			fiducialNode = scene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", listName)
+			fiducialNode.CreateDefaultDisplayNodes()
 
-		# Set as active list for placement
-		slicer.modules.markups.logic().SetActiveListID(fiducialNode)
+		# For single-point nodes, remove automatic numbering like "similarity_1"
+		if single_point:
+			observerTag = None
 
-		# Enable place mode without switching module
-		interactionNode = slicer.mrmlScene.GetNodeByID("vtkMRMLInteractionNodeSingleton")
+			def onPointAdded(caller, event):
+				nonlocal observerTag
+				if caller.GetNumberOfControlPoints() > 0:
+					caller.SetNthControlPointLabel(0, listName)
+					if observerTag is not None:
+						caller.RemoveObserver(observerTag)
+						observerTag = None
+
+			observerTag = fiducialNode.AddObserver(
+				slicer.vtkMRMLMarkupsNode.PointPositionDefinedEvent,
+				onPointAdded
+			)
+
+		# Make this exact node the active placement target
+		selectionNode.SetReferenceActivePlaceNodeClassName("vtkMRMLMarkupsFiducialNode")
+		selectionNode.SetActivePlaceNodeID(fiducialNode.GetID())
+
+		# Keep markups logic in sync too
+		markupsLogic.SetActiveListID(fiducialNode)
+
+		# Enter single-place mode
+		interactionNode.SetPlaceModePersistence(0)
 		interactionNode.SetCurrentInteractionMode(interactionNode.Place)
-		interactionNode.SwitchToSinglePlaceMode()  # Or use SwitchToPersistentPlaceMode() for multi
+
+		return fiducialNode
 
 	def onRawPlotSpectra(self):
 		self.logic.RawPlotSpectra()
@@ -582,6 +863,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		img_heatmap = self.ui.RawImgHeatmap.currentText
 		self.logic.RawPlotImg(ion_mz, tol_mz, img_heatmap)
 	
+	def onRawImgTolChange(self, text):
+		self.logic.raw_image_tol = float(text)
+
 	def onRawsmoothCheck(self):
 		currentState = self.ui.rawsmoothCheck.isChecked()
 		self.ui.rawsmoothLab.setVisible(currentState)
@@ -820,7 +1104,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		# logic processes pca in the ROI
 		self.logic.roi_lda_display(label_mask, extend=self.ui.roiCintrastExtend.isChecked())
 
-	def getSegmentData(delf):
+	def getSegmentData(self):
 		"""get the mask, color, and name of the segmentations"""
 
 		segmentationNode = slicer.mrmlScene.GetFirstNodeByClass('vtkMRMLSegmentationNode')
@@ -837,12 +1121,25 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			segName.append(segment_name)
 			segColor.append(segment_color)
 
-		return segMask, segName, segColor
+		return segMask, segName, segColor, segmentationNode, segment_IDs
+
 
 	def onROISimilarity(self):
-		segMask, segName, segColor = self.getSegmentData()
+		segMask, segName, segColor, _, _ = self.getSegmentData()
 		similarity_threshold = self.ui.similarityThreshold.value
-		self.logic.roi_similarity_map(segMask, segName, segColor, similarity_threshold)
+		_ = self.logic.roi_similarity_map(segMask, segName, segColor, similarity_threshold)
+
+	def onROIExpand(self):
+		segMask, segName, segColor, segmentationNode, segID = self.getSegmentData()
+		similarity_threshold = self.ui.similarityThreshold.value
+		roi_expansion_ind = self.logic.roi_similarity_map(segMask, segName, segColor, similarity_threshold)
+		for ind in range(len(segMask)):
+			mask = segMask[ind]
+			mask[roi_expansion_ind==ind] = 1
+			slicer.util.updateSegmentBinaryLabelmapFromArray(
+				mask,
+				segmentationNode,
+				segID[ind])
 
 	def onSegmentVisibility(self):
 		lm = slicer.mrmlScene.GetFirstNodeByClass('vtkMRMLSegmentationNode')
@@ -859,6 +1156,24 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		info = self.logic.LoadingsRank()
 		info = 'Global Contrast \n\n' + info
 		self.ui.LoadingsInfo.setText(info)
+
+	def onSaveProjection(self):
+		fileExplorer = qt.QFileDialog()
+		defaultSave = self.logic.savenameBase+"_PCA.pkl"
+		savepath = fileExplorer.getSaveFileName(None, "Save PCA projection", defaultSave, "Pickle Files (*.pkl);;All Files (*)")
+		
+		pixel_norm_method = self.ui.visNorm_spectra.currentText
+		feature_norm_method = self.ui.visNorm_ions.currentText
+		self.logic.pca_export(savepath, pixel_norm_method, feature_norm_method)
+		
+		print(savepath)
+
+	def onLoadProjection(self):
+		fileExplorer = qt.QFileDialog()
+		filePath = fileExplorer.getOpenFileName(None, "Load PCA projection", "", "Pickle Files (*.pkl);;All Files (*)")
+		print(filePath)
+		self.logic.pca_import(filePath)
+		pass
 
 	def onNLVisMethod(self, text):
 		if text=="UMAP":
@@ -927,7 +1242,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		
 	def selectedSingleIon(self):
 		# runs the valudation for all of the color channels
-		self.logic.singleIonVisualization(float(self.ui.singleIonMzList.currentText), 
+		self.logic.singleIonVisualization((self.ui.singleIonMzList.currentText), 
 									self.ui.singleIonHeatmapList.currentText)
 
 	def onAbundanceThumbnail(self):
@@ -965,8 +1280,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		if mode=="cluster":
 			clusterText = self.ui.ClusterInd.currentText
 			cluster_ind = int(clusterText.split(' ')[-1])-1
+			cluster_invert = self.ui.invertCluster_checkBox.isChecked()
 			volcano_mz, dice_score, volcano_fc, volcano_pval, pearson_corr = \
-				self.logic.ViewTableThumbnail(cluster_ind, mode)
+				self.logic.ViewTableThumbnail([cluster_ind, cluster_invert], mode)
 		elif mode=="similarity":
 			sim_thresh_value = self.ui.simHeatmapSlider.value
 			volcano_mz, dice_score, volcano_fc, volcano_pval, pearson_corr = \
@@ -995,7 +1311,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			<view class="vtkMRMLSliceNode" singletontag="Yellow"/>
 		</item>
 		<item>
-			<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+			<view class="vtkMRMLTableViewNode" singletontag="ThumbnailTable"/>
 		</item>
 		</layout>
 		"""
@@ -1004,8 +1320,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			layoutNode.AddLayoutDescription(customLayoutId, customLayout)
 		lm.setLayout(customLayoutId)
 
-		# TableView node (singleton tag "Table")
-		tableViewNode = slicer.mrmlScene.GetSingletonNode("Table", "vtkMRMLTableViewNode")
+		# TableView node (singleton tag "ThumbnailTable")
+		tableViewNode = slicer.mrmlScene.GetSingletonNode("ThumbnailTable", "vtkMRMLTableViewNode")
 		# Fallback if needed:
 		if not tableViewNode:
 			tvs = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
@@ -1046,6 +1362,175 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		slicer.app.processEvents()
 
 
+	### Blender
+	def _setBlendWidgetsEnabled(self, enabled):
+		for w in self.ui.blendGroupBox.findChildren(qt.QWidget):
+			w.setEnabled(enabled)
+
+	def _onBlendEnabledChanged(self, enabled):
+		self._setBlendWidgetsEnabled(enabled)
+
+		if not enabled:
+			self._disableBlend()
+			if hasattr(self, "_blendSweepTimer"):
+				self._blendSweepTimer.stop()
+			return
+
+		# enable
+		self.ui.overlayRadioButton.checked = True
+		self.ui.manualBlendSliderRadioButton.checked = True
+		
+		if self._blendCtrl is None:
+			# Create logic controller for Red view
+			self._blendCtrl = self.logic.SliceBlendController(sliceViewName="Red",
+															outputName="Blended",
+															wipeDirection="horizontal")
+		self._applyBlendInputs()
+		self._onBlendSliderChanged(self.ui.blendSlider.value)
+
+	def _disableBlend(self):
+		# Just drop controller reference; it does not hold Qt connections.
+		# Also restore overlay-like display (so user isn't stuck seeing the output volume)
+		if self._blendCtrl is not None:
+			bg = self.ui.bgVolumeSelector.currentNode()
+			fg = self.ui.fgVolumeSelector.currentNode()
+			self._blendCtrl.setVolumes(bg, fg)
+			self._blendCtrl.setMode("overlay")
+			self.ui.overlayRadioButton.checked = True
+			self._blendCtrl = None
+
+	def _scheduleBlendApply(self):
+		if not self.ui.blendGroupBox.isChecked():
+			return
+		# debounce 80ms so rapid UI changes don't thrash
+		self._blendDebounce.start(80)
+
+	def _applyBlendInputs(self):
+		if self._blendCtrl is None:
+			return
+
+		bg = self.ui.bgVolumeSelector.currentNode()
+		fg = self.ui.fgVolumeSelector.currentNode()
+		self._blendCtrl.setVolumes(bg, fg)
+
+		# Determine mode + wipe direction from radio buttons
+		if self.ui.overlayRadioButton.checked:
+			mode = "overlay"
+			direction = "horizontal"  # unused in overlay
+		elif self.ui.verticalWipeRadioButton.checked:
+			mode = "wipe"
+			direction = "vertical"
+		else:
+			# existing wipeRadioButton = horizontal wipe
+			mode = "wipe"
+			direction = "horizontal"
+
+		# Apply
+		self._blendCtrl.wipeDirection = direction
+		self._blendCtrl.setMode(mode)
+
+		# Apply current slider immediately (opacity in overlay, wipe fraction in wipe)
+		self._blendCtrl.updateFromSlider(self.ui.blendSlider, self.ui.blendSlider.value)
+
+
+	def _onBlendModeToggled(self, checked):
+		if not checked:
+			return
+		if not self.ui.blendGroupBox.isChecked():
+			return
+
+		# Pause sweep during mode switching/capture to avoid race
+		wasSweeping = hasattr(self, "_blendSweepTimer") and self._blendSweepTimer.isActive()
+		if wasSweeping:
+			self._blendSweepTimer.stop()
+
+		self._scheduleBlendApply()
+
+		# Resume sweep shortly after the mode switch has settled
+		if wasSweeping and self.ui.sweepBlendSliderRadioButton.checked:
+			qt.QTimer.singleShot(120, lambda: (
+				self.ui.blendGroupBox.isChecked()
+				and self.ui.sweepBlendSliderRadioButton.checked
+				and self._blendSweepTimer.start()
+			))
+
+
+	def _onBlendSliderChanged(self, v):
+		if not self.ui.blendGroupBox.isChecked() or self._blendCtrl is None:
+			return
+		self._blendCtrl.updateFromSlider(self.ui.blendSlider, v)
+
+	def _setupBlendSliderSweepUI(self):
+		# --- Separate radio button group for sweep/manual ---
+		self._blendSweepButtonGroup = qt.QButtonGroup(self.ui.blendGroupBox)
+		self._blendSweepButtonGroup.setExclusive(True)
+		self._blendSweepButtonGroup.addButton(self.ui.manualBlendSliderRadioButton)
+		self._blendSweepButtonGroup.addButton(self.ui.sweepBlendSliderRadioButton)
+
+		# Default
+		self.ui.manualBlendSliderRadioButton.checked = True
+
+		# --- Sweep engine ---
+		self._blendSweepTimer = qt.QTimer()
+		self._blendSweepTimer.setInterval(50)  # ms tick
+		self._blendSweepTimer.timeout.connect(self._onBlendSweepTick)
+
+		self._blendSweepDir = +1
+		self._blendSweepSecondsOneWay = 1.5  # min->max (or max->min) takes 2 seconds
+
+		# React when a radio becomes checked (avoid double-trigger)
+		self.ui.manualBlendSliderRadioButton.toggled.connect(self._onBlendSweepModeToggled)
+		self.ui.sweepBlendSliderRadioButton.toggled.connect(self._onBlendSweepModeToggled)
+
+	def _onBlendSweepModeToggled(self, checked):
+		# Only act on the button that became checked
+		if not checked:
+			return
+
+		# If blending is disabled, never run sweep
+		if not self.ui.blendGroupBox.isChecked():
+			self._blendSweepTimer.stop()
+			return
+
+		if self.ui.sweepBlendSliderRadioButton.checked:
+			self._blendSweepDir = +1
+			self._blendSweepTimer.start()
+		else:
+			self._blendSweepTimer.stop()
+
+	def _onBlendSweepTick(self):
+		# Stop conditions
+		if (not self.ui.blendGroupBox.isChecked()) or (not self.ui.sweepBlendSliderRadioButton.checked):
+			self._blendSweepTimer.stop()
+			return
+
+		s = self.ui.blendSlider
+
+		mn = float(s.minimum)
+		mx = float(s.maximum)
+		if mx <= mn:
+			return
+
+		# We want: one-way sweep takes self._blendSweepSecondsOneWay seconds
+		dt = float(self._blendSweepTimer.interval) / 1000.0
+		step = (mx - mn) * (dt / float(self._blendSweepSecondsOneWay))
+
+		v = float(s.value) + self._blendSweepDir * step
+
+		# Bounce at ends (clamp + reverse direction)
+		if v >= mx:
+			v = mx
+			self._blendSweepDir = -1
+		elif v <= mn:
+			v = mn
+			self._blendSweepDir = +1
+
+		# Setting slider drives your existing valueChanged -> blend update
+		s.value = v
+
+	### Blender
+
+
 	### Dataset generation
 
 	def landmark(self):
@@ -1054,15 +1539,14 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		pluginHandlerSingleton.pluginByName('Default').switchToModule("LandmarkRegistration")
 
 	def showSegmentEditor(self):
-		segVol1 = self.ui.segVollist1.currentText
-		segVol2 = self.ui.segVollist2.currentText
+		segSelect1Node = self.ui.segVolCombo1.currentNode()
+		segSelect2Node = self.ui.segVolCombo2.currentNode()
 
-		if segVol1!='None':
+		if segSelect1Node:
 		
 			slicer.util.selectModule("SegmentEditor")
 
 			# set master volume and geometry
-			segSelect1Node = slicer.util.getNode( segVol1 )
 			sourceVolumeNode = segSelect1Node
 			segmentEditorNode = slicer.util.getNodesByClass('vtkMRMLSegmentEditorNode')[0]
 			segmentationNode = slicer.util.getNodesByClass('vtkMRMLSegmentationNode')[0]
@@ -1079,12 +1563,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
 			RedNode.SetOrientation("Axial")
 
-			if segVol2=='None':
+			if not segSelect2Node:
 				slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
-				slicer.util.resetSliceViews()
 
 			else:
-				segSelect2Node = slicer.util.getNode( segVol2 )
 				YellowCompNode = slicer.util.getNode("vtkMRMLSliceCompositeNodeYellow")
 				YellowCompNode.SetBackgroundVolumeID(segSelect2Node.GetID())
 				YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
@@ -1092,19 +1574,26 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 				RedCompNode.SetLinkedControl(True)
 				YellowCompNode.SetLinkedControl(True)
 				slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutSideBySideView)
-				slicer.util.resetSliceViews()
+				
+			slicer.util.resetSliceViews()
 
   
-	def onCSVconnect(self):
+	def onCSVconnect(self, meta_only=False):
 		fileExplorer = qt.QFileDialog()
 		# defaultSave = self.ui.filenameTextBrowser.toPlainText()[:-4]+'_dataset'
-		defaultSave = self.ui.ImportlineEdit.text[:-4]+'_dataset'
+		defaultSave = os.path.splitext(self.ui.ImportlineEdit.text)[0]
+		if meta_only:
+			defaultSave += '_metadata'
+		else:
+			defaultSave += '_dataset'
 		
 		savepath = fileExplorer.getSaveFileName(None, "Save aligned dataset", defaultSave, "CSV Files (*.csv);;All Files (*)")
 		
-		retstr = self.logic.csvGeneration(savepath)
+		retstr = self.logic.csvGeneration(savepath, meta_only)
 		self.ui.csvcreateTextBrowser.setText(retstr)
-		self.logic.segmentationSave(savepath)
+
+		if meta_only:
+			self.logic.segmentationSave(savepath)
 	
 	def onSaveScene(self):
 		print('saving the project...')
@@ -1117,37 +1606,31 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
 	def onTabChange(self, index):
-		tab_names = ['Home', 'Data', 'Visualization', 'Dataset', 'Alignment', 'Preprocessing', 'Statistical', 'AI training', 'AI Report', 'AI deployment']
+		tab_names = ['Home', 'Data', 'Visualization', 'Dataset', 'Alignment', 'Preprocessing', 'Statistical', 'AI training', 'AI report', 'AI deployment', 'Identification']
 		for i in range(self.ui.tabWidget.count):
 			self.ui.tabWidget.setTabText(i, "")     
 		self.ui.tabWidget.setTabText(index, tab_names[index])
 		print('selected tab:',index, self.ui.tabWidget.tabText(index))
 		if index==9:
-			self.updateDepVisList()
+			# self.updateDepVisList()
 			self.updateDepSegList()
-		elif index==3:
-			self.updateVolumeList()
+		# elif index==3:
+		# 	self.updateVolumeList()
 	
 	def onModuleChange(self):
-		self.updateDepVisList()
+		# self.updateDepVisList()
 		self.updateDepSegList()
-		self.updateVolumeList()
+		# self.updateVolumeList()
 
-	def updateVolumeList(self):
-		self.ui.segVollist1.clear()
-		self.ui.segVollist1.addItem('None')
-		self.ui.segVollist2.clear()
-		self.ui.segVollist2.addItem('None')
-		volumeNodes = slicer.util.getNodesByClass('vtkMRMLScalarVolumeNode')
-		for volumeNode in volumeNodes:
-			self.ui.segVollist1.addItem(volumeNode.GetName())
-			self.ui.segVollist2.addItem(volumeNode.GetName())
-
-	def updateDepVisList(self):
-		self.ui.depVisListCombo.clear()
-		volumeNodes = slicer.util.getNodesByClass('vtkMRMLScalarVolumeNode')
-		for volumeNode in volumeNodes:
-			self.ui.depVisListCombo.addItem(volumeNode.GetName())
+	# def updateVolumeList(self):
+	# 	self.ui.segVollist1.clear()
+	# 	self.ui.segVollist1.addItem('None')
+	# 	self.ui.segVollist2.clear()
+	# 	self.ui.segVollist2.addItem('None')
+	# 	volumeNodes = slicer.util.getNodesByClass('vtkMRMLScalarVolumeNode')
+	# 	for volumeNode in volumeNodes:
+	# 		self.ui.segVollist1.addItem(volumeNode.GetName())
+	# 		self.ui.segVollist2.addItem(volumeNode.GetName())
 
 	def updateDepSegList(self):
 		segmentationNode = slicer.util.getNodesByClass('vtkMRMLSegmentationNode')
@@ -1160,7 +1643,394 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			self.ui.depSegListCombo.clear()
 			for segName in segNames:
 				self.ui.depSegListCombo.addItem(segName)
+	
+	#----- Robert Peak Labeling Running/Functions to do so -------
+	def onRadioButtonClicked(self):
+		"""Returns True if 'find all' is selected, False if 'find closest' is selected."""
+		if self.ui.findallcandidatesradioButton.isChecked():
+			return True
+		else:
+			return False
+		
+	def onUpdateHMDBDatabase(self):
+		"""Updates the HMDB database by calling the logic function and displays a message box with the result."""
+		db_path = self.logic.default_hmdb_db_path()	
+		buttonClicked = True
+		result = self.logic.check_and_build_hmdb(db_path, buttonClicked)
+		if result:
+			slicer.util.infoDisplay("HMDB database updated successfully!")
+	
+	def onLabelPeaks(self):
+		' Function to label the peaks based on the inputted m/z values, tolerance, and adducts. '
+		'It also handles the UI updates to show the results in a table and allows for pathway searching. '
+		#Gather inputs
+		raw_peaks = self.ui.inputtedpeakslineedit.text
+		tolerance_str = self.ui.moleculetoleranacelineedit.text
+		checked_items = []
+		if self.ui.mhposcheckbox_2.isChecked():
+			checked_items.append("M+H")
+		if self.ui.mnaposcheckbox_2.isChecked():
+			checked_items.append("M+Na")
+		if self.ui.mkposcheckbox_2.isChecked():
+			checked_items.append("M+K")
+		if self.ui.mnh4poscheckbox_2.isChecked():
+			checked_items.append("M+NH4")
+		if self.ui.mhnegcheckbox_2.isChecked():
+			checked_items.append("M-H")
+		if self.ui.mclnegcheckbox_2.isChecked():
+			checked_items.append("M+Cl")
+		if self.ui.mfnegcheckbox_2.isChecked():
+			checked_items.append("M-F")
+		if self.ui.mch3coonegcheckbox_2.isChecked():
+			checked_items.append("M+CH3COO")
+		if self.ui.noadductcheckbox_2.isChecked():
+			checked_items.append("Neutral")
+		adducts_text = ",".join(checked_items)
+		#use_broad_pathways = self.ui.nonspecificpathwayscheckbox.isChecked()
+		
+		search_all = self.onRadioButtonClicked()
+		tol_unit = self.ui.toleranceunitcombobox.currentText
+		database_unit = self.ui.databasecombobox.currentText
 
+		# Validation and error handling
+		if not raw_peaks:
+			slicer.util.errorDisplay("Please enter at least one peak m/z value.")
+			return
+		try:
+			tolerance = float(tolerance_str)
+		except ValueError:
+			slicer.util.errorDisplay("Tolerance must be a valid number!")
+			return
+		if not adducts_text:
+			slicer.util.errorDisplay("Please select at least one adduct.")
+			return
+		
+		# Update UI to show it's working (API calls take time)
+		self.ui.displaypatwaystextbrowser.show()
+		slicer.app.processEvents()
+		
+		progress_dialog = slicer.util.createProgressDialog(labelText="Finding Molecules...", maximum=100)
+		def update_progress(message, percentage):
+			progress_dialog.labelText = message
+			progress_dialog.setValue(percentage)
+			slicer.app.processEvents()
+
+		try:
+			# Run the molecule matching logic
+			results_df = self.logic.run_molecule_matching(
+				raw_peaks, tolerance, adducts_text, tol_unit, database_unit, search_all, update_progress
+			)
+			self.current_results_df = results_df
+
+			if results_df is None or (isinstance(results_df, str)) or results_df.empty:
+				self.ui.moleculesTableWidget.setRowCount(0)
+				slicer.util.infoDisplay("No molecule matches found for the given peaks and parameters.")
+				return
+			results_df = results_df.sort_values(by=['Searched_m/z', 'DELTA'])
+			results_df = results_df.reset_index(drop=True)
+			self.current_results_df = results_df
+			self.current_pathway_df = None
+
+			self.ui.displaypatwaystextbrowser.setText("") # Clear out old results
+			
+			self.ui.moleculesTableWidget.show()
+			self.ui.searchPathwaysButton.show()
+			self.ui.moleculesTableWidget.setHorizontalHeaderLabels(['Select', 'Searched m/z', 'Adduct', 'Molecule', 'Source ID', 'KEGG ID', f'Error ({tol_unit})'])
+			self.ui.moleculesTableWidget.setRowCount(0)
+			slicer.app.processEvents() 
+
+			# Populate the Table
+			self.ui.moleculesTableWidget.setRowCount(len(results_df))
+			for i, row in results_df.iterrows():
+				chk_item = qt.QTableWidgetItem()
+				chk_item.setFlags(qt.Qt.ItemIsUserCheckable | qt.Qt.ItemIsEnabled)
+				chk_item.setCheckState(qt.Qt.Checked) 
+				chk_item.setData(qt.Qt.UserRole, i)
+
+				self.ui.moleculesTableWidget.setItem(i, 0, chk_item)
+				self.ui.moleculesTableWidget.setItem(i, 1, qt.QTableWidgetItem(str(row.get('Searched_m/z', ''))))
+				self.ui.moleculesTableWidget.setItem(i, 2, qt.QTableWidgetItem(str(row.get('Adduct', ''))))
+				self.ui.moleculesTableWidget.setItem(i, 3, qt.QTableWidgetItem(str(row.get('COMMON_NAME', ''))))
+				self.ui.moleculesTableWidget.setItem(i, 4, qt.QTableWidgetItem(str(row.get('Source ID', ''))))
+
+				kegg_id = str(row.get('KEGG_ID', ''))
+				# If KEGG ID is valid, make it a clickable link to the KEGG entry; otherwise just display the text
+				if kegg_id and kegg_id.startswith('C'):
+					link_label = qt.QLabel(f'<a href="https://www.kegg.jp/entry/{kegg_id}" style="color: #2980b9; text-decoration: underline;">{kegg_id}</a>')
+					link_label.setTextFormat(qt.Qt.RichText)
+					link_label.setTextInteractionFlags(qt.Qt.TextBrowserInteraction)
+					link_label.setAlignment(qt.Qt.AlignVCenter | qt.Qt.AlignLeft)
+					link_label.setStyleSheet("margin-left: 5px;")
+					link_label.linkActivated.connect(self.onTableLinkClicked)
+					
+					self.ui.moleculesTableWidget.setCellWidget(i, 5, link_label)
+				else:
+					self.ui.moleculesTableWidget.setItem(i, 5, qt.QTableWidgetItem(kegg_id))
+
+				self.ui.moleculesTableWidget.setItem(i, 6, qt.QTableWidgetItem(str(row.get('DELTA', ''))))
+				
+		finally:
+			progress_dialog.close()
+
+	def onSearchPathways(self):
+		"""Triggered when the user clicks 'Search Pathways' after selecting molecules.
+		It gathers the selected molecules, runs the pathway search logic, and updates the UI with results."""
+		self.ui.displaypatwaystextbrowser.clear()
+		selected_indices = []
+		
+		# Gather all rows where the checkbox is ticked
+		for row in range(self.ui.moleculesTableWidget.rowCount):
+			chk_item = self.ui.moleculesTableWidget.item(row, 0)
+			if chk_item is not None and chk_item.checkState() == qt.Qt.Checked:
+				df_idx = chk_item.data(qt.Qt.UserRole)
+				selected_indices.append(df_idx)
+
+		if not selected_indices:
+			slicer.util.errorDisplay("Please select at least one molecule to search pathways for.")
+			return
+
+		filtered_df = self.current_results_df.loc[selected_indices].copy()
+		filter_human = self.ui.onlyhumanpathwayscheckbox.isChecked()
+
+		# Update UI to show it's working (API calls take time)
+		progress_dialog = slicer.util.createProgressDialog(labelText="Searching Pathways...", maximum=100)
+		def update_progress(message, percentage):
+			progress_dialog.labelText = message
+			progress_dialog.setValue(percentage)
+			slicer.app.processEvents()
+
+		# Get Final Pathway DataFrame and update UI
+		try:
+			final_df = self.logic.run_pathway_search(filtered_df, filter_human, update_progress)
+			self.current_pathway_df = final_df
+			self.ui.displaypatwaystextbrowser.show()
+			
+			slicer.app.processEvents()
+
+			if final_df is None or final_df.empty or 'Pathway_Name' not in final_df.columns:
+				self.ui.displaypatwaystextbrowser.setText("No pathways found for the selected molecules.")
+			else:
+				self.renderHtmlPathwayResults(final_df, self.ui.moleculetoleranacelineedit.text, self.ui.toleranceunitcombobox.currentText)
+
+		finally:
+			progress_dialog.close()
+
+	def renderHtmlPathwayResults(self, results_df, tolerance, tol_unit):
+		"""Generates and sets the HTML layout for the final pathway results."""
+		output_html = f"""
+		<html>
+		<head>
+		<style>
+			body {{ font-family: Arial, sans-serif; color: #333; }}
+			h3 {{ color: #2c3e50; margin-bottom: 2px; }}
+			h4 {{ color: #1a5276; margin-top: 20px; margin-bottom: 5px; border-bottom: 2px solid #1a5276; padding-bottom: 3px; }}
+			p {{ margin-top: 0px; color: #555; }}
+			table {{ border-collapse: collapse; width: 100%; margin-bottom: 15px; }}
+			th, td {{ padding: 6px 10px; text-align: left; border-bottom: 1px solid #d4d4d4; }}
+			th {{ background-color: #e0e0e0; font-weight: bold; color: #333; }}
+			tr:nth-child(even) {{ background-color: #f9f9f9; }}
+		</style>
+		</head>
+		<body>
+			<h3>Matching & Pathways Complete</h3>
+			<p><b>Searched Tolerance:</b> {tolerance} {tol_unit}</p>
+		"""
+		
+		display_cols = ['Searched_m/z', 'Adduct', 'COMMON_NAME', 'Source ID', 'KEGG_ID', 'DELTA', 'Pathway_Name', 'Pathway_ID']
+		
+		for mz_val, group_df in results_df.groupby('Searched_m/z'):
+			display_df = group_df[[col for col in display_cols if col in group_df.columns]].copy()
+			display_df = display_df.sort_values(by=['Adduct', 'KEGG_ID'])
+
+			# Make KEGG_ID and Pathway_Name clickable links if the relevant information is present
+			if 'Pathway_ID' in display_df.columns:
+				display_df['Pathway_Name'] = '<a href="https://www.kegg.jp/pathway/' + display_df['Pathway_ID'] + '" style="color: #2980b9; text-decoration: none;">' + display_df['Pathway_Name'] + '</a>'
+				display_df.drop(columns=['Pathway_ID'], inplace=True)
+				
+			if 'KEGG_ID' in display_df.columns:
+				display_df['KEGG_ID'] = '<a href="https://www.kegg.jp/entry/' + display_df['KEGG_ID'] + '" style="color: #2980b9; text-decoration: none;">' + display_df['KEGG_ID'] + '</a>'
+
+			display_df.rename(columns={
+				'Searched_m/z': 'Searched m/z', 'Adduct': 'Adduct', 'COMMON_NAME': 'Molecule', 'Source ID': 'Source ID',
+				'KEGG_ID': 'KEGG ID', 'DELTA': f'Error ({tol_unit})', 'Pathway_Name': 'Pathway'
+			}, inplace=True)
+			
+			if 'Searched m/z' in display_df.columns:
+				display_df.drop(columns=['Searched m/z'], inplace=True)
+
+			output_html += f"<h4>>> Matches for m/z: {mz_val} <<</h4>\n"
+			output_html += display_df.to_html(index=False, border=0, justify='left', escape=False)
+
+		output_html += "</body></html>"
+		self.ui.displaypatwaystextbrowser.setText(output_html)
+	
+	def onExportPeakLabelExcel(self):
+		"""Export the pathway results to an excel file, preserving URLs."""
+		# Import openpyxl for Excel writing and hyperlink support        
+		try:
+			import openpyxl
+			from openpyxl.styles import Font
+		except ModuleNotFoundError:
+			slicer.util.pip_install("openpyxl")
+			import openpyxl
+			from openpyxl.styles import Font
+		
+        # Check if there is actually data to save
+		df_to_export = None
+		if hasattr(self, 'current_pathway_df') and self.current_pathway_df is not None and not self.current_pathway_df.empty:
+			df_to_export = self.current_pathway_df.copy()
+
+		if df_to_export is None:
+			slicer.util.infoDisplay("There are no results to export. Please run a pathway search first.")
+			return
+		
+		# Do not save the LIPID_CLASS column if it exists, as it is not relevant to the user
+		df_to_export.drop(columns=['LIPID_CLASS', 'FORMULA'], inplace=True, errors='ignore')
+
+        # Open a "Save As" dialog window
+		default_name = "Pathway_Labeling_Results.xlsx"
+		file_path = qt.QFileDialog.getSaveFileName(
+            None, 
+            "Save Results as excel", 
+            default_name, 
+            "Excel Files (*.xlsx)"
+        )
+
+        # If the user clicked "Save" (and didn't hit cancel)
+		if file_path:
+			try:
+                # Force the extension to be .xlsx 
+				if not file_path.lower().endswith('.xlsx'):
+					file_path = os.path.splitext(file_path)[0] + '.xlsx'
+
+                # Use Pandas ExcelWriter to save the base data
+				with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+					df_to_export.to_excel(writer, index=False, sheet_name='Pathways')
+                    
+                    # Access the underlying workbook to add native links
+					workbook = writer.book
+					worksheet = workbook['Pathways']
+                    
+                    # Standard Excel hyperlink styling (Blue and Underlined)
+					link_font = Font(color="0563C1", underline="single")
+                    
+                    # Find which column numbers belong to our IDs (openpyxl is 1-indexed)
+					columns = df_to_export.columns.tolist()
+					kegg_col_idx = columns.index('KEGG_ID') + 1 if 'KEGG_ID' in columns else None
+					path_name_idx = columns.index('Pathway_Name') + 1 if 'Pathway_Name' in columns else None
+					path_id_idx = columns.index('Pathway_ID') + 1 if 'Pathway_ID' in columns else None
+					hmdb_col_idx = None
+					if 'Source ID' in columns:
+						hmdb_col_idx = columns.index('Source ID') + 1
+					elif 'HMDB_ID' in columns:
+						hmdb_col_idx = columns.index('HMDB_ID') + 1
+
+                    # Iterate through the rows to add the hyperlinks directly to the text
+					for row in range(2, len(df_to_export) + 2): # Start at 2 to skip the header row
+                        
+                        # Apply link to KEGG_ID
+						if kegg_col_idx:
+							kegg_cell = worksheet.cell(row=row, column=kegg_col_idx)
+							val = kegg_cell.value
+							if pd.notna(val) and str(val).startswith('C'):
+								kegg_cell.hyperlink = f"https://www.kegg.jp/entry/{val}"
+								kegg_cell.font = link_font
+                                
+                        # Apply link to Pathway_Name
+						if path_name_idx and path_id_idx:
+							name_cell = worksheet.cell(row=row, column=path_name_idx)
+							id_val = worksheet.cell(row=row, column=path_id_idx).value
+							if pd.notna(id_val):
+								name_cell.hyperlink = f"https://www.kegg.jp/pathway/{id_val}"
+								name_cell.font = link_font
+						
+						# Apply link to HMDB ID if available
+						if hmdb_col_idx:
+							hmdb_cell = worksheet.cell(row=row, column=hmdb_col_idx)
+							val = hmdb_cell.value
+							if pd.notna(val):
+								hmdb_cell.hyperlink = f"https://www.hmdb.ca/metabolites/{val}"
+								hmdb_cell.font = link_font
+
+                    # Clean up: Delete the Pathway_ID column since the links are now attached to the Name
+					if path_id_idx:
+						worksheet.delete_cols(path_id_idx)
+
+				slicer.util.infoDisplay(f"Successfully saved Excel file to:\n{file_path}", "Export Complete")
+            
+			except Exception as e:
+				slicer.util.errorDisplay(f"Failed to save Excel file:\n{str(e)}")
+
+	def onLoadMzValuesCsv(self):
+		"""Opens a file dialog, reads a CSV, and populates the m/z text box."""
+		import pandas as pd
+        # Open a "File Open" dialog window
+		file_path = qt.QFileDialog.getOpenFileName(
+            None, 
+            "Select m/z CSV File", 
+            "", 
+            "CSV Files (*.csv)"
+        )
+
+        # If the user clicked Cancel, just stop
+		if not file_path:
+			return
+		
+		try:
+            # Read the CSV
+			df = pd.read_csv(file_path)
+
+            # Column Detection
+			target_col = None
+			for col in df.columns:
+				col_clean = str(col).strip().lower()
+				if col_clean in ['m/z', 'mz', 'mass', 'm.z']:
+					target_col = col
+					break
+            
+            # Fallback: If no matching header is found, just grab the first column
+			if target_col is None:
+				target_col = df.columns[0]
+
+            # Extract the numbers, drop empty rows, and convert to strings
+			mz_values = df[target_col].dropna().astype(str).tolist()
+            
+            # Join them with commas
+			mz_string = ", ".join(mz_values)
+
+            # Inject the string directly into the existing text box
+			self.ui.inputtedpeakslineedit.setText(mz_string)
+            
+            # Let the user know it worked
+			slicer.util.infoDisplay(f"Successfully loaded {len(mz_values)} peaks from column: '{target_col}'", "CSV Loaded")
+
+		except Exception as e:
+			slicer.util.errorDisplay(f"Failed to load CSV file:\n{str(e)}")
+
+	def onLinkClicked(self, url):
+		"""Catches the clicked link and opens it inside the Red window."""
+		self.internalBrowser.setUrl(url.toString())
+		self.addressBar.setText(url.toString())
+		slicer.app.layoutManager().setLayout(self.browserOnlyLayoutId)
+
+
+	def hideInternalBrowser(self):
+		"""Hides the web browser and restores the full Red slice view."""
+		self.webContainer.hide()
+		
+		# Restore Slicer's native widgets
+		self.redWidget.sliceController().show()
+		self.redWidget.sliceView().show()
+		
+		self.internalBrowser.url = "about:blank"
+
+	def onTableLinkClicked(self, link_string):
+		"""Helper function to convert table string links into QUrls for the internal browser."""
+		# Convert the string to a QUrl and pass it to your existing browser function
+		url_object = qt.QUrl(link_string)
+		self.onLinkClicked(url_object)
+
+	# --- End of Robert Peak Labeling Tab Functions ---
 
 	### Multi-slide alignment tab
 
@@ -1268,6 +2138,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 				self.ui.refIoncomboBox.addItem(mz)
 			threshold = self.logic.getTUSthreshold()
 			self.ui.thresholdValue.setText(str(threshold))
+
 	
 	# def onNormalizationState(self):
 	# 	if self.ui.normalizeCheckbox.isChecked():
@@ -1346,6 +2217,26 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.lowLabel.setEnabled(State)
 		self.ui.upLabel.setEnabled(State)
 
+	def onIntFilterState(self):
+		if self.ui.lowIntFiltercheckBox.isChecked():
+			State = True
+		else:
+			State = False
+		self.ui.lowIntFilterVal.setEnabled(State)
+		self.ui.lowIntFilterValLabel.setEnabled(State)
+		self.ui.lowIntFilterMethod.setEnabled(State)
+		self.ui.lowIntFilterMethodLabel.setEnabled(State)
+
+	def onVarFilterState(self):
+		if self.ui.lowVarFiltercheckBox.isChecked():
+			State = True
+		else:
+			State = False
+		self.ui.lowVarFilterVal.setEnabled(State)
+		self.ui.lowVarFilterValLabel.setEnabled(State)
+		self.ui.lowVarFilterMethod.setEnabled(State)
+		self.ui.lowVarFilterMethodLabel.setEnabled(State)
+
 	def onAggState(self):
 		if self.ui.pixelaggcheckBox.isChecked():
 			State = True
@@ -1365,7 +2256,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		if self.ui.normalizeCheckbox.isChecked():
 			spec_normalization = self.ui.normMethodComboBox.currentText
 			if spec_normalization == "Reference ion":
-				normalization_param = float(self.ui.refIoncomboBox.currentText)
+				normalization_param = self.ui.refIoncomboBox.currentText
 			elif spec_normalization == "Total signal current (TSC)":
 				normalization_param = float(self.ui.thresholdValue.text)
 			else:
@@ -1387,6 +2278,16 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		else:
 			subband_selection = None
    
+		# ion filtering
+		if self.ui.lowIntFiltercheckBox.isChecked():
+			lowInt_val = ( self.ui.lowIntFilterMethod.currentText, int(self.ui.lowIntFilterVal.text) )
+		else:
+			lowInt_val = None
+		if self.ui.lowVarFiltercheckBox.isChecked():
+			lowVar_val = ( self.ui.lowVarFilterMethod.currentText, int(self.ui.lowVarFilterVal.text) )
+		else:
+			lowVar_val = None
+
 		# get pixel aggregation
 		if self.ui.pixelaggcheckBox.isChecked():
 			pixel_aggregation = (int(self.ui.patchWidth.text), int(self.ui.patchStride.text), self.ui.aggMode.currentText, int(self.ui.partialPatch.text))
@@ -1399,7 +2300,12 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		print(savepath)
 
 
-		processed_csv_info = self.logic.dataset_post_processing(spec_normalization, normalization_param, subband_selection, pixel_aggregation, savepath)
+		processed_csv_info = self.logic.dataset_post_processing(spec_normalization, 
+														  normalization_param, 
+														  subband_selection, 
+														  lowInt_val, 
+														  lowVar_val, 
+														  pixel_aggregation, savepath)
 
 		retstr = 'Dataset successfully processed! \n'
 		retstr += f'Processed dataset:\t {savepath} \n'
@@ -1487,7 +2393,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		return [label_1, label_2]
 
 	def onBoxPlot(self):
-		mz_ref = float(self.ui.statIonCombo.currentText)
+		mz_ref = self.ui.statIonCombo.currentText
 		label_config = self.GetStatConfigParameters()
 		df_summary = self.logic.BoxPlot(mz_ref, label_config)
 		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpYellowSliceView)
@@ -1501,7 +2407,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			<view class="vtkMRMLSliceNode" singletontag="Yellow"/>
 		</item>
 		<item>
-			<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+			<view class="vtkMRMLTableViewNode" singletontag="BoxPlotTable"/>
 		</item>
 		</layout>
 		"""
@@ -1533,7 +2439,15 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			tableViewNode = tableViewNodes[0]
 			tableViewNode.SetTableNodeID(tableNode.GetID())
 
+		# TableView node (singleton tag "BoxPlotTable")
+		tableViewNode = slicer.mrmlScene.GetSingletonNode("BoxPlotTable", "vtkMRMLTableViewNode")
+		# Fallback if needed:
+		if not tableViewNode:
+			tvs = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
+			tableViewNode = tvs[0] if tvs else None
 
+		if tableViewNode:
+			tableViewNode.SetTableNodeID(tableNode.GetID())
 
 	def onANOVA(self):
 		self.onRunStat(test_method='anova', tabName = "ANOVA")
@@ -1567,7 +2481,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			customLayout = """
 			<layout type="horizontal" split="true">
 			<item>
-				<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+				<view class="vtkMRMLTableViewNode" singletontag="StatTable"/>
 			</item>
 			<item>
 				<view class="vtkMRMLSliceNode" singletontag="Yellow"/>
@@ -1586,7 +2500,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			<item>
 				<layout type="horizontal" split="true">
 				<item>
-					<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+					<view class="vtkMRMLTableViewNode" singletontag="StatTable"/>
 				</item>
 				<item>
 					<view class="vtkMRMLSliceNode" singletontag="Yellow"/>
@@ -1622,10 +2536,20 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		tableNode.SetUseColumnTitleAsColumnHeader(True)
 		tableNode.SetLocked(True)
 
-		# set the table view node
-		tableViewNodes = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
-		if tableViewNodes:
-			tableViewNode = tableViewNodes[0]
+		# # set the table view node
+		# tableViewNodes = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
+		# if tableViewNodes:
+		# 	tableViewNode = tableViewNodes[0]
+		# 	tableViewNode.SetTableNodeID(tableNode.GetID())
+
+		# TableView node (singleton tag "StatTable")
+		tableViewNode = slicer.mrmlScene.GetSingletonNode("StatTable", "vtkMRMLTableViewNode")
+		# Fallback if needed:
+		if not tableViewNode:
+			tvs = slicer.util.getNodesByClass("vtkMRMLTableViewNode")
+			tableViewNode = tvs[0] if tvs else None
+
+		if tableViewNode:
 			tableViewNode.SetTableNodeID(tableNode.GetID())
 
 		# interactive boxplot on cell click
@@ -1648,7 +2572,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 	def onStatCellClicked(self, index):
 		row = index.row()
-		mz_ref = float(self.tableNode.GetCellText(row, 0))
+		mz_ref = self.tableNode.GetCellText(row, 0)
 		label_config = self.GetStatConfigParameters()
 		df_summary = self.logic.BoxPlot(mz_ref, label_config)
 		yellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
@@ -1689,7 +2613,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		customLayout = """
 		<layout type="vertical">
 		<item>
-			<view class="vtkMRMLTableViewNode" singletontag="Table"/>
+			<view class="vtkMRMLTableViewNode" singletontag="FeatureTable"/>
 		</item>
 		</layout>
 		"""
@@ -1935,7 +2859,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.visRenormalize()
 		self.logic.heatmap_display()
 		self.populateMzLists()
-		self.updateDepVisList()
+		# self.updateDepVisList()
   
 	def onDeployModelSel(self):
 		fileExplorer = qt.QFileDialog()
@@ -2002,7 +2926,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			state = False
 		self.ui.depGoVisButton.setEnabled(state)
 		self.ui.depVisSelLabel.setEnabled(state)
-		self.ui.depVisListCombo.setEnabled(state)
+		self.ui.depVisCombo.setEnabled(state)
+		self.ui.depPCAVis.setEnabled(state)
 		self.ui.depGoSegEdButton.setEnabled(state)
 		self.ui.depSegListLabel.setEnabled(state)
 		self.ui.depSegListCombo.setEnabled(state)
@@ -2011,7 +2936,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.tabWidget.setCurrentIndex(2)
 
 	def onDepGoSeg(self):
-		sourceVolumeNode = slicer.util.getNode( self.ui.depVisListCombo.currentText )
+		sourceVolumeNode = self.ui.depVisCombo.currentNode()
 		slicer.util.selectModule("SegmentEditor")
 
 		# set master volume and geometry
@@ -2033,16 +2958,16 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
 		slicer.util.resetSliceViews()
 
-	def onDepSegListUpdate(self):
-		segmentationNode = slicer.util.getNodesByClass('vtkMRMLSegmentationNode')[0]
-		segmentation = segmentationNode.GetSegmentation()
-		segIDs = segmentation.GetSegmentIDs()
-		segNames = [segmentation.GetSegment(segID).GetName() for segID in segIDs]
+	# def onDepSegListUpdate(self):
+	# 	segmentationNode = slicer.util.getNodesByClass('vtkMRMLSegmentationNode')[0]
+	# 	segmentation = segmentationNode.GetSegmentation()
+	# 	segIDs = segmentation.GetSegmentIDs()
+	# 	segNames = [segmentation.GetSegment(segID).GetName() for segID in segIDs]
 
-		self.ui.depSegListCombo.clear()
-		self.ui.depSegListCombo.addItem('None')
-		for segName in segNames:
-			self.ui.segVollist1.addItem(segName)
+	# 	self.ui.depSegListCombo.clear()
+	# 	self.ui.depSegListCombo.addItem('None')
+	# 	for segName in segNames:
+	# 		self.ui.segVollist1.addItem(segName)
 
 	def onApplyDeployment(self):
 		# spectrum normalization
@@ -2248,7 +3173,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 class SimHeatmapThresholdOverlay:
 	def __init__(self, slider, refVolume):
 		self.refVolume = refVolume
-		self.sim = slicer.util.arrayFromVolume(self.refVolume) 
+		self.sim = slicer.util.arrayFromVolume(self.refVolume)
 		self.slider = slider
 
 		labelNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLLabelMapVolumeNode', 'SimMask')
@@ -2263,25 +3188,36 @@ class SimHeatmapThresholdOverlay:
 		slicer.util.updateVolumeFromArray(self.labelNode, np.zeros_like(self.sim, dtype=np.uint8))
 		self.labelNode.CreateDefaultDisplayNodes()
 
+		### change mask color
+		colorTableNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLColorTableNode", "SimHeatmapMaskColors")
+		colorTableNode.SetTypeToUser()
+		colorTableNode.SetNumberOfColors(2)
+		colorTableNode.SetColor(0, "Background", 0.0, 0.0, 0.0, 0.0)
+		colorTableNode.SetColor(1, "Mask", 0.5, 0.68, 0.5, 1.0)
+		displayNode = self.labelNode.GetDisplayNode()
+		displayNode.SetAndObserveColorNodeID(colorTableNode.GetID())
+
 		lm = slicer.app.layoutManager()
 		layoutNode = lm.layoutLogic().GetLayoutNode()
 		twoUpId = 902
 		twoUpXML = """
 		<layout type="horizontal">
 			<item><view class="vtkMRMLSliceNode" singletontag="Red"/></item>
-			<item><view class="vtkMRMLSliceNode" singletontag="Yellow"/></item>
+			<item><view class="vtkMRMLSliceNode" singletontag="Green"/></item>
 		</layout>
 		"""
 		layoutNode.AddLayoutDescription(twoUpId, twoUpXML)
 		lm.setLayout(twoUpId)
 
-		yellowComp = lm.sliceWidget('Yellow').mrmlSliceCompositeNode()
-		yellowComp.SetBackgroundVolumeID(None)      # geometry/background for Yellow
-		yellowComp.SetLabelVolumeID(self.labelNode.GetID())           # show our mask as label
-		yellowComp.SetLabelOpacity(0.9)
-		YellowNode = slicer.util.getNode("vtkMRMLSliceNodeYellow")
-		YellowNode.SetOrientation("Axial")
+		greenComp = lm.sliceWidget('Green').mrmlSliceCompositeNode()
+		greenComp.SetBackgroundVolumeID(None)
+		greenComp.SetLabelVolumeID(self.labelNode.GetID())
+		greenComp.SetLabelOpacity(0.9)
+
+		GreenNode = slicer.util.getNode("vtkMRMLSliceNodeGreen")
+		GreenNode.SetOrientation("Axial")
 		RedNode = slicer.util.getNode("vtkMRMLSliceNodeRed")
+
 		markupNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsNode")
 		for markupNode in markupNodes:
 			displayNode = markupNode.GetDisplayNode()
@@ -2291,26 +3227,21 @@ class SimHeatmapThresholdOverlay:
 		if redComp.GetLabelVolumeID() == self.labelNode.GetID():
 			redComp.SetLabelVolumeID(None)
 
-		lm.sliceWidget('Yellow').sliceLogic().FitSliceToAll()
+		lm.sliceWidget('Green').sliceLogic().FitSliceToAll()
 
-		# Connect slider for live updates (avoid duplicate connections) ---
-		# Drop any prior handlers on this slider to prevent stacking
 		try:
 			self.slider.valueChanged.disconnect()
 		except Exception:
 			pass
 		self.slider.valueChanged.connect(self.onThresholdChanged)
 
-		# Initialize
 		self.onThresholdChanged(self.slider.value)
 
 	def onThresholdChanged(self, threshold):
-		"""Update label map"""
-		mask = (self.sim >= threshold).astype(np.uint8)                # 0/1 mask
+		mask = (self.sim >= threshold).astype(np.uint8)
 		slicer.util.updateVolumeFromArray(self.labelNode, mask)
 
-		# Keep Yellow nicely framed without touching Red
-		slicer.app.layoutManager().sliceWidget('Yellow').sliceLogic().FitSliceToAll()
+		slicer.app.layoutManager().sliceWidget('Green').sliceLogic().FitSliceToAll()
 
 
 
