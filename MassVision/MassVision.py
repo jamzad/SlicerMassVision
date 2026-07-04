@@ -1016,7 +1016,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		# select the last ROI created
 		roi = all_rois.GetItemAsObject(all_rois.GetNumberOfItems()-1)
 		# get roi bounds
-		bounds = np.zeros((6,1))
+		# bounds = np.zeros((6,1))
+		bounds = [0.0] * 6
 		roi.GetBounds(bounds)
 		# error checking to ensure it is within image bounds
 		max_x = min(self.logic.dim_x, np.ceil(abs(bounds[0])))
