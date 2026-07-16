@@ -1,7 +1,9 @@
 
 """
 MassVision
-
+module access within Slicer Python console:
+	MassVision = slicer.modules.massvision.widgetRepresentation().self()
+	peaks = MassVision.logic.peaks
 """
 
 import vtk, qt, slicer

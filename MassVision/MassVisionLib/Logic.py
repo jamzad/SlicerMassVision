@@ -1103,7 +1103,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	def pca_display(self):
 		# generates and displays the pca image
 		dim_reduction = PCA(n_components=3)
+
 		peaks_pca = dim_reduction.fit_transform(self.peaks_norm)
+		# dim_reduction.fit( pre_pca_prune(self.peaks_norm) )
+		# peaks_pca = dim_reduction.transform(self.peaks_norm)
+
 		peaks_pca = MinMaxScaler().fit_transform( peaks_pca )
 		
 		pca_image = peaks_pca.reshape((self.dim_y,self.dim_x,-1),order='C')
@@ -3018,7 +3022,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.mz_dtype = mz_dtype
 		self.mz_index = np.arange(len(mz))
 
-		self.peaks = peaks
+		self.peaks = np.nan_to_num(peaks)
 		self.mz = mz
 		self.dim_y = dim_y
 		self.dim_x = dim_x
@@ -3575,7 +3579,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		local_peaks = self.peaks_norm[local_peaks_ind]
 		local_pca = PCA(n_components=3)
 		local_scaler = MinMaxScaler()
+
 		local_peaks_pca = local_pca.fit_transform( local_scaler.fit_transform( local_peaks ) )
+		# local_peaks_pca = local_pca.fit_transform( local_scaler.fit_transform( pre_pca_prune(local_peaks) ) )
+
 		post_scaler = MinMaxScaler()
 		post_scaler.fit(local_peaks_pca)
 
@@ -3612,7 +3619,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		local_peaks = self.peaks_norm[local_peaks_ind]
 		local_pca = PCA(n_components=3)
 		local_scaler = MinMaxScaler()
+
 		local_peaks_pca = local_pca.fit_transform( local_scaler.fit_transform( local_peaks ) )
+		# local_peaks_pca = local_pca.fit_transform( local_scaler.fit_transform( pre_pca_prune(local_peaks) ) )
+		
 		post_scaler = MinMaxScaler()
 		post_scaler.fit(local_peaks_pca)
 
@@ -5920,3 +5930,14 @@ def variance_filter_mask(peaks, method="iqr", percentage=10):
     ind = ~remove_mask
 
     return ind, scores
+
+def pre_pca_prune(arr, unique=False):
+	# remove all-zero and repeated samples
+	non_zero_mask = np.any(arr != 0, axis=1)
+	filtered_np = arr[non_zero_mask]
+	
+	if unique:
+		# filtered_np = pd.DataFrame(filtered_np).drop_duplicates().to_numpy()
+		filtered_np = np.unique(filtered_np, axis=0)
+	
+	return filtered_np
