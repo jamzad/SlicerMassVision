@@ -10,8 +10,16 @@ import vtk, qt, slicer
 from slicer.ScriptedLoadableModule import *
 from slicer.util import VTKObservationMixin
 import logging
-import os
-from MassVisionLib.Logic import * 
+import os, re
+import numpy as np
+
+try:
+	import pandas as pd
+except ModuleNotFoundError:
+	slicer.util.pip_install("pandas")
+	import pandas as pd
+
+# from MassVisionLib.Logic import * 
 
 
 class MassVision(ScriptedLoadableModule):
@@ -79,7 +87,7 @@ class MassVisionTest(ScriptedLoadableModuleTest):
 
 		self.delayDisplay("Starting the test")
 
-		logic = MassVisionLogic()
+		# logic = MassVisionLogic()
 
 		self.delayDisplay('Test passed')
 
@@ -110,6 +118,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		Called when the user opens the module the first time and the widget is initialized.
 		"""
 		ScriptedLoadableModuleWidget.setup(self)
+
+		from MassVisionLib.Logic import MassVisionLogic
 
 		# Load widget from .ui file (created by Qt Designer).
 		uiWidget = slicer.util.loadUI(self.resourcePath('UI/MassVision.ui'))
@@ -3307,17 +3317,14 @@ def recolorTabIcon(tabWidget, index, color="#80350E"):
     newIcon = recolorQIcon(icon, color=color, size=size)
     tabWidget.setTabIcon(index, newIcon)
 
-import qt
-import re
 
 def updateUITexts(ui):
 	## change the labels for EmbedVision
-	ui.label_importMSI.setText("Import Embeddings")
+	ui.label_importMSI.setText("Import Channel-rich Data")
 	ui.label_importPATH.setText("Import Image")
 	ui.label_ionNorm.setText("feature")
 	ui.label_pixelNorm.setText("pixel")
 
-	import re
 	repl_map = {
 		"ion": "feature",
 		"ions": "features",
