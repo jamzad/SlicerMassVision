@@ -9,11 +9,11 @@ except ModuleNotFoundError:
 	slicer.util.pip_install("matplotlib")
 	import matplotlib as mpl
 
-import matplotlib.pyplot as plt
-# import matplotlib.cm as cm
-
 ## fix Mac crash
 mpl.use('Agg')
+
+import matplotlib.pyplot as plt
+# import matplotlib.cm as cm
 
 try:
 	from PIL import Image as PILImage
@@ -4722,6 +4722,34 @@ features:\t {len(self.mz)} """
 			retstr += f'   {str(y)}\t in class\t {x} \n'
 		return retstr
 
+#### Visium compatibility helpers ####
+	@staticmethod
+	def _spatialTranscriptomicsBackend():
+		"""Import the ST backend only when it is first needed."""
+		from MassVisionLib import VisiumVision
+
+		return VisiumVision
+
+	def inspectSpatialTranscriptomics(self, filePath):
+		"""Inspect an h5ad file without exposing backend details to the UI."""
+		backend = self._spatialTranscriptomicsBackend()
+
+		return backend.inspect_h5ad(filePath)
+
+	def importSpatialTranscriptomics(
+		self,
+		filePath,
+		processing=None,
+		raster=None,
+	):
+		"""Convert an h5ad file to a MassVision-compatible representation."""
+		backend = self._spatialTranscriptomicsBackend()
+
+		return backend.h5ad_to_spot_footprint_cube(
+			filePath,
+			processing=processing,
+			raster=raster,
+		)
 
 #### Blending helpers ####
 	class SliceBlendController:

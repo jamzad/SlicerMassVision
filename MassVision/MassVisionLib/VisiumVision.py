@@ -235,21 +235,29 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-import anndata as ad
 import numpy as np
 import pandas as pd
-import scanpy as sc
 from scipy import sparse
 from scipy.spatial import cKDTree
 
-# Squidpy is deliberately optional. Importing it through try/except allows the
-# normal AnnData + Scanpy workflow to run in environments where Squidpy is not
-# installed. Spatial gene selection raises a clear error only when requested.
-try:
-    import squidpy as sq
-except ImportError:  # pragma: no cover - depends on the user's environment
-    sq = None
+import slicer
 
+try:
+	import anndata as ad
+except ModuleNotFoundError:
+	slicer.util.pip_install("anndata")
+	import anndata as ad
+
+try:
+	import scanpy as sc
+except ModuleNotFoundError:
+	slicer.util.pip_install("scanpy")
+	import scanpy as sc
+
+try:
+	from skmisc import __name__ as skmisc_name
+except ModuleNotFoundError:
+	slicer.util.pip_install("scikit-misc")
 
 @dataclass
 class SpotFootprintRasterResult:
@@ -412,7 +420,7 @@ DEFAULT_RASTER: dict[str, Any] = {
 
     # 1.0 corresponds to the inferred/physical capture footprint. Larger or
     # smaller values are conventional display scaling, not interpolation.
-    "spot_size_factor": 1.0,
+    "spot_size_factor": 1.3,
 
     # Preserve true scaled size by default. Enable only for readability at very
     # low raster resolutions; doing so changes the displayed footprint size.
@@ -558,13 +566,21 @@ def _resolve_library_metadata(
 
     available = [str(key) for key in spatial_uns.keys()]
     library_id = requested_library_id
+
     if library_id is None:
         if len(available) == 1:
             library_id = available[0]
         else:
-            raise ValueError(
-                "This h5ad contains multiple entries in adata.uns['spatial']. "
-                f"Set processing['library_id']. Available values: {available}"
+            library_id = available[0]
+
+            warnings.warn(
+                "This h5ad contains multiple entries in adata.uns['spatial'], "
+                "but processing['library_id'] was not provided. "
+                f"Using the first entry: {library_id!r}. "
+                f"Available values: {available}. "
+                "Set processing['library_id'] explicitly if this is not correct.",
+                RuntimeWarning,
+                stacklevel=2,
             )
 
     if library_id not in spatial_uns:
@@ -904,12 +920,12 @@ def _rank_spatial_genes_with_squidpy(
     spatial_key: str,
 ) -> tuple[np.ndarray, pd.DataFrame]:
     """Rank candidate genes by Moran's I using a Squidpy spatial graph."""
-    if sq is None:
-        raise ImportError(
-            "Spatial gene selection was requested, but Squidpy is not installed. "
-            "Install it with 'pip install squidpy' or disable "
-            "processing['spatial_gene_selection']."
-        )
+
+    try:
+        import squidpy as sq
+    except ModuleNotFoundError:
+        slicer.util.pip_install("scanpy")
+        import squidpy as sq
 
     coord_type = str(config["spatial_coord_type"])
     common_kwargs: dict[str, Any] = {
