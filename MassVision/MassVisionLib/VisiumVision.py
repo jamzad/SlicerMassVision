@@ -325,21 +325,21 @@ DEFAULT_PROCESSING: dict[str, Any] = {
     # Defaults are intentionally conservative because appropriate thresholds
     # vary substantially by tissue, chemistry, sequencing depth, and study.
     "min_counts_per_spot": 0,
-    "min_genes_per_spot": 0,
+    "min_genes_per_spot": 0,  ##
     "max_counts_per_spot": None,
     "max_genes_per_spot": None,
     "max_pct_mito": None,
 
     # Gene quality control ------------------------------------------------
-    "min_spots_per_gene": 3,
+    "min_spots_per_gene": 10,  ##
     "min_total_counts_per_gene": 0,
 
     # Mitochondrial/ribosomal annotations are useful QC fields. They are not
     # removed by default because exclusion is study-dependent.
     "mitochondrial_prefixes": ["MT-"],
     "ribosomal_prefixes": ["RPL", "RPS"],
-    "exclude_mitochondrial_genes": False,
-    "exclude_ribosomal_genes": False,
+    "exclude_mitochondrial_genes": True,
+    "exclude_ribosomal_genes": True,
     "exclude_gene_prefixes": [],
     "exclude_gene_regex": None,
 
@@ -361,7 +361,7 @@ DEFAULT_PROCESSING: dict[str, Any] = {
     #   "all"                retain all genes surviving QC
     #   "gene_list"          retain only include_genes
     "gene_selection": "hvg",
-    "n_top_genes": 1_000,
+    "n_top_genes": 1_000,  ##
 
     # seurat_v3 uses raw counts and commonly requires scikit-misc.
     # If it is unavailable and allow_hvg_fallback=True, the code falls back to
@@ -408,7 +408,7 @@ DEFAULT_RASTER: dict[str, Any] = {
     # coordinate_pixel_size: one output pixel equals the specified number of
     # source-coordinate units.
     "resolution_mode": "min_dimension",
-    "target_min_dimension": 256,
+    "target_min_dimension": 400,
     "coordinate_units_per_raster_pixel": None,
 
     # Spot geometry -------------------------------------------------------
@@ -429,8 +429,8 @@ DEFAULT_RASTER: dict[str, Any] = {
 
     # Canvas --------------------------------------------------------------
     "crop_to_spots": True,
-    "margin_spot_diameters": 0.5,
-    "background_value": np.nan,
+    "margin_spot_diameters": 0.0,
+    "background_value": None,
 
     # Dense cube allocation ----------------------------------------------
     "materialize_cube": True,

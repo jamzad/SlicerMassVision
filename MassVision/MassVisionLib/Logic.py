@@ -3015,6 +3015,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			[peaks, mz, dim_y, dim_x] = self.MSI_contImzML2numpy(name)
 		elif data_extension == '.npy':
 			[peaks, mz, dim_y, dim_x] = self.EMB_numpy(name)
+		elif data_extension == '.h5ad':
+			[peaks, mz, dim_y, dim_x] = self.ST_rasterize(name)
 		else:
 			pass
 		
@@ -4750,6 +4752,15 @@ features:\t {len(self.mz)} """
 			processing=processing,
 			raster=raster,
 		)
+	
+	def ST_rasterize(self, st_file):
+		result = self.importSpatialTranscriptomics(st_file, self.STprocessing, self.STraster)
+		gene_names = result.gene_names
+		raster_cube = result.raster_cube
+		dim_y, dim_x, _ = raster_cube.shape
+		raster_cube = raster_cube.reshape((dim_y*dim_x,-1),order='C')
+		return raster_cube, gene_names, dim_y, dim_x
+
 
 #### Blending helpers ####
 	class SliceBlendController:

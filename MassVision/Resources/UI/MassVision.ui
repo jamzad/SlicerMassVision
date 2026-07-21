@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>533</width>
-    <height>1725</height>
+    <height>1656</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -32,7 +32,7 @@
    <enum>QTabWidget::Triangular</enum>
   </property>
   <property name="currentIndex">
-   <number>0</number>
+   <number>1</number>
   </property>
   <property name="tabBarAutoHide">
    <bool>false</bool>
@@ -414,7 +414,155 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="2" column="0" colspan="2">
+    <item row="3" column="0" colspan="2">
+     <widget class="QGroupBox" name="STgroupBox">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="title">
+       <string>Settings</string>
+      </property>
+      <layout class="QGridLayout" name="gridLayout_9">
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="STpar3_val">
+         <property name="text">
+          <string>0</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="2" colspan="2">
+        <widget class="QPushButton" name="STimport">
+         <property name="styleSheet">
+          <string notr="true">background-color: #006666;
+color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string>Import and rasterize data</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0" colspan="4">
+        <widget class="ctkCollapsibleGroupBox" name="STcollapsibleGroupBox">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="title">
+          <string>Advanced settings</string>
+         </property>
+         <property name="collapsed">
+          <bool>false</bool>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_10">
+          <item row="1" column="0">
+           <widget class="QPushButton" name="STconfDefault">
+            <property name="text">
+             <string>default settings</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QPushButton" name="STconfLoad">
+            <property name="text">
+             <string>load settings</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QPushButton" name="STconfSave">
+            <property name="text">
+             <string>save settings</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0" colspan="3">
+           <widget class="QTreeWidget" name="STconfEdit">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <column>
+             <property name="text">
+              <string notr="true">1</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="STpar1_label">
+         <property name="text">
+          <string>     min spots/gene</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="3">
+        <widget class="QLineEdit" name="STpar2_val">
+         <property name="text">
+          <string>1000</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="3">
+        <widget class="QLineEdit" name="STpar4_val">
+         <property name="text">
+          <string>400</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2">
+        <widget class="QLabel" name="STpar2_label">
+         <property name="text">
+          <string>number of genes</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="STpar3_label">
+         <property name="text">
+          <string>min genes/spot</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2">
+        <widget class="QLabel" name="STpar4_label">
+         <property name="text">
+          <string>     rasterized image min dimension</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="STpar1_val">
+         <property name="text">
+          <string>0</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="4" column="0" colspan="2">
      <widget class="QTextBrowser" name="dataInformation">
       <property name="maximumSize">
        <size>
@@ -431,7 +579,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="3" column="0" colspan="2">
+    <item row="5" column="0" colspan="2">
      <spacer name="verticalSpacer_15">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -447,7 +595,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="4" column="0" colspan="2">
+    <item row="6" column="0" colspan="2">
      <widget class="QLabel" name="label_importPATH">
       <property name="font">
        <font>
@@ -464,21 +612,21 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="5" column="0">
+    <item row="7" column="0">
      <widget class="QPushButton" name="histoFileSelect">
       <property name="text">
        <string>Select file...</string>
       </property>
      </widget>
     </item>
-    <item row="5" column="1">
+    <item row="7" column="1">
      <widget class="QLineEdit" name="HistoLineEdit">
       <property name="readOnly">
        <bool>true</bool>
       </property>
      </widget>
     </item>
-    <item row="6" column="0" colspan="2">
+    <item row="8" column="0" colspan="2">
      <spacer name="verticalSpacer_25">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -494,7 +642,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </spacer>
     </item>
-    <item row="7" column="0" colspan="2">
+    <item row="9" column="0" colspan="2">
      <widget class="ctkCollapsibleButton" name="CollapsibleRaw">
       <property name="font">
        <font>
@@ -1096,7 +1244,7 @@ color: rgb(255, 255, 255);</string>
       </layout>
      </widget>
     </item>
-    <item row="9" column="0" colspan="2">
+    <item row="11" column="0" colspan="2">
      <spacer name="verticalSpacer_30">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -1112,7 +1260,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </spacer>
     </item>
-    <item row="10" column="0">
+    <item row="12" column="0">
      <widget class="QLabel" name="label_export">
       <property name="font">
        <font>
@@ -1129,7 +1277,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="10" column="1">
+    <item row="12" column="1">
      <widget class="QPushButton" name="ExportPushBotton">
       <property name="styleSheet">
        <string notr="true">background-color: #006666;
@@ -1140,7 +1288,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="12" column="0" colspan="2">
+    <item row="14" column="0" colspan="2">
      <widget class="QLabel" name="label_REIMS">
       <property name="font">
        <font>
@@ -1157,14 +1305,14 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="13" column="0">
+    <item row="15" column="0">
      <widget class="QPushButton" name="REIMSFileSelect">
       <property name="text">
        <string>Select...</string>
       </property>
      </widget>
     </item>
-    <item row="13" column="1">
+    <item row="15" column="1">
      <widget class="QTextBrowser" name="filenameREIMSBrowser">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
@@ -1190,7 +1338,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="14" column="1">
+    <item row="16" column="1">
      <widget class="QPushButton" name="REIMSFileLoad">
       <property name="styleSheet">
        <string notr="true">background-color: #1769aa;
@@ -1201,7 +1349,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="15" column="0" colspan="2">
+    <item row="17" column="0" colspan="2">
      <widget class="QTextBrowser" name="REIMSInformation">
       <property name="maximumSize">
        <size>
@@ -1218,7 +1366,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="16" column="0" colspan="2">
+    <item row="18" column="0" colspan="2">
      <spacer name="verticalSpacer_43">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -6027,6 +6175,12 @@ color: rgb(255, 255, 255);</string>
    <class>ctkCollapsibleButton</class>
    <extends>QWidget</extends>
    <header>ctkCollapsibleButton.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ctkCollapsibleGroupBox</class>
+   <extends>QGroupBox</extends>
+   <header>ctkCollapsibleGroupBox.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
