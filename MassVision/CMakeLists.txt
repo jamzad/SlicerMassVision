@@ -8,6 +8,7 @@ set(MODULE_PYTHON_SCRIPTS
   ${MODULE_NAME}Lib/Logic
   ${MODULE_NAME}Lib/Utils
   ${MODULE_NAME}Lib/VisiumVision
+  ${MODULE_NAME}Lib/STConfigurationController
   )
 
 set(MODULE_PYTHON_RESOURCES
