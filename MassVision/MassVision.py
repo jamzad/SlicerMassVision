@@ -211,7 +211,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.statGroup2combo.setVisible(False)
 
 		self.ui.STgroupBox.hide()
-
+		self.ui.CollapsibleMode.hide()
 
 		# Set logo in UI
 		logo_path = self.resourcePath('Icons/UI_nameM.png')
@@ -565,6 +565,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.modeButtonGroup = modeButtonGroup
 		self.ui.modeButtonGroup.connect("buttonToggled(QAbstractButton*,bool)", self.onModeChangeButton)
 		
+		self.ui.modeSwitchButton.connect("clicked()", self.toggleMode)
+
 		last_AppMode = slicer.app.settings().value("MassVision/Mode")
 		if last_AppMode==1:
 			self.ui.EMB_mode.setChecked(True)
@@ -573,6 +575,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		# Make sure parameter node is initialized (needed for module reload)
 		self.initializeParameterNode()
 
+	def toggleMode(self):
+		currentId = self.ui.modeButtonGroup.checkedId()
+		nextId = 1 if currentId == 0 else 0
+		self.ui.modeButtonGroup.button(nextId).click()
 
 	def _setupBrowserOnlyView(self):
 		#
@@ -753,6 +759,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 					if target_bg in ss and target_fg in ss:
 						w.setStyleSheet(newStyle)
 			
+			self.ui.modeSwitchButton.setStyleSheet(target_bg + target_fg)
+			self.ui.modeSwitchButton.setText("MassVision")
+
 			btns = ["ROIforLocalContrast", "RAWplaceFiducial", "placeFiducial", "placeFiducial_sim"]
 			[recolorButtonIcon(getattr(self.ui, btn), color=self.EmbedColor) for btn in btns]
 			[recolorTabIcon(self.ui.tabWidget, i, color=self.EmbedColor) for i in range(self.ui.tabWidget.count)]
@@ -961,7 +970,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		if self.AppMode==0:
 			filePaths = fileExplorer.getOpenFileName(None, "Import MSI data", "", "Structured CSV (*.csv);;Hierarchical HDF5 (*.h5);;Waters DESI Text (*.txt);;Continuous imzML (*.imzml);;All Files (*)")
 		elif self.AppMode==1:
-			filePaths = fileExplorer.getOpenFileName(None, "Import Channel-rich spatial data", "", "Spatial transcriptomics (*.h5ad);;NumPy array (*.npy);;Hierarchical HDF5 (*.h5);;Structured CSV (*.csv);;All Files (*)")
+			filePaths = fileExplorer.getOpenFileName(None, "Import Channel-rich spatial data", "", "NumPy array (*.npy);;Hierarchical HDF5 (*.h5);;Structured CSV (*.csv);;Spatial transcriptomics (*.h5ad);;All Files (*)")
 
 		return filePaths
 	

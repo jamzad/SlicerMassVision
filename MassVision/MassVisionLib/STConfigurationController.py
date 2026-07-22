@@ -117,10 +117,9 @@ class STConfigurationController:
             with open(filePath, "r", encoding="utf-8") as file:
                 configuration = json.load(file)
 
-            self._validateConfigurationStructure(configuration)
             self.showConfiguration(configuration)
 
-        except (OSError, ValueError, TypeError, json.JSONDecodeError) as error:
+        except (OSError, ValueError, TypeError) as error:
             slicer.util.errorDisplay(
                 f"Could not load the configuration.\n\n{error}",
                 windowTitle="Configuration Error",
@@ -131,8 +130,8 @@ class STConfigurationController:
         configuration = self.readConfiguration()
 
         return (
-            copy.deepcopy(configuration["processing"]),
-            copy.deepcopy(configuration["raster"]),
+            configuration["processing"],
+            configuration["raster"],
         )
 
     # ------------------------------------------------------------------
