@@ -1,15 +1,25 @@
 
 """
 MassVision
-
+module access within Slicer Python console:
+	MassVision = slicer.modules.massvision.widgetRepresentation().self()
+	peaks = MassVision.logic.peaks
 """
 
 import vtk, qt, slicer
 from slicer.ScriptedLoadableModule import *
 from slicer.util import VTKObservationMixin
 import logging
-import os
-from MassVisionLib.Logic import * 
+import os, re, json
+import numpy as np
+
+try:
+	import pandas as pd
+except ModuleNotFoundError:
+	slicer.util.pip_install("pandas")
+	import pandas as pd
+
+# from MassVisionLib.Logic import * 
 
 
 class MassVision(ScriptedLoadableModule):
@@ -77,7 +87,7 @@ class MassVisionTest(ScriptedLoadableModuleTest):
 
 		self.delayDisplay("Starting the test")
 
-		logic = MassVisionLogic()
+		# logic = MassVisionLogic()
 
 		self.delayDisplay('Test passed')
 
@@ -102,12 +112,16 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.EmbedColor = "#A35C36"
 		self.EmbedColor_btn = "#72300C" #80360E
 		self._blendCtrl = None
+		self.stConfigurationController = None
 
 	def setup(self):
 		"""
 		Called when the user opens the module the first time and the widget is initialized.
 		"""
 		ScriptedLoadableModuleWidget.setup(self)
+
+		from MassVisionLib.Logic import MassVisionLogic
+		from MassVisionLib.STConfigurationController import STConfigurationController
 
 		# Load widget from .ui file (created by Qt Designer).
 		uiWidget = slicer.util.loadUI(self.resourcePath('UI/MassVision.ui'))
@@ -196,6 +210,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.statGroup2Lab.setVisible(False)
 		self.ui.statGroup2combo.setVisible(False)
 
+		self.ui.STgroupBox.hide()
+		self.ui.CollapsibleMode.hide()
 
 		# Set logo in UI
 		logo_path = self.resourcePath('Icons/UI_nameM.png')
@@ -297,6 +313,26 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.rawrangeCheck.connect("clicked(bool)", self.onRawrangCheck)
 		self.ui.rawProcess.connect("clicked(bool)", self.onRawProcess)
 		
+		### ST data import
+		self.stConfigurationController = STConfigurationController(self.ui)
+
+		self.ui.STimport.connect("clicked(bool)", self.onSTimport)
+		self.ui.STconfDefault.connect(
+			"clicked(bool)",
+			self.stConfigurationController.restoreDefaults
+		)
+		self.ui.STconfSave.connect(
+			"clicked(bool)",
+			self.stConfigurationController.saveConfiguration
+		)
+		self.ui.STconfLoad.connect(
+			"clicked(bool)",
+			self.stConfigurationController.loadConfiguration
+		)
+
+		self.stConfigurationController.restoreDefaults()
+	
+
 		# ----- Robert button connection --------
 		self.ui.labelpeaksbutton.connect("clicked(bool)", self.onLabelPeaks)
 		self.ui.HMDBDownloadpushButton.connect("clicked(bool)", self.onUpdateHMDBDatabase)
@@ -529,6 +565,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.ui.modeButtonGroup = modeButtonGroup
 		self.ui.modeButtonGroup.connect("buttonToggled(QAbstractButton*,bool)", self.onModeChangeButton)
 		
+		self.ui.modeSwitchButton.connect("clicked()", self.toggleMode)
+
 		last_AppMode = slicer.app.settings().value("MassVision/Mode")
 		if last_AppMode==1:
 			self.ui.EMB_mode.setChecked(True)
@@ -537,6 +575,10 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		# Make sure parameter node is initialized (needed for module reload)
 		self.initializeParameterNode()
 
+	def toggleMode(self):
+		currentId = self.ui.modeButtonGroup.checkedId()
+		nextId = 1 if currentId == 0 else 0
+		self.ui.modeButtonGroup.button(nextId).click()
 
 	def _setupBrowserOnlyView(self):
 		#
@@ -717,6 +759,9 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 					if target_bg in ss and target_fg in ss:
 						w.setStyleSheet(newStyle)
 			
+			self.ui.modeSwitchButton.setStyleSheet(target_bg + target_fg)
+			self.ui.modeSwitchButton.setText("MassVision")
+
 			btns = ["ROIforLocalContrast", "RAWplaceFiducial", "placeFiducial", "placeFiducial_sim"]
 			[recolorButtonIcon(getattr(self.ui, btn), color=self.EmbedColor) for btn in btns]
 			[recolorTabIcon(self.ui.tabWidget, i, color=self.EmbedColor) for i in range(self.ui.tabWidget.count)]
@@ -910,7 +955,14 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		if file_path:
 			self.ui.ImportlineEdit.setText(file_path)
 			self.ui.ImportlineEdit.setToolTip(file_path)
-			self.onTextFileLoad()
+			if os.path.splitext(file_path)[1] == ".h5ad":
+				self.ui.STgroupBox.show()
+				self.ui.STcollapsibleGroupBox.collapsed = True
+				# self.STinfoLoad(file_path)
+			else:
+				self.ui.STgroupBox.hide()
+				self.onTextFileLoad(file_path)
+
 
 	def textFileSelect(self):
 		fileExplorer = qt.QFileDialog()
@@ -918,12 +970,12 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		if self.AppMode==0:
 			filePaths = fileExplorer.getOpenFileName(None, "Import MSI data", "", "Structured CSV (*.csv);;Hierarchical HDF5 (*.h5);;Waters DESI Text (*.txt);;Continuous imzML (*.imzml);;All Files (*)")
 		elif self.AppMode==1:
-			filePaths = fileExplorer.getOpenFileName(None, "Import Image Embeddings", "", "NumPy array (*.npy);;Hierarchical HDF5 (*.h5);;Structured CSV (*.csv);;All Files (*)")
+			filePaths = fileExplorer.getOpenFileName(None, "Import Channel-rich spatial data", "", "NumPy array (*.npy);;Hierarchical HDF5 (*.h5);;Structured CSV (*.csv);;Spatial transcriptomics (*.h5ad);;All Files (*)")
 
 		return filePaths
 	
-	def onTextFileLoad(self):
-		file_load = self.logic.textFileLoad(self.ui.ImportlineEdit.text)
+	def onTextFileLoad(self, file_path):
+		file_load = self.logic.textFileLoad(file_path)
 		if file_load:
 			tic_normalized = self.visRenormalize()
 			info = self.logic.getDataInformation() if tic_normalized else 'Error in TIC Normalization'
@@ -933,12 +985,46 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 		self.dataInfo = info
 		self.ui.dataInformation.setText(info)
 		self.logic.heatmap_display()
-		# if self.AppMode==0:
-		# 	self.logic.heatmap_display()
-		# elif self.AppMode==1:
-		# 	self.logic.pca_display()
 		self.populateMzLists()
   
+  	### ST data
+	def STinfoLoad(self, file_path):
+		info = self.logic.inspectSpatialTranscriptomics(file_path)
+		info = json.dumps(info, indent=4, ensure_ascii=False)
+		print(info)
+
+	# def onSTimport(self):
+	# 	try:
+	# 		STprocessing, STraster = self.getSTParameters()
+	# 	except:
+	# 		STprocessing, STraster = None, None
+	# 		print("Issue with loading the ST parameters, set to default")
+
+	# 	self.logic.STprocessing = STprocessing
+	# 	self.logic.STraster = STraster
+
+	# 	self.onTextFileLoad(self.ui.ImportlineEdit.text)
+
+	def onSTimport(self):
+		try:
+			STprocessing, STraster = (
+				self.stConfigurationController.getParameters()
+			)
+
+		except (ValueError, KeyError, TypeError) as error:
+			slicer.util.errorDisplay(
+				f"Could not load the spatial transcriptomics parameters."
+				f"\n\n{error}",
+				windowTitle="Configuration Error"
+			)
+			return
+
+		self.logic.STprocessing = STprocessing
+		self.logic.STraster = STraster
+
+		self.onTextFileLoad(self.ui.ImportlineEdit.text)
+
+
 	def onHistoSelect(self):
 		histoPath = self.HistofileSelect()
 		if histoPath:
@@ -3305,17 +3391,14 @@ def recolorTabIcon(tabWidget, index, color="#80350E"):
     newIcon = recolorQIcon(icon, color=color, size=size)
     tabWidget.setTabIcon(index, newIcon)
 
-import qt
-import re
 
 def updateUITexts(ui):
 	## change the labels for EmbedVision
-	ui.label_importMSI.setText("Import Embeddings")
+	ui.label_importMSI.setText("Import Channel-rich Data")
 	ui.label_importPATH.setText("Import Image")
 	ui.label_ionNorm.setText("feature")
 	ui.label_pixelNorm.setText("pixel")
 
-	import re
 	repl_map = {
 		"ion": "feature",
 		"ions": "features",

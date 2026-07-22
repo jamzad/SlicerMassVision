@@ -9,11 +9,11 @@ except ModuleNotFoundError:
 	slicer.util.pip_install("matplotlib")
 	import matplotlib as mpl
 
-import matplotlib.pyplot as plt
-# import matplotlib.cm as cm
-
 ## fix Mac crash
 mpl.use('Agg')
+
+import matplotlib.pyplot as plt
+# import matplotlib.cm as cm
 
 try:
 	from PIL import Image as PILImage
@@ -1103,7 +1103,11 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 	def pca_display(self):
 		# generates and displays the pca image
 		dim_reduction = PCA(n_components=3)
+
 		peaks_pca = dim_reduction.fit_transform(self.peaks_norm)
+		# dim_reduction.fit( pre_pca_prune(self.peaks_norm) )
+		# peaks_pca = dim_reduction.transform(self.peaks_norm)
+
 		peaks_pca = MinMaxScaler().fit_transform( peaks_pca )
 		
 		pca_image = peaks_pca.reshape((self.dim_y,self.dim_x,-1),order='C')
@@ -3011,6 +3015,8 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 			[peaks, mz, dim_y, dim_x] = self.MSI_contImzML2numpy(name)
 		elif data_extension == '.npy':
 			[peaks, mz, dim_y, dim_x] = self.EMB_numpy(name)
+		elif data_extension == '.h5ad':
+			[peaks, mz, dim_y, dim_x] = self.ST_rasterize(name)
 		else:
 			pass
 		
@@ -3018,7 +3024,7 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		self.mz_dtype = mz_dtype
 		self.mz_index = np.arange(len(mz))
 
-		self.peaks = peaks
+		self.peaks = np.nan_to_num(peaks)
 		self.mz = mz
 		self.dim_y = dim_y
 		self.dim_x = dim_x
@@ -3575,7 +3581,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		local_peaks = self.peaks_norm[local_peaks_ind]
 		local_pca = PCA(n_components=3)
 		local_scaler = MinMaxScaler()
+
 		local_peaks_pca = local_pca.fit_transform( local_scaler.fit_transform( local_peaks ) )
+		# local_peaks_pca = local_pca.fit_transform( local_scaler.fit_transform( pre_pca_prune(local_peaks) ) )
+
 		post_scaler = MinMaxScaler()
 		post_scaler.fit(local_peaks_pca)
 
@@ -3612,7 +3621,10 @@ class MassVisionLogic(ScriptedLoadableModuleLogic):
 		local_peaks = self.peaks_norm[local_peaks_ind]
 		local_pca = PCA(n_components=3)
 		local_scaler = MinMaxScaler()
+
 		local_peaks_pca = local_pca.fit_transform( local_scaler.fit_transform( local_peaks ) )
+		# local_peaks_pca = local_pca.fit_transform( local_scaler.fit_transform( pre_pca_prune(local_peaks) ) )
+		
 		post_scaler = MinMaxScaler()
 		post_scaler.fit(local_peaks_pca)
 
@@ -4711,6 +4723,43 @@ features:\t {len(self.mz)} """
 		for x,y in zip(class_names,class_lens):
 			retstr += f'   {str(y)}\t in class\t {x} \n'
 		return retstr
+
+#### Visium compatibility helpers ####
+	@staticmethod
+	def _spatialTranscriptomicsBackend():
+		"""Import the ST backend only when it is first needed."""
+		from MassVisionLib import VisiumVision
+
+		return VisiumVision
+
+	def inspectSpatialTranscriptomics(self, filePath):
+		"""Inspect an h5ad file without exposing backend details to the UI."""
+		backend = self._spatialTranscriptomicsBackend()
+
+		return backend.inspect_h5ad(filePath)
+
+	def importSpatialTranscriptomics(
+		self,
+		filePath,
+		processing=None,
+		raster=None,
+	):
+		"""Convert an h5ad file to a MassVision-compatible representation."""
+		backend = self._spatialTranscriptomicsBackend()
+
+		return backend.h5ad_to_spot_footprint_cube(
+			filePath,
+			processing=processing,
+			raster=raster,
+		)
+	
+	def ST_rasterize(self, st_file):
+		result = self.importSpatialTranscriptomics(st_file, self.STprocessing, self.STraster)
+		gene_names = result.gene_names
+		raster_cube = result.raster_cube
+		dim_y, dim_x, _ = raster_cube.shape
+		raster_cube = raster_cube.reshape((dim_y*dim_x,-1),order='C')
+		return raster_cube, gene_names, dim_y, dim_x
 
 
 #### Blending helpers ####
@@ -5920,3 +5969,14 @@ def variance_filter_mask(peaks, method="iqr", percentage=10):
     ind = ~remove_mask
 
     return ind, scores
+
+def pre_pca_prune(arr, unique=False):
+	# remove all-zero and repeated samples
+	non_zero_mask = np.any(arr != 0, axis=1)
+	filtered_np = arr[non_zero_mask]
+	
+	if unique:
+		# filtered_np = pd.DataFrame(filtered_np).drop_duplicates().to_numpy()
+		filtered_np = np.unique(filtered_np, axis=0)
+	
+	return filtered_np
