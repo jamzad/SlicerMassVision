@@ -19,8 +19,7 @@ import json
 import qt
 import slicer
 
-from MassVisionLib.VisiumVision import DEFAULT_PROCESSING, DEFAULT_RASTER
-
+from MassVisionLib.STDefaults import DEFAULT_PROCESSING, DEFAULT_RASTER
 
 class STConfigurationController:
     """Manage the spatial transcriptomics configuration widgets."""
