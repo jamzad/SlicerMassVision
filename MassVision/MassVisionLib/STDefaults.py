@@ -3,6 +3,7 @@
 # User-facing configuration - default parameters for spatial transcriptomics 
 # ---------------------------------------------------------------------------
 
+from typing import Any
 
 DEFAULT_PROCESSING: dict[str, Any] = {
     # Matrix input ---------------------------------------------------------
