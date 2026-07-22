@@ -4726,10 +4726,19 @@ features:\t {len(self.mz)} """
 
 #### Visium compatibility helpers ####
 	@staticmethod
-	def _spatialTranscriptomicsBackend():
-		"""Import the ST backend only when it is first needed."""
-		from MassVisionLib import VisiumVision
+	def _ensureSpatialTranscriptomicsDependencies():
+		"""Ensure optional spatial-transcriptomics dependencies are available."""
+		slicer.packaging.pip_ensure(
+			"typing-extensions>=4.16.0 anndata scanpy scikit-misc",
+			requester="MassVision spatial transcriptomics",
+		)
 
+	@staticmethod
+	def _spatialTranscriptomicsBackend():
+		"""Ensure and import the ST backend only when first needed."""
+		MassVisionLogic._ensureSpatialTranscriptomicsDependencies()
+
+		from MassVisionLib import VisiumVision
 		return VisiumVision
 
 	def inspectSpatialTranscriptomics(self, filePath):
