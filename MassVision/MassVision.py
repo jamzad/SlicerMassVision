@@ -19,6 +19,7 @@ except ModuleNotFoundError:
 	slicer.util.pip_install("pandas")
 	import pandas as pd
 
+import slicer.packaging
 # from MassVisionLib.Logic import * 
 
 
