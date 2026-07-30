@@ -44,6 +44,8 @@ Contents
    Statistical Analysis
    AI Model Training
    AI Model Deployment
+   Identification
+   EmbedVision
    News and Updates
    Data Structure
    Functions and Formulations
