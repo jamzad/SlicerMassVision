@@ -5362,7 +5362,7 @@ def plot_custom_boxplot(grouped_data, groups, mz_title, figsize=(5,5), save_path
 	ax.set_xticklabels(groups, rotation=45, ha='right')
 	ax.set_ylabel("intensity")
 	ax.set_title(f"m/z {mz_title}", fontstyle='italic')
-	ax.set_ylim(bottom=0)
+	# ax.set_ylim(bottom=0)
 	ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
 	ax.spines['top'].set_visible(False)
 	ax.spines['right'].set_visible(False)
