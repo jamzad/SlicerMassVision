@@ -743,7 +743,8 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 			
 			# disable irrelevant tabs
 			# [self.ui.tabWidget.setTabEnabled(x,False) for x in range(4,self.ui.tabWidget.count)]
-			[self.ui.tabWidget.setTabEnabled(x,False) for x in [4,9,10]]
+			disable_tabes = [4,5,9,10]
+			[self.ui.tabWidget.setTabEnabled(x,False) for x in disable_tabes]
 
 			# change style and color
 			target_bg  = "background-color: #006666;"
@@ -769,7 +770,7 @@ class MassVisionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 			# disable unnecessary buttons
 			# for i in range(4, 10):  # 3 to 9 inclusive
-			for i in [4,9,10]:
+			for i in disable_tabes:
 				btn = getattr(self.ui, f"Go2tab{i}")
 				btn.setEnabled(False)
 			# btns = ["database1", "database2"]
@@ -3407,6 +3408,7 @@ def updateUITexts(ui):
 		"spectrum": "pixel",
 		"spectra": "pixels",
 		"m/z": "",
+		"(m/z)": "",
 	}
 
 	# Build one big regex that matches ANY key in repl_map
